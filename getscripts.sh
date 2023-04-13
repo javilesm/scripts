@@ -28,7 +28,7 @@ find "$path" -type f -name "*.sh" -exec mv {} $(dirname {})/$(basename {} .sh) \
 find "$path" -type f -exec chmod +x {} +
 
 # Crear enlaces simbólicos en /usr/local/bin/
-for script in "$path"*; do
+for script in $path*; do
   if [ -f "$script" ]; then
     ln -sf "$script" "/usr/local/bin/$(basename "$script")"
   fi
