@@ -31,5 +31,9 @@ sleep 5
 # Comando para copiar el archivo de respaldo a S3 utilizando awscli
 echo "Sincronizando con S3..."
 aws s3 sync $BACKUP_DIR $DESTINATION_DIR
-
 echo "Copia de seguridad realizada con exito..."
+
+# Agregar tarea de cron para la copia de seguridad diaria
+CRON_LINE="0 0 * * * /home/ubuntu/scripts/s3snap"
+(crontab -l ; echo "$CRON_LINE") | sort - | uniq - | crontab -
+echo "Crontab actualizado con exito..."
