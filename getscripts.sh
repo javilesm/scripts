@@ -17,16 +17,25 @@ else
   git clone $git_url $git_path
 fi
 
-echo "¡Clonado/Actualizado exitosamente!"
-
 # Copiar todo el contenido del directorio de origen al directorio de destino
 cp -rf $git_path* $path
+echo "¡Clonado/Actualizado exitosamente!"
+
+# Eliminar la extensión ".sh" de los archivos copiados
+find "$path" -type f -name "*.sh" -exec mv {} $(dirname {})/$(basename {} .sh) \;
 
 # Asignar permisos de ejecución a cada archivo copiado
 find "$path" -type f -exec chmod +x {} +
 
-# Eliminar la extensión ".sh" de los archivos copiados
-find "$path/" -name "*.sh" -type f -exec bash -c 'mv "$1" "${1%.sh}"' _ {} \;
+# Crear enlaces simbólicos en /usr/local/bin/
+for script in "$path"*; do
+  if [ -f "$script" ]; then
+    ln -sf "$script" "/usr/local/bin/$(basename "$script")"
+  fi
+done
+
+# Actualiza la sesión de tu terminal ejecutando source en el archivo de perfil de shell 
+source ~/.bashrc
 
 echo "El contenido del directorio $git_path se ha copiado correctamente a $path con permisos de ejecución."
 exit 0
