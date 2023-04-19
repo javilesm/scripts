@@ -41,8 +41,8 @@ source "$BASHRC_PATH"
 echo "Python $CURRENT_PYTHON_VERSION se ha instalado correctamente."
 
 # otorgar permisos de ejecución
-chmod +x /workspaces/scripts/install_packages.sh
-chmod +x /workspaces/scripts/install_env.sh
+chmod +x /workspaces/scripts/python_installpackages.sh
+chmod +x /workspaces/scripts/python_installenv.sh
 
 # Instalar paquetes
 ./python_installpackages.sh
