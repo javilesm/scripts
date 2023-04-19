@@ -45,9 +45,9 @@ chmod +x /workspaces/scripts/install_packages.sh
 chmod +x /workspaces/scripts/install_env.sh
 
 # Instalar paquetes
-./install_packages.sh
+./python_installpackages.sh
 
 # Instalar entornos
-./install_env.sh
+./python_installenv.sh
 
 echo "¡La instalación de Python, Flask y Django ha sido completada!"
