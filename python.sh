@@ -1,3 +1,10 @@
+#! /bin/bash
+# SCRIPT DE INSTALACION DE PYYHON, DEPENDENCIAS Y AMBIENTES
+
+# Variables de directorios para dependencias y ambientes
+PACKAGES="python_installpackages.sh" # Directorio de dependencias
+ENVIRONMENTS="python_installenv.sh" # Directorio de ambientes
+
 # Instalar Pyhon3
 echo "Instalando python3..."
 if ! sudo apt-get install -y python3; then
@@ -40,14 +47,17 @@ source "$BASHRC_PATH"
 # Mostrar mensaje de instalación completada
 echo "Python $CURRENT_PYTHON_VERSION se ha instalado correctamente."
 
-# otorgar permisos de ejecución
-chmod +x /workspaces/scripts/python_installpackages.sh
-chmod +x /workspaces/scripts/python_installenv.sh
+# Obtener la ruta actual
+CURRENT_PATH=$PWD
+
+# Otorgar permisos de ejecución a los scripts
+chmod +x "$CURRENT_PATH/$PACKAGES"
+chmod +x "$CURRENT_PATH/$ENVIRONMENTS"
 
 # Instalar paquetes
-./python_installpackages.sh
+"$CURRENT_PATH/$PACKAGES"
 
 # Instalar entornos
-./python_installenv.sh
+"$CURRENT_PATH/$ENVIRONMENTS"
 
 echo "¡La instalación de Python, Flask y Django ha sido completada!"
