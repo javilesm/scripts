@@ -1,50 +1,64 @@
 #! /bin/bash
-# SCRIPT DE INSTALACION DE PYYHON, DEPENDENCIAS Y AMBIENTES
-
+# SCRIPT DE INSTALACION DE PYTHON, DEPENDENCIAS Y AMBIENTES
+echo "***SCRIPT DE INSTALACION DE PYTHON, DEPENDENCIAS Y AMBIENTES***"
 # Obtener la ruta actual
-CURRENT_PATH=$PWD
+CURRENT_PATH=$(dirname "$(readlink -f "$0")")
 
-# Variables de directorios para dependencias y ambientes
-PACKAGES="python_packages.sh" # Script para instalar paquetes pip
-ENVIRONMENTS="python_environments.sh" # Script para instalar entornos virtuales
-DEPENDENCIES="python_dependencies.sh" # Script para instalar dependencias python
+# Función para validar la existencia de un archivo
+function file_exists {
+    if [ ! -f "$1" ]; then
+        echo "El archivo $1 no existe."
+        exit 1
+    fi
+}
 
-# Otorgar permisos de ejecución a los scripts
-chmod +x "$CURRENT_PATH/$PACKAGES"
-chmod +x "$CURRENT_PATH/$ENVIRONMENTS"
-chmod +x "$CURRENT_PATH/$DEPENDENCIES"
+# Función para ejecutar un script y manejar errores de manera recursiva
+function execute_script {
+    if ! bash "$1"; then
+        echo "Se produjo un error al ejecutar el script $1."
+        exit 1
+    fi
 
-# Instalar dependencias python
-"$CURRENT_PATH/$DEPENDENCIES"
+    # Buscar sub-scripts y ejecutarlos recursivamente
+    for file in "$CURRENT_PATH"/*.sh; do
+        if [ "$file" != "$1" ]; then
+            execute_script "$file"
+        fi
+    done
+}
 
-# Obtener la versión de Python instalada en el sistema
-CURRENT_PYTHON_VERSION=$(python3 --version | awk '{print $2}')
-echo "La versión de Python instalada en el sistema es: $CURRENT_PYTHON_VERSION"
+# Función para instalar Python
+function install_python {
+    # Verificar que Python no está instalado
+    if ! command -v python3 >/dev/null 2>&1; then
+        # Instalar Python
+        echo "Instalando Python..."
+        sudo apt-get update
+        sudo apt-get install -y python3
+        echo "Python ha sido instalado."
+    else
+        echo "Python ya está instalado."
+    fi
 
-# Agregar Python al PATH del usuario
-echo "Agregando Python al PATH del usuario..."
+    # Ejecutar los sub-scripts recursivamente
+    for file in "$CURRENT_PATH"/*.sh; do
+        if [ "$file" != "$0" ]; then
+            execute_script "$file"
+        fi
+    done
+}
 
-# Buscar la ruta de ubicación del archivo .bashrc
-BASHRC_PATH=$(find /home/ -name ".bashrc" 2>/dev/null)
+# Validar la existencia de los sub-scripts a ejecutar
+file_exists "$CURRENT_PATH/python_dependencies"
+file_exists "$CURRENT_PATH/python_packages"
+file_exists "$CURRENT_PATH/python_environments"
 
-if [ -z "$BASHRC_PATH" ]; then
-    echo "No se encontró el archivo .bashrc en el sistema."
-else
-    echo "La ruta de ubicación del archivo .bashrc es: $BASHRC_PATH"
-    echo 'export PATH="/usr/local/bin:$PATH"' >> "$BASHRC_PATH"
-    echo 'export PATH="/usr/local/python/'"$CURRENT_PYTHON_VERSION"'/bin:$PATH"' >>"$BASHRC_PATH"
-fi
+# Instalar Python y ejecutar los sub-scripts
+install_python
 
-# Actualizar el .bashrc
-source "$BASHRC_PATH"
+# Eliminar los paquetes que fueron instalados como dependencias de otros paquetes, pero que ya no son necesarios
+echo "Eliminando los paquetes que fueron instalados como dependencias de otros paquetes, pero que ya no son necesarios."
+sudo apt autoremove
+echo "Paquetes eliminados."
 
-# Mostrar mensaje de instalación completada
-echo "Python $CURRENT_PYTHON_VERSION se ha instalado correctamente."
-
-# Instalar paquetes pip
-"$CURRENT_PATH/$PACKAGES"
-
-# Instalar entornos virtuales
-"$CURRENT_PATH/$ENVIRONMENTS"
-
-echo "¡La instalación de Python, Flask y Django ha sido completada!"
+echo "¡La instalación de Python con dependencias, paquetes y entornos ha sido completada!"
