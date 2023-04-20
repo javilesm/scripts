@@ -1,27 +1,21 @@
 #! /bin/bash
 # SCRIPT DE INSTALACION DE PYYHON, DEPENDENCIAS Y AMBIENTES
 
+# Obtener la ruta actual
+CURRENT_PATH=$PWD
+
 # Variables de directorios para dependencias y ambientes
-PACKAGES="python_installpackages.sh" # Directorio de dependencias
-ENVIRONMENTS="python_installenv.sh" # Directorio de ambientes
+PACKAGES="python_installpackages.sh" # Script para instalar paquetes pip
+ENVIRONMENTS="python_installenv.sh" # Script para instalar entornos virtuales
+DEPENDENCIES="python_dependencies.sh" # Script para instalar dependencias python
 
-# Instalar Pyhon3
-echo "Instalando python3..."
-if ! sudo apt-get install -y python3; then
-  echo "Error al instalar Python3. Saliendo..."
-  exit 1
-fi
-echo "python3 se ha instalado correctamente."
+# Otorgar permisos de ejecución a los scripts
+chmod +x "$CURRENT_PATH/$PACKAGES"
+chmod +x "$CURRENT_PATH/$ENVIRONMENTS"
+chmod +x "$CURRENT_PATH/$DEPENDENCIES"
 
-# Instalar Pyhon3-pip
-echo "Instalando python3-pip..."
-if ! sudo apt-get install -y python3-pip; then
-  echo "Error al instalar Python3-pip. Saliendo..."
-  exit 1
-fi
-echo "python3-pip se ha instalado correctamente."
-
-sudo apt autoremove
+# Instalar dependencias python
+"$CURRENT_PATH/$DEPENDENCIES"
 
 # Obtener la versión de Python instalada en el sistema
 CURRENT_PYTHON_VERSION=$(python3 --version | awk '{print $2}')
@@ -47,17 +41,10 @@ source "$BASHRC_PATH"
 # Mostrar mensaje de instalación completada
 echo "Python $CURRENT_PYTHON_VERSION se ha instalado correctamente."
 
-# Obtener la ruta actual
-CURRENT_PATH=$PWD
-
-# Otorgar permisos de ejecución a los scripts
-chmod +x "$CURRENT_PATH/$PACKAGES"
-chmod +x "$CURRENT_PATH/$ENVIRONMENTS"
-
-# Instalar paquetes
+# Instalar paquetes pip
 "$CURRENT_PATH/$PACKAGES"
 
-# Instalar entornos
+# Instalar entornos virtuales
 "$CURRENT_PATH/$ENVIRONMENTS"
 
 echo "¡La instalación de Python, Flask y Django ha sido completada!"
