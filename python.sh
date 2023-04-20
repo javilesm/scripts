@@ -5,8 +5,8 @@
 CURRENT_PATH=$PWD
 
 # Variables de directorios para dependencias y ambientes
-PACKAGES="python_installpackages.sh" # Script para instalar paquetes pip
-ENVIRONMENTS="python_installenv.sh" # Script para instalar entornos virtuales
+PACKAGES="python_packages.sh" # Script para instalar paquetes pip
+ENVIRONMENTS="python_environments.sh" # Script para instalar entornos virtuales
 DEPENDENCIES="python_dependencies.sh" # Script para instalar dependencias python
 
 # Otorgar permisos de ejecución a los scripts
