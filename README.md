@@ -1,5 +1,5 @@
-├── scripts
-│   ├── runserver.sh
+├── Run server scripts
+│   ├── run_scripts.sh
 │   │   ├── python.sh
 │   │   │   ├── python_installpackages.sh
 │   │   │   │   └── packages.txt
@@ -15,7 +15,7 @@
 │   │   └── php.sh
 │   │       └── php_config.sh
 │   └── jq.sh
-└── Utilities scripts
+└── Utilities
     ├── chatgpt.sh
     ├── confirm.sh
     ├── ec2snap.sh
