@@ -40,12 +40,6 @@ function install_python {
         echo "Python ya está instalado."
     fi
 
-    # Ejecutar los sub-scripts recursivamente
-    for file in "$CURRENT_PATH"/*.sh; do
-        if [ "$file" != "$0" ]; then
-            execute_script "$file"
-        fi
-    done
 }
 
 # Validar la existencia de los sub-scripts a ejecutar
