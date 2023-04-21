@@ -1,7 +1,6 @@
 #!/bin/bash
-# Python_Environments
+# python_environments.sh
 echo "***SCRIPT INSTALACION DE ENTORNOS VIRTUALES PYTHON***"
-
 instalar_entornos() {
   while read entorno; do
     echo "Comenzando la instalación de $entorno..."
@@ -22,17 +21,14 @@ instalar_entornos() {
     deactivate
   done < "$1"
 }
-
 # Obtenemos la ruta absoluta del directorio actual donde se encuentra el script y el archivo de entornos
 DIRECTORIO_ACTUAL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # Verificamos si el archivo "environments.txt" existe en el directorio actual
 ENVIRONMENTS_FILE="$DIRECTORIO_ACTUAL/environments.txt"
 if [ ! -f "$ENVIRONMENTS_FILE" ]; then
   echo "Error: el archivo de entornos no se encontró en $DIRECTORIO_ACTUAL. Por favor, asegúrese de que el archivo se llame 'environments.txt' y esté en el directorio correcto."
   exit 1
 fi
-
 # Realizamos la instalación de manera recursiva
 echo "Comenzando la instalación de los entornos virtuales de Python..."
 instalar_entornos "$ENVIRONMENTS_FILE"
