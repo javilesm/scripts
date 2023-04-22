@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script para instalar AWS CLI
 
-AWS_CONFIG="aws_config.sh"
+AWS_CONFIG="aws_config"
 
 # Validar permisos de administrador
 if [ "$(id -u)" != "0" ]; then
