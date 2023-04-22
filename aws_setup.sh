@@ -1,8 +1,8 @@
 #!/bin/bash
-# aws.sh
+# aws_setup.sh
 # Variables
 AWS_CONFIG="aws_config" # Script configurador
-CURRENT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" # Obtener el directorio actual
+CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 # Función para validar permisos de administrador
 function validate_admin_permissions() {
 if [ "$(id -u)" != "0" ]; then
@@ -48,6 +48,7 @@ sudo "$CURRENT_PATH/$AWS_CONFIG" || { echo "Ha ocurrido un error al ejecutar el 
 }
 
 function main() {
+  echo "**********AWS***********"
    validate_admin_permissions
    update_system
    install_aws_cli || exit 1
