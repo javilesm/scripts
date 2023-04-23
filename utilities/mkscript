@@ -1,5 +1,5 @@
 #!/bin/bash
-# mkshell.sh
+# mkscript.sh
 echo "Script para generar scripts"
 
 # Verifica si el directorio "/home/ubuntu/scripts" existe
