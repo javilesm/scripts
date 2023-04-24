@@ -1,0 +1,2 @@
+ppa:ondrej/php
+ppa:ondrej/nginx
