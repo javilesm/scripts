@@ -34,7 +34,7 @@ function create_envs() {
       continue
     fi
     echo "Creando entorno virtual $env..."
-    python3 -m venv "$env"
+    sudo python3 -m venv "$env"
   done < "$CURRENT_DIR/$FILE"
 }
 function install_python_packages () {
