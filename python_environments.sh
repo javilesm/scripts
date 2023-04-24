@@ -1,35 +1,62 @@
 #!/bin/bash
 # python_environments.sh
-echo "***SCRIPT INSTALACION DE ENTORNOS VIRTUALES PYTHON***"
-instalar_entornos() {
-  while read entorno; do
-    echo "Comenzando la instalación de $entorno..."
-    if ! sudo -H pip3 install virtualenv; then
-      echo "Error al instalar virtualenv. Por favor, verifique su conexión a Internet e inténtelo de nuevo."
-      exit 1
-    fi
-    if [ ! -d "$entorno" ]; then
-      virtualenv "$entorno"
-    fi
-    source "$entorno"/bin/activate
-    echo "Instalando paquetes en el entorno virtual $entorno..."
-    if ! sudo -H pip3 install -r "$entorno/requirements.txt"; then
-      echo "Error al instalar paquetes en el entorno virtual $entorno. Por favor, verifique su conexión a Internet e inténtelo de nuevo."
-      exit 1
-    fi
-    echo "Todos los paquetes se han instalado correctamente en el entorno virtual $entorno."
-    deactivate
-  done < "$1"
+# Variables
+FILE="environments.txt"
+PACKAGES="python_packages.sh"
+# Funciones
+function usage() {
+  echo "Este script crea entornos virtuales de Python."
+  echo "Se espera que haya un archivo $FILE con una lista de nombres de entornos virtuales, uno por línea."
+  echo "El sub-script $PACKAGES se utiliza para instalar paquetes de Python."
+  echo ""
+  echo "Uso: ./python_environments.sh"
+  echo ""
 }
-# Obtenemos la ruta absoluta del directorio actual donde se encuentra el script y el archivo de entornos
-DIRECTORIO_ACTUAL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Verificamos si el archivo "environments.txt" existe en el directorio actual
-ENVIRONMENTS_FILE="$DIRECTORIO_ACTUAL/environments.txt"
-if [ ! -f "$ENVIRONMENTS_FILE" ]; then
-  echo "Error: el archivo de entornos no se encontró en $DIRECTORIO_ACTUAL. Por favor, asegúrese de que el archivo se llame 'environments.txt' y esté en el directorio correcto."
-  exit 1
-fi
-# Realizamos la instalación de manera recursiva
-echo "Comenzando la instalación de los entornos virtuales de Python..."
-instalar_entornos "$ENVIRONMENTS_FILE"
-echo "Todos los entornos virtuales han sido instalados correctamente."
+function check_command() {
+  echo "Verificando si el comando dado está instalado en el sistema..."
+  command -v "$1" >/dev/null 2>&1 || {
+    echo >&2 "El comando $1 no está instalado. Por favor instale $1 y vuelva a intentarlo."
+    exit 1
+  } # Verifica si el comando dado está instalado en el sistema
+}
+function read_directory() {
+  echo "Obteniendo la ruta absoluta del script y el directorio padre..."
+  CURRENT_DIR=$(dirname "$(realpath "$BASH_SOURCE")") # Obtener la ruta absoluta del script y el directorio padre
+  export CURRENT_DIR
+}
+function create_envs() {
+  echo "Creando entornos virtuales..."
+
+  # Verificar si el archivo "environments.txt" existe y no está vacío
+  if [ ! -f "$CURRENT_DIR/$FILE" ] || [ ! -s "$CURRENT_DIR/$FILE" ]; then
+    echo "El archivo $CURRENT_DIR/$FILE no existe o está vacío."
+    exit 1
+  fi
+
+  echo "Leyendo la lista de entornos virtuales desde el archivo $CURRENT_DIR/$FILE..."
+
+  # Iterar sobre la lista de entornos virtuales y crearlos uno por uno
+  while read -r env || [ -n "$env" ]; do
+    if [ -z "$env" ]; then
+      continue
+    fi
+    echo "Creando entorno virtual $env..."
+    python3 -m venv "$env"
+  done < "$CURRENT_DIR/$FILE"
+}
+function install_python_packages () {
+  echo "Ejecutando el sub-script para instalar paquetes de Python..."
+  # Ejecuta el sub-script para instalar paquetes de Python
+  sudo bash $CURRENT_DIR/$PACKAGES
+}
+function python_environments () {
+  echo "****PYTHON ENVIRONMENTS****"
+  usage
+  check_command
+  read_directory
+  create_envs
+  #install_python_packages
+  echo "El proceso de instalación de entornos virtuales ha finalizado."
+}
+# Llamar a la función principal
+python_environments
