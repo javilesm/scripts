@@ -1,5 +1,8 @@
 #! /bin/bash
-# lemp.sh
+# lemp_install.sh
+# Variables
+REPO_FILE="repositories.txt"
+REPO_PATH=$(dirname "$0")/$REPO_FILE
 # Verificar que el usuario tiene permisos de administrador
 if [[ $(id -u) -ne 0 ]]; then
     echo "Este script debe ser ejecutado con permisos de administrador."
@@ -10,17 +13,15 @@ function update_packages () {
   echo "Actualizando paquetes..."
   sudo apt update -qq
 }
-# Función para instalar repositorios
-function install_repositories () {
-  echo "Instalando repositorios..."
-  if ! yes '' | sudo add-apt-repository ppa:ondrej/php -qq; then
-      echo "No se pudo agregar el repositorio de PHP"
-      exit 1
-  fi
-  if ! yes '' | sudo add-apt-repository ppa:ondrej/nginx -qq; then
-      echo "No se pudo agregar el repositorio de NGINX"
-      exit 1
-  fi
+# Función para agregar repositorios
+function add_repositories () {
+    echo "Agregando repositorios..."
+    while read -r repository; do
+        if ! yes '' | sudo add-apt-repository "$repository" -qq; then
+        echo "No se pudo agregar el repositorio: $repository"
+        exit 1
+        fi
+    done < "$REPO_PATH"
 }
 # Función para instalar Tree si no está instalado
 function install_tree () {
@@ -83,10 +84,10 @@ function install_php () {
   fi
 }
 # Función principal
-function lemp () {
+function lemp_install () {
     echo "*******LEMP******"
     update_packages
-    install_repositories
+    add_repositories
     update_packages
     install_tree
     install_zip
@@ -96,4 +97,4 @@ function lemp () {
     echo "LEMP instalado correctamente."
 }
 # Llamar a la funcion princial
-lemp
+lemp_install
