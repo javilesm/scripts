@@ -33,6 +33,10 @@ function create_envs() {
     if [ -z "$env" ]; then
       continue
     fi
+    if [ -d "$env" ]; then
+      echo "El entorno virtual $env ya existe, no se instalará de nuevo."
+      continue
+    fi
     echo "Creando entorno virtual $env..."
     sudo python3 -m venv "$env"
   done < "$CURRENT_DIR/$FILE"
