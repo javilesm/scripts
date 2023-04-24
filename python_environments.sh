@@ -9,15 +9,8 @@ function usage() {
   echo "Se espera que haya un archivo $FILE con una lista de nombres de entornos virtuales, uno por línea."
   echo "El sub-script $PACKAGES se utiliza para instalar paquetes de Python."
   echo ""
-  echo "Uso: ./python_environments.sh"
+  echo "Uso: ./$PACKAGES"
   echo ""
-}
-function check_command() {
-  echo "Verificando si el comando dado está instalado en el sistema..."
-  command -v "$1" >/dev/null 2>&1 || {
-    echo >&2 "El comando $1 no está instalado. Por favor instale $1 y vuelva a intentarlo."
-    exit 1
-  } # Verifica si el comando dado está instalado en el sistema
 }
 function read_directory() {
   echo "Obteniendo la ruta absoluta del script y el directorio padre..."
@@ -52,7 +45,6 @@ function install_python_packages () {
 function python_environments () {
   echo "****PYTHON ENVIRONMENTS****"
   usage
-  check_command
   read_directory
   create_envs
   #install_python_packages
