@@ -52,19 +52,21 @@ echo "Verificando los permisos de edición del archivo .bashrc"
 }
 # Función para actualizar el archivo .bashrc
 function add_to_bashrc () {
+  CURRENT_PATH=$(dirname "$(readlink -f "$0")") # Obtener la ruta actual del script
   echo "Actualizando el archivo .bashrc..."
   echo 'export PATH="/usr/local/bin:$PATH"' >> "$BASHRC_PATH"
+  echo 'export PATH="'"$CURRENT_PATH"'/utilities:$PATH"' >> "$BASHRC_PATH"
   echo 'export PATH="/usr/local/python/'"$CURRENT_PYTHON_VERSION"'/bin:$PATH"' >>"$BASHRC_PATH"
   if ! source "$BASHRC_PATH"; then
         echo "No se pudo actualizar el archivo $BASHRC_PATH."
         exit 1
   fi
-  echo "$BASHRC_PATH ha sido actualizado exitosamente." 
+  echo "$BASHRC_PATH ha sido actualizado exitosamente."
+  export CURRENT_PATH
 }
 # Funcion para ejecutar scripts complementarios
 function run_python_scripts () {
   echo "Obteniendo parámetros de configuración..."
-  CURRENT_PATH=$(dirname "$(readlink -f "$0")") # Obtener la ruta actual del script
   PARAMETERS_FILE="python_config.cfg" # Parámetros de configuración
   echo "La ruta de los parámetros de configuración es: $CURRENT_PATH/$PARAMETERS_FILE"
   source "$CURRENT_PATH/$PARAMETERS_FILE" # Ruta a los parámetros de configuración
