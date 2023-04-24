@@ -1,7 +1,7 @@
 #!/bin/bash
 # aws_install.sh
 # Variables
-AWS_CONFIG="aws_config" # Script configurador
+AWS_CONFIG="aws_config.sh" # Script configurador
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 # Función para validar permisos de administrador
 function validate_admin_permissions() {
