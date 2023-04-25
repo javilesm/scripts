@@ -1,8 +1,9 @@
 #!/bin/bash
 # aws_install.sh
 # Variables
-AWS_CONFIG="aws_config.sh" # Script configurador
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+AWS_CONFIG="aws_config.sh" # Script configurador
+AWS_CONFIG_PATH="$CURRENT_PATH/$AWS_CONFIG"
 # Función para validar permisos de administrador
 function validate_admin_permissions() {
   if [ "$(id -u)" != "0" ]; then
@@ -32,18 +33,19 @@ function check_aws_config_file() {
 # Función para ejecutar configurador AWS CLI
 function run_aws_cli_configurator() {
   echo "Ejecutando configurador de AWS CLI."
-  echo "Ubicación del configurador: $CURRENT_PATH/$AWS_CONFIG"
-  sudo "$CURRENT_PATH/$AWS_CONFIG" || { echo "Ha ocurrido un error al ejecutar el configurador de AWS CLI."; exit 1; }
+  echo "Ubicación del configurador: $AWS_CONFIG_PATH"
+  sudo "$AWS_CONFIG_PATH" || { echo "Ha ocurrido un error al ejecutar el configurador de AWS CLI."; exit 1; }
 }
 # Función principal
 function aws_install () {
   echo "**********AWS INSTALL***********"
   validate_admin_permissions
   update_system
-  install_aws_cli || exit 1
+  install_aws_cli
   install_s3fs
   check_aws_config_file
   run_aws_cli_configurator
+  echo "**********ALL DONE***********"
 }
 # Llamar a la función principal
 aws_install
