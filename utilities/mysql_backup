@@ -3,7 +3,7 @@
 # Variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 DBS_FILE="mysql_db.csv"
-DBS_PATH="$SCRIPT_DIR/$DBS_FILE"
+DBS_PATH="$SCRIPT_DIR/../MySQL/$DBS_FILE"
 BACKUP_DIR="$SCRIPT_DIR/mysqlbackups"
 BACKUP_FILE="$(date +'%Y-%m-%d-%H-%M-%S').sql"
 USER="root"
