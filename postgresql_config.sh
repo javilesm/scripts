@@ -4,6 +4,8 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 USER_FILE="postgresql_users.csv"
 USERS_PATH="$SCRIPT_DIR/$USER_FILE"
+DBS_FILE="postgresql_db.csv"
+DBS_PATH="$SCRIPT_DIR/$USER_FILE"
 
 # Función para verificar si se ejecuta el script como root
 function check_root() {
@@ -12,21 +14,35 @@ function check_root() {
         exit 1
     fi
 }
-# Función para crear una base de datos en PostgreSQL
-function create_db() {
-    echo "Creando una base de datos en PostgreSQL..."
-    # Solicitar el nombre de la base de datos
-    read -p "Introduzca el nombre de la base de datos: " dbname
-
-    # Crear base de datos
-    sudo -u postgres psql -c "CREATE DATABASE $dbname;"
-
-    # Verificar que la base de datos se ha creado correctamente
-    if ! sudo -u postgres psql -lqt | cut -d | -f 1 | grep -wq $dbname
-    then
-        echo "No se ha podido crear la base de datos."
+# Función para verificar la existencia del archivo de usuarios
+function check_user_file() {
+    if [ ! -f "$USERS_PATH" ]; then
+        echo "El archivo de usuarios $USER_FILE no existe en el directorio $SCRIPT_DIR."
         exit 1
     fi
+}
+# Función para validar la existencia del archivo de bases de datos
+function check_dbs_file() {
+    if [ ! -f "$DBS_PATH" ]; then
+        echo "El archivo de bases de datos no existe."
+        exit 1
+    fi
+}
+# Función para crear una lista de bases de datos en PostgreSQL
+function create_db() {
+    echo "Creando bases de datos en PostgreSQL desde $DBS_PATH ..."
+    # Leer la lista de bases de datos desde el archivo postgresql_db.csv
+    while IFS=, read -r dbname; do
+        # Crear base de datos
+        sudo -u postgres psql -c "CREATE DATABASE $dbname;"
+
+        # Verificar que la base de datos se ha creado correctamente
+        if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -wq $dbname
+        then
+            echo "No se ha podido crear la base de datos $dbname."
+            exit 1
+        fi
+    done < "$DBS_PATH"
 }
 # Función para crear un usuario en PostgreSQL
 function create_user() {
@@ -44,7 +60,6 @@ function create_user() {
         fi
     done < "$USERS_PATH"
 }
-
 # Función para otorgar permisos de acceso a un usuario en una o varias bases de datos de PostgreSQL
 function grant_access() {
     echo "Otorgando permisos de acceso a un usuario en una o varias bases de datos de PostgreSQL..."
@@ -79,12 +94,13 @@ function restart_postgresql_service() {
 function postgresql_config() {
     echo "**********POSTGRESQL CONFIG**********"
     check_root
+    check_user_file
+    check_dbs_file
     create_db
     create_user
     grant_access
     restart_postgresql_service
     echo "**************ALL DONE**************"
 }
-
 # Llamar a la función principal
 postgresql_config
