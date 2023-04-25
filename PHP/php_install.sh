@@ -1,10 +1,13 @@
 #! /bin/bash
 # php_install.sh
+# Variables
+PHP_MODULES_FILE="php_modules.txt"
+PHP_MODULES_PATH="$(dirname "$0")/$PHP_MODULES_FILE" # Define la ruta del archivo de texto con los nombres de paquetes PHP
 # Función para instalar PHP si no está instalado
 function install_php () {
   if [ $(dpkg-query -W -f='${Status}' php 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
     echo "Instalando PHP..."
-    if ! sudo apt install php-fpm php-cli php-common php-mysql php-mcrypt php-curl php-gd php-intl php-mbstring php-soap php-xml php-xmlrpc php-zip php-pear php-imagick php-imap php-ldap php-tidy php-json php-bcmath php-apcu -yqq; then
+    if ! sudo apt install $(cat "$PHP_MODULES_PATH") -yqq; then
       echo "No se pudo instalar PHP"
       exit 1
     fi
@@ -18,5 +21,5 @@ function php_install() {
     install_php
     echo "*********ALL DONE********"
 }
-# Llamar a la funcion princial
+# Llamar a la funcion principal
 php_install
