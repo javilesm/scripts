@@ -20,14 +20,6 @@ function check_postgresql_installed() {
     exit 0
   fi
 }
-# Función para actualizar el sistema
-function update_system() {
-  echo "Actualizando el sistema..."
-  if ! apt update; then
-    echo "Error: No se pudo actualizar el sistema."
-    exit 1
-  fi
-}
 # Función para instalar PostgreSQL
 function install_postgresql() {
   echo "Instalando PostgreSQL..."
@@ -38,6 +30,7 @@ function install_postgresql() {
 }
 # Función para comprobar si PostgreSQL se ha instalado correctamente
 function check_postgresql_installation() {
+  echo "Comprobando si PostgreSQL se ha instalado correctamente"
   if ! command -v psql &> /dev/null
   then
     echo "PostgreSQL no se ha instalado correctamente."
@@ -68,30 +61,23 @@ function add_entry_to_pg_hba() {
     exit 1
   fi
 }
-# unción para reiniciar el servicio de PostgreSQL
-function restart_postgresql_service() {
-  echo "Reiniciando el servicio de PostgreSQL..."
-  sudo service postgresql restart
-}
 # Función para ejecutar el configurador de PostgreSQL
 function postgresql_config() {
   echo "Ejecutar el configurador de PostgreSQL..."
   sudo bash "$CURRENT_PATH/$CONFIG_FILE"
 }
 # Función principal
-function postgres_install() {
+function postgresql_install() {
   echo "*******POSTGRESQL INSTALL*******"
   check_root
   check_postgresql_installed
-  update_system
   install_postgresql
   check_postgresql_installation
   backup_postgresql_conf
   configure_listen_addresses
   add_entry_to_pg_hba
-  restart_postgresql_service
   postgresql_config
   echo "**********ALL DONE**********"
 }
 # Llamar a la función principal
-postgres_install
+postgresql_install
