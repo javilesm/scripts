@@ -4,7 +4,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 DBS_FILE="postgresql_db.csv"
 DBS_PATH="$SCRIPT_DIR/$DBS_FILE"
-BACKUP_DIR="$SCRIPT_DIR/backups"
+BACKUP_DIR="$SCRIPT_DIR/postgresqlbackups"
 BACKUP_FILE="$(date +'%Y-%m-%d-%H-%M-%S').sql"
 USER="postgres"
 # Función para verificar si se ejecuta el script como root
