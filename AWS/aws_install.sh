@@ -10,12 +10,6 @@ function validate_admin_permissions() {
   exit 1
   fi
 }
-# Función para actualizar el sistema
-function update_system() {
-  echo "Actualizando sistema."
-  sudo apt-get update || { echo "Ha ocurrido un error al actualizar el sistema."; exit 1; }
-  echo "Sistema actualizado."
-}
 # Función para instalar AWS CLI
 function install_aws_cli() {
   echo "Instalando AWS CLI."
