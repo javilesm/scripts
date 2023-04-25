@@ -9,13 +9,24 @@ ROLES_FILE="mysql_roles.csv"
 ROLES_PATH="$SCRIPT_DIR/$ROLES_FILE"
 # Función para verificar si se ejecuta el script como root
 function check_root() {
+    echo "Verificando si se ejecuta el script como root..."
     if [[ $EUID -ne 0 ]]; then
         echo "Este script debe ser ejecutado como root"
         exit 1
     fi
 }
+# Función para iniciar MySQL como servicio
+function start_service() {
+    echo "Iniciando MySQL como servicio..."
+    if ! sudo service mysql status; then
+        echo "No se pudo iniciar MySQL como servicio."
+        exit 1
+    fi
+    sudo service mysql status
+}
 # Función para verificar la existencia del archivo de usuarios
 function check_user_file() {
+    echo "Verificando la existencia del archivo de usuarios"
     if [ ! -f "$USERS_PATH" ]; then
         echo "El archivo de usuarios $USERS_FILE no existe en el directorio $SCRIPT_DIR."
         exit 1
@@ -23,6 +34,7 @@ function check_user_file() {
 }
 # Función para validar la existencia del archivo de bases de datos
 function check_dbs_file() {
+    echo "Validando la existencia del archivo de bases de datos..."
     if [ ! -f "$DBS_PATH" ]; then
         echo "El archivo de bases de datos $DBS_PATH no existe en el directorio $SCRIPT_DIR."
         exit 1
