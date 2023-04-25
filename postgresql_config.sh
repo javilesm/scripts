@@ -6,11 +6,19 @@ USER_FILE="postgresql_users.csv"
 USERS_PATH="$SCRIPT_DIR/$USER_FILE"
 DBS_FILE="postgresql_db.csv"
 DBS_PATH="$SCRIPT_DIR/$USER_FILE"
-
+ROLES_FILE="postgresql_roles.csv"
+ROLES_PATH="$SCRIPT_DIR/$ROLES_FILE"
 # Función para verificar si se ejecuta el script como root
 function check_root() {
     if [[ $EUID -ne 0 ]]; then
         echo "Este script debe ser ejecutado como root"
+        exit 1
+    fi
+}
+# Función para validar la existencia del archivo de roles
+function check_roles_file() {
+    if [ ! -f "$ROLES_PATH" ]; then
+        echo "El archivo $ROLES_PATH no existe"
         exit 1
     fi
 }
@@ -27,6 +35,21 @@ function check_dbs_file() {
         echo "El archivo de bases de datos no existe."
         exit 1
     fi
+}
+# Función para crear roles de usuario en PostgreSQL
+function create_roles() {
+    echo "Creando roles de usuario en PostgreSQL desde $ROLES_PATH ..."
+    # Leer la lista de roles de usuario desde el archivo postgresql_roles.csv
+    while IFS=, read -r rolename password; do
+        # Crear el rol de usuario
+        sudo -u postgres psql -c "CREATE ROLE $rolename LOGIN PASSWORD '$password';"
+
+        # Verificar que el rol de usuario se ha creado correctamente
+        if ! sudo -u postgres psql -c "SELECT 1 FROM pg_roles WHERE rolname='$rolename'" | grep -q 1; then
+            echo "No se ha podido crear el rol de usuario $rolename."
+            exit 1
+        fi
+    done < "$ROLES_PATH"
 }
 # Función para crear una base de datos en PostgreSQL
 function create_db() {
@@ -94,8 +117,10 @@ function restart_postgresql_service() {
 function postgresql_config() {
     echo "**********POSTGRESQL CONFIG**********"
     check_root
+    check_roles_file
     check_user_file
     check_dbs_file
+    create_roles
     create_db
     create_user
     grant_access
