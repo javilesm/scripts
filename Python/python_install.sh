@@ -1,17 +1,20 @@
 #!/bin/bash
 # python_install.sh
+# Variables
+PARAMETERS_FILE="python_config.cfg" # Parámetros de configuración
 # Función para verificar si Python está instalado
-function verificar_python_instalado () {
-  echo "Verificando si Python está instalado"
+function verificar_python_instalado() {
+  echo "Verificando si Python está instalado..."
   if ! command -v python3 >/dev/null 2>&1; then
-  echo "Python no está instalado"
-    return 1 # Python no está instalado
+    echo "Python no está instalado"
+    return 1
   fi
-  echo "Python está instalado"
-  return 0 # Python está instalado
+  echo "Python está instalado:"
+  python3 --version
+  return 0
 }
 # Función para instalar Python
-function instalar_python () {
+function instalar_python() {
   if verificar_python_instalado; then
     echo "Python ya está instalado."
     return
@@ -22,13 +25,14 @@ function instalar_python () {
   echo "Python ha sido instalado."
 }
 # Función para obtener la versión de Python instalada en el sistema
-function obtener_version_python () {
+function obtener_version_python() {
   echo "Obteniendo la versión de Python instalada en el sistema"
   CURRENT_PYTHON_VERSION=$(python3 --version | awk '{print $2}')
   echo "La versión de Python instalada en el sistema es: $CURRENT_PYTHON_VERSION"
+  export CURRENT_PYTHON_VERSION
 }
 # Función para buscar el archivo .bashrc en el sistema
-function find_bashrc () {
+function find_bashrc() {
   echo "Buscando el archivo .bashrc en el sistema"
   BASHRC_PATH=$(find /home/ -name ".bashrc" 2>/dev/null)
   if [ -z "$BASHRC_PATH" ]; then
@@ -43,23 +47,22 @@ function find_bashrc () {
   export BASHRC_PATH
 }
 # Función para actualizar el archivo .bashrc
-function add_to_bashrc () {
-  CURRENT_PATH=$(dirname "$(readlink -f "$0")") # Obtener la ruta actual del script
+function add_to_bashrc() {
+  PARENT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )" # Obtener el directorio padre del script
   echo "Actualizando el archivo .bashrc..."
   echo 'export PATH="/usr/local/bin:$PATH"' >> "$BASHRC_PATH"
-  echo 'export PATH="'"$CURRENT_PATH"'/utilities:$PATH"' >> "$BASHRC_PATH"
+  echo 'export PATH="'"$PARENT_PATH"'/utilities:$PATH"' >> "$BASHRC_PATH"
   echo 'export PATH="/usr/local/python/'"$CURRENT_PYTHON_VERSION"'/bin:$PATH"' >>"$BASHRC_PATH"
   if ! source "$BASHRC_PATH"; then
         echo "No se pudo actualizar el archivo $BASHRC_PATH."
         exit 1
   fi
   echo "$BASHRC_PATH ha sido actualizado exitosamente."
-  export CURRENT_PATH
 }
 # Funcion para ejecutar scripts complementarios
-function run_python_scripts () {
+function run_python_scripts() {
   echo "Obteniendo parámetros de configuración..."
-  PARAMETERS_FILE="python_config.cfg" # Parámetros de configuración
+  CURRENT_PATH=$(dirname "$(readlink -f "$0")") # Obtener la ruta actual del script
   echo "La ruta de los parámetros de configuración es: $CURRENT_PATH/$PARAMETERS_FILE"
   source "$CURRENT_PATH/$PARAMETERS_FILE" # Ruta a los parámetros de configuración
   # Ejecutar los sub-scripts recursivamente
@@ -71,14 +74,15 @@ function run_python_scripts () {
   done
 }
 # Función principal
-function python_install () {
-  echo "***PYTHON INSTALL***"
+function python_install() {
+  echo "*******PYTHON INSTALL*******"
   verificar_python_instalado
   instalar_python
   obtener_version_python
   find_bashrc
   add_to_bashrc
   run_python_scripts
+  echo "*******ALL DONE*******"
 }
 # Llamar a la funcion principal
 python_install
