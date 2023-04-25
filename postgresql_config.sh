@@ -28,16 +28,16 @@ function check_dbs_file() {
         exit 1
     fi
 }
-# Función para crear una lista de bases de datos en PostgreSQL
+# Función para crear una base de datos en PostgreSQL
 function create_db() {
     echo "Creando bases de datos en PostgreSQL desde $DBS_PATH ..."
     # Leer la lista de bases de datos desde el archivo postgresql_db.csv
-    while IFS=, read -r dbname; do
+    while IFS=',' read -r dbname owner encoding; do
         # Crear base de datos
-        sudo -u postgres psql -c "CREATE DATABASE $dbname;"
+        sudo -u postgres createdb --owner="$owner" --encoding="$encoding" "$dbname"
 
         # Verificar que la base de datos se ha creado correctamente
-        if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -wq $dbname
+        if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$dbname"
         then
             echo "No se ha podido crear la base de datos $dbname."
             exit 1
@@ -65,13 +65,13 @@ function grant_access() {
     echo "Otorgando permisos de acceso a un usuario en una o varias bases de datos de PostgreSQL..."
 
     # Leer la información de los usuarios desde el archivo postgresql_users.csv
-    while IFS=',' read -r username password databases access_level; do
-        echo "Otorgando permisos de acceso para el usuario $username en las bases de datos $databases con nivel de acceso $access_level..."
+    while IFS=',' read -r username password databases privileges; do
+        echo "Otorgando permisos de acceso para el usuario $username en las bases de datos $databases con nivel de acceso $privileges..."
 
         # Otorgar permisos de acceso a cada base de datos
         IFS=';' read -ra dbs <<< "$databases"
         for db in "${dbs[@]}"; do
-            sudo -u postgres psql -c "GRANT $access_level PRIVILEGES ON DATABASE $db TO $username;"
+            sudo -u postgres psql -c "GRANT $privileges PRIVILEGES ON DATABASE $db TO $username;"
         done
 
         # Verificar que se han otorgado los permisos correctamente
