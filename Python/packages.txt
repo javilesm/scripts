@@ -1,0 +1,5 @@
+python-telegram-bot
+python-whatsapp-bot
+mysql-connector-python
+ChatGPTonWhatsApp
+psycopg2
