@@ -18,7 +18,7 @@ function check_root() {
 # Función para iniciar MySQL como servicio
 function start_service() {
     echo "Iniciando MySQL como servicio..."
-    if ! sudo service mysql status; then
+    if ! sudo service mysql start; then
         echo "No se pudo iniciar MySQL como servicio."
         exit 1
     fi
@@ -50,6 +50,7 @@ function create_db() {
         # Crear base de datos
         sudo mysql -e "CREATE DATABASE IF NOT EXISTS $dbname;"
     done < "$DBS_PATH"
+    echo "Todas las bases de datos en '$DBS_FILE' fueron creadas."
 }
 # Función para crear un usuario en MySQL
 function create_user() {
@@ -72,11 +73,12 @@ function create_user() {
             exit 1
         fi
     done < "$USERS_PATH"
+    echo "Todos los usuarios en '$USERS_FILE' fueron creados."
 }
 
-# Función para otorgar permisos de acceso a un usuario en una o varias bases de datos de MySQL
-function grant_access() {
-    echo "Otorgando permisos de acceso a un usuario en una o varias bases de datos de MySQL..."
+# Función para otorgar privilegios a un usuario en una o varias bases de datos de MySQL
+function grant_privileges() {
+    echo "Otorgando privilegios a un usuario en una o varias bases de datos de MySQL..."
 
     # Leer la información de los usuarios desde el archivo mysql_users.csv
     while IFS=',' read -r username password address databases privileges; do
@@ -93,7 +95,7 @@ function grant_access() {
             exit 1
         fi
 
-        echo "Otorgando permisos de acceso para el usuario '$username' en las bases de datos '$databases' con nivel de acceso '$privileges'..."
+        echo "Otorgando privilegios para el usuario '$username' en las bases de datos '$databases' con nivel de acceso '$privileges'..."
 
         # Verificar si el usuario ya cuenta con los permisos
         existing_privileges=$(sudo mysql -e "SELECT privilege_type FROM mysql.db WHERE user='$username' AND db IN ('$databases') AND host='$address'")
@@ -129,11 +131,12 @@ function restart_mysql_service() {
 function mysql_config() {
     echo "**********MYSQL CONFIG**********"
     check_root
+    start_service
     check_user_file
     check_dbs_file
     create_db
     create_user
-    grant_access
+    grant_privileges
     restart_postgresql_service
     echo "**************ALL DONE**************"
 }
