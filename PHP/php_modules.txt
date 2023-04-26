@@ -11,7 +11,6 @@ php-intl
 php-json
 php-ldap
 php-mbstring
-php-mcrypt
 php-mysql
 php-pear
 php-soap
