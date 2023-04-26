@@ -2,6 +2,7 @@
 # nextcloud_config.sh
 # Variables
 DOMAIN="localhost"
+PASSWORD="root"
 # Configurar Nginx
 #!/bin/bash
 function remove_default_config() {
@@ -63,8 +64,8 @@ EOF
 # Configurar MySQL
 function configure_mysql() {
   echo "Configurando MySQL..."
-  sudo mysql -u root -p -e "CREATE DATABASE nextcloud;
-  GRANT ALL PRIVILEGES ON nextcloud.* TO 'nextcloud'@'localhost' IDENTIFIED BY 'tu-contraseña';
+  sudo mysql -u root $PASSWORD-e "CREATE DATABASE nextcloud;
+  GRANT ALL PRIVILEGES ON nextcloud.* TO 'nextcloud'@'localhost' IDENTIFIED BY 'nextcloud-password';
   FLUSH PRIVILEGES;"
 }
 # Configurar PHP
