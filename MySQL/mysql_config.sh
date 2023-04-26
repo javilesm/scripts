@@ -74,13 +74,12 @@ function start_mysql() {
   sudo service mysql status
   echo "Iniciando servicio MySQL..."
   sudo service mysql start
-
 }
 # Función para crear una base de datos en MySQL
 function create_db() {
     echo "Creando bases de datos en MySQL desde '$DBS_FILE' ..."
     # Leer la lista de bases de datos desde el archivo mysql_databases.csv
-    while IFS=, read -r dbname; do
+    while IFS="," read -r dbname; do
         # Crear base de datos
         sudo mysql -e "CREATE DATABASE IF NOT EXISTS $dbname;"
     done < "$DBS_PATH"
@@ -90,7 +89,7 @@ function create_db() {
 function create_user() {
     echo "Creando usuarios en MySQL desde '$USERS_FILE' ..."
     # Leer la lista de usuarios y contraseñas desde el archivo mysql_users.csv
-    while IFS=, read -r username password host; do
+    while IFS="," read -r username password host; do
         # Verificar si el usuario ya existe
         if sudo mysql -e "SELECT 1 FROM mysql.user WHERE user='$username'" | grep -q 1; then
             echo "El usuario '$username' ya existe."
@@ -115,10 +114,10 @@ function grant_privileges() {
     echo "Otorgando privilegios a un usuario en una o varias bases de datos de MySQL..."
     
     # Leer la información de los usuarios desde el archivo mysql_users.csv
-    while IFS=';' read -r username password host databases privileges; do
+    while IFS="," read -r username password host databases privileges; do
         echo "Otorgando privilegios al usuario '$username' en las bases de datos '$databases'..."
         # Verificar si el usuario ya tiene privilegios en cada base de datos
-        IFS=',' read -ra dbs <<< "$databases"
+        IFS="," read -ra dbs <<< "$databases"
         for db in "${dbs[@]}"; do
             if mysql -u root -p"$password" -e "SELECT User, Host, Db FROM mysql.db WHERE User='$username' AND Db='$db';" | grep -q "$username"; then
                 # Actualizar privilegios del usuario si es necesario
@@ -141,7 +140,7 @@ function update_host() {
     echo "Actualizando el host de los usuarios en MySQL..."
     
     # Leer la información de los usuarios desde el archivo mysql_users.csv
-    while IFS=';' read -r username password host databases privileges; do
+    while IFS="," read -r username password host databases privileges; do
         # Verificar si el usuario ya existe en la base de datos
         if mysql -u root -p"$password" -e "SELECT User FROM mysql.user WHERE User='$username' AND Host='$host';" | grep -q "$username"; then
             # Actualizar el host del usuario
