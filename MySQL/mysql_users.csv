@@ -1,2 +1,2 @@
-user_test1;1234;localhost;test_db;ALL PRIVILEGES
-user_test2;1234;localhost;test_db;ALL PRIVILEGES
+user_test1,1234,localhost,test_db,ALL PRIVILEGES
+user_test2,1234,localhost,test_db,ALL PRIVILEGES
