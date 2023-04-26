@@ -5,7 +5,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 USER_FILE="postgresql_users.csv"
 USERS_PATH="$SCRIPT_DIR/$USER_FILE"
 DBS_FILE="postgresql_db.csv"
-DBS_PATH="$SCRIPT_DIR/$USER_FILE"
+DBS_PATH="$SCRIPT_DIR/$DBS_FILE"
 ROLES_FILE="postgresql_roles.csv"
 ROLES_PATH="$SCRIPT_DIR/$ROLES_FILE"
 # Función para verificar si se ejecuta el script como root
@@ -56,7 +56,7 @@ function create_roles() {
 }
 # Función para crear una base de datos en PostgreSQL
 function create_db() {
-    echo "Creando bases de datos en PostgreSQL desde $DBS_PATH ..."
+    echo "Creando bases de datos en PostgreSQL desde $DBS_PATH..."
     # Leer la lista de bases de datos desde el archivo postgresql_db.csv
     while IFS=',' read -r dbname owner encoding; do
         # Crear base de datos
