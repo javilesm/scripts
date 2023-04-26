@@ -18,23 +18,26 @@ function check_root() {
 # Función para validar la existencia del archivo de roles
 function check_roles_file() {
     if [ ! -f "$ROLES_PATH" ]; then
-        echo "El archivo $ROLES_PATH no existe"
+        echo "El archivo $ROLES_FILE no existe"
         exit 1
     fi
+    echo "El archivo $ROLES_FILE existe"
 }
 # Función para verificar la existencia del archivo de usuarios
 function check_user_file() {
     if [ ! -f "$USERS_PATH" ]; then
-        echo "El archivo de usuarios $USER_FILE no existe en el directorio $SCRIPT_DIR."
+        echo "El archivo de usuarios $USER_FILE no existe."
         exit 1
     fi
+    echo "El archivo de usuarios $USER_FILE existe."
 }
 # Función para validar la existencia del archivo de bases de datos
 function check_dbs_file() {
     if [ ! -f "$DBS_PATH" ]; then
-        echo "El archivo de bases de datos no existe."
+        echo "El archivo de bases de datos $DBS_FILE no existe."
         exit 1
     fi
+    echo "El archivo de bases de datos $DBS_FILE existe."
 }
 # Función para crear roles de usuario en PostgreSQL
 function create_roles() {
@@ -46,7 +49,7 @@ function create_roles() {
 
         # Verificar que el rol de usuario se ha creado correctamente
         if ! sudo -u postgres psql -c "SELECT 1 FROM pg_roles WHERE rolname='$rolename'" | grep -q 1; then
-            echo "No se ha podido crear el rol de usuario $rolename."
+            echo "No se ha podido crear el rol de usuario '$rolename'."
             exit 1
         fi
     done < "$ROLES_PATH"
@@ -62,7 +65,7 @@ function create_db() {
         # Verificar que la base de datos se ha creado correctamente
         if ! sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$dbname"
         then
-            echo "No se ha podido crear la base de datos $dbname."
+            echo "No se ha podido crear la base de datos '$dbname'."
             exit 1
         fi
     done < "$DBS_PATH"
@@ -78,7 +81,7 @@ function create_user() {
         # Verificar que el usuario se ha creado correctamente
         if ! sudo -u postgres psql -c "SELECT 1 FROM pg_roles WHERE rolname='$username'" | grep -q 1
         then
-            echo "No se ha podido crear el usuario $username."
+            echo "No se ha podido crear el usuario '$username'."
             exit 1
         fi
     done < "$USERS_PATH"
@@ -89,7 +92,7 @@ function grant_access() {
 
     # Leer la información de los usuarios desde el archivo postgresql_users.csv
     while IFS=',' read -r username password databases privileges; do
-        echo "Otorgando permisos de acceso para el usuario $username en las bases de datos $databases con nivel de acceso $privileges..."
+        echo "Otorgando privilegios '$privileges' al usuario '$username' en las bases de datos '$databases'..."
 
         # Otorgar permisos de acceso a cada base de datos
         IFS=';' read -ra dbs <<< "$databases"
@@ -101,7 +104,7 @@ function grant_access() {
         for db in "${dbs[@]}"; do
             if ! sudo -u postgres psql -c "SELECT has_database_privilege('$username', '$db', 'CREATE');" | grep -q "t"
             then
-                echo "No se han podido otorgar los permisos de acceso al usuario $username en la base de datos $db."
+                echo "No se han podido otorgar los privilegios al usuario '$username' en la base de datos '$db'."
                 exit 1
             fi
         done
