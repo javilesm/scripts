@@ -24,7 +24,7 @@ function check_mysql_installed() {
 function install_mysql () {
   if [ $(dpkg-query -W -f='${Status}' mysql-server 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
     echo "Instalando MySQL..."
-    if ! sudo apt install mysql-server -yqq; then
+    if ! sudo apt-get install mysql-server -y; then
       echo "No se pudo instalar MySQL"
       exit 1
     fi
@@ -65,10 +65,42 @@ function modify_mysql_config_file() {
     exit 1
   fi
 }
+# Función para iniciar el servicio MySQL
+function start_mysql() {
+  echo "Iniciando servicio MySQL..."
+  
+  # Intentar iniciar el servicio MySQL
+  if sudo service mysql start; then
+    # Verificar si el servicio MySQL está en ejecución
+    if sudo service mysql status | grep -q "active (running)"; then
+      echo "Servicio MySQL iniciado correctamente."
+    else
+      echo "El servicio MySQL no se inició correctamente."
+      exit 1
+    fi
+  else
+    echo "No se pudo iniciar el servicio MySQL. Forzando..."
+    sudo service mysql start
+    exit 1
+  fi
+}
 # Función para ejecutar el configurador de MySQL
 function mysql_config() {
   echo "Ejecutar el configurador de MySQL..."
-  sudo bash "$CURRENT_PATH/$CONFIG_FILE"
+
+  # Verificar si el archivo de configuración existe
+  if [ ! -f "$CURRENT_PATH/$CONFIG_FILE" ]; then
+    echo "El archivo de configuración de MySQL no se puede encontrar."
+    exit 1
+  fi
+
+  # Intentar ejecutar el archivo de configuración de MySQL
+  if sudo bash "$CURRENT_PATH/$CONFIG_FILE"; then
+    echo "El archivo de configuración de MySQL se ha ejecutado correctamente."
+  else
+    echo "No se pudo ejecutar el archivo de configuración de MySQL."
+    exit 1
+  fi
 }
 # Función principal
 function mysql_install() {
@@ -79,6 +111,7 @@ function mysql_install() {
     check_mysql_config_file
     backup_mysql_config_file
     modify_mysql_config_file
+    start_mysql
     mysql_config
     echo "*********ALL DONE********"
 }
