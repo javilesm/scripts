@@ -61,6 +61,10 @@ function add_entry_to_pg_hba() {
     exit 1
   fi
 }
+function start_service() {
+  echo "Iniciando el servicio PostgreSQL..."
+  sudo pg_ctlcluster 12 main start
+}
 # Función para ejecutar el configurador de PostgreSQL
 function postgresql_config() {
   echo "Ejecutar el configurador de PostgreSQL..."
@@ -76,6 +80,7 @@ function postgresql_install() {
   backup_postgresql_conf
   configure_listen_addresses
   add_entry_to_pg_hba
+  start_service
   postgresql_config
   echo "**********ALL DONE**********"
 }
