@@ -1,2 +1,2 @@
-user_test1,1234,test_db,ALL
-user_test2,1234,test_db,READ
+user_test1,1234,test_DB,ALL
+user_test2,1234,test_DB,READ
