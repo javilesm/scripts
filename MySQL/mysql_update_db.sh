@@ -5,6 +5,15 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 DBS_FILE="mysql_db.csv"
 DBS_PATH="$SCRIPT_DIR/$DBS_FILE"
 password="root"
+# Función para validar la existencia del archivo de bases de datos
+function check_dbs_file() {
+    echo "Validando la existencia del archivo de bases de datos..."
+    if [ ! -f "$DBS_PATH" ]; then
+        echo "El archivo de bases de datos '$DBS_FILE' no existe en el directorio $SCRIPT_DIR/"
+        exit 1
+    fi
+    echo "El archivo de bases de datos '$DBS_FILE' existe."
+}
 # Función para actualizar una base de datos en MySQL
 function update_db() {
     echo "Actualizando bases de datos en MySQL desde '$SCRIPT_DIR/$DBS_FILE' ..."
@@ -22,6 +31,7 @@ function show_databases() {
 # Función principal
 function mysql_update_db() {
     echo "**********MYSQL CREATE DB**********"
+    check_dbs_file
     update_db
     show_databases
     echo "**************ALL DONE**************"
