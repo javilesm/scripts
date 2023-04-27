@@ -4,6 +4,12 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 MYSQL_CONF="/etc/mysql/mysql.conf.d/mysqld.cnf"
 MYSQL_SOCKET="/var/run/mysqld/mysqld.sock"
+# Vector de sub-scripts a ejecutar recursivamente
+scripts=(
+    "mysql_create_db.sh"
+    "mysql_create_user.sh"
+    "mysql_grant_privileges.sh"
+)
 # Función para verificar si se ejecuta el script como root
 function check_root() {
     echo "Verificando si se ejecuta el script como root..."
@@ -62,43 +68,33 @@ function start_mysql() {
   sudo service mysql start
   sudo service mysql status 
 }
-# Función para ejecutar los subscripts en el directorio scripts/MySQL/
+# Función para validar si cada script en el vector "scripts" existe y tiene permiso de ejecución
+function validate_mysql_scripts() {
+  echo "Validando la existencia de cada script en la lista de sub-scripts..."
+  for script in "${scripts[@]}"; do
+    echo "Compobando '$script' en: $SCRIPT_DIR/..."
+    if [ ! -f "$SCRIPT_DIR/$script" ] || [ ! -x "$SCRIPT_DIR/$script" ]; then
+      echo "Error: $script no existe o no tiene permiso de ejecución"
+      exit 1
+    fi
+    echo "El script '$script' existe en: $SCRIPT_DIR/"
+  done
+  echo "Todos los sub-scripts en '$SCRIPT_DIR' existen y tienen permiso de ejecución."
+  return 0
+}
+# Función para ejecutar los sub-scripts contenidos en el vector "scripts"
 function execute_mysql_scripts() {
-  echo "Ejecutando subscripts en '$SCRIPT_DIR' ..."
-  
-  # Verificar que el directorio SCRIPT_DIR existe y es accesible
-  if [ ! -d "$SCRIPT_DIR" ]; then
-    echo "ERROR: El directorio '$SCRIPT_DIR' no existe o no se puede acceder."
-    return 1
-  fi
-  
-  # Ejecutar mysql_create_db.sh
-  echo "Ejecutando mysql_create_db.sh ..."
-  . "$SCRIPT_DIR/mysql_create_db.sh"
-  EXIT_CODE=$?
-  if [ $EXIT_CODE -ne 0 ]; then
-    echo "ERROR: mysql_create_db.sh falló con el código de salida $EXIT_CODE."
-    return $EXIT_CODE
-  fi
-  
-  # Ejecutar mysql_create_user.sh
-  echo "Ejecutando mysql_create_user.sh ..."
-  . "$SCRIPT_DIR/mysql_create_user.sh"
-  EXIT_CODE=$?
-  if [ $EXIT_CODE -ne 0 ]; then
-    echo "ERROR: mysql_create_user.sh falló con el código de salida $EXIT_CODE."
-    return $EXIT_CODE
-  fi
-  
-  # Ejecutar mysql_grant_privileges.sh
-  echo "Ejecutando mysql_grant_privileges.sh ..."
-  . "$SCRIPT_DIR/mysql_grant_privileges.sh"
-  EXIT_CODE=$?
-  if [ $EXIT_CODE -ne 0 ]; then
-    echo "ERROR: mysql_grant_privileges.sh falló con el código de salida $EXIT_CODE."
-    return $EXIT_CODE
-  fi
-  
+  echo "Ejecutando cada script en la lista de sub-scripts..."
+  for script in "${scripts[@]}"; do
+   echo "Comprobando '$script' en: '$SCRIPT_DIR/$script'..."
+    if [ -f "$SCRIPT_DIR/$script" ] && [ -x "$SCRIPT_DIR/$script" ]; then
+      echo "Ejecutando script: $script"
+      sudo bash "$SCRIPT_DIR/$script"
+    else
+      echo "Error: $script no existe o no tiene permiso de ejecución"
+    fi
+    echo "El script: '$script' fue ejecutado."
+  done
   echo "Todos los subscripts en '$SCRIPT_DIR' se han ejecutado correctamente."
   return 0
 }
@@ -110,10 +106,11 @@ function restart_mysql_service() {
 # Función principal
 function mysql_config() {
     echo "**********MYSQL CONFIG**********"
-    check_root
-    set_mysql_file_permissions
-    set_mysql_socket
-    start_mysql
+    #check_root
+    #set_mysql_file_permissions
+    #set_mysql_socket
+    #start_mysql
+    validate_mysql_scripts
     execute_mysql_scripts
     restart_mysql_service
     echo "**************ALL DONE**************"
