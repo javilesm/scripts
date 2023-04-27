@@ -2,15 +2,8 @@
 # mysql_config.sh
 # Variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-USERS_FILE="mysql_users.csv"
-USERS_PATH="$SCRIPT_DIR/$USERS_FILE"
-DBS_FILE="mysql_db.csv"
-DBS_PATH="$SCRIPT_DIR/$DBS_FILE"
-ROLES_FILE="mysql_roles.csv"
-ROLES_PATH="$SCRIPT_DIR/$ROLES_FILE"
 MYSQL_CONF="/etc/mysql/mysql.conf.d/mysqld.cnf"
 MYSQL_SOCKET="/var/run/mysqld/mysqld.sock"
-password="root"
 # Función para verificar si se ejecuta el script como root
 function check_root() {
     echo "Verificando si se ejecuta el script como root..."
@@ -18,24 +11,6 @@ function check_root() {
         echo "Este script debe ser ejecutado como root"
         exit 1
     fi
-}
-# Función para verificar la existencia del archivo de usuarios
-function check_user_file() {
-    echo "Verificando la existencia del archivo de usuarios"
-    if [ ! -f "$USERS_PATH" ]; then
-        echo "El archivo de usuarios '$USERS_FILE' no existe en el directorio $SCRIPT_DIR/"
-        exit 1
-    fi
-    echo "El archivo de usuarios '$USERS_FILE' existe."
-}
-# Función para validar la existencia del archivo de bases de datos
-function check_dbs_file() {
-    echo "Validando la existencia del archivo de bases de datos..."
-    if [ ! -f "$DBS_PATH" ]; then
-        echo "El archivo de bases de datos '$DBS_FILE' no existe en el directorio $SCRIPT_DIR/"
-        exit 1
-    fi
-    echo "El archivo de bases de datos '$DBS_FILE' existe."
 }
 # Función para establecer la propiedad de lectura y escritura del archivo mysqld.cnf
 function set_mysql_file_permissions() {
