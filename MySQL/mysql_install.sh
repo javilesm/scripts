@@ -100,7 +100,7 @@ function mysql_install() {
     backup_mysql_config_file
     modify_mysql_config_file
     check_config_file
-    #execute_config_file
+    execute_config_file
     echo "*********ALL DONE********"
 }
 # Llamar a la funcion princial
