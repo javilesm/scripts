@@ -40,6 +40,7 @@ function check_mysql_installation() {
     echo "MySQL no se ha instalado correctamente."
     exit 1
   fi
+  echo "MySQL se ha instalado correctamente."
 }
 # Función para verificar si el archivo de configuración de MySQL existe
 function check_mysql_config_file() {
@@ -48,6 +49,7 @@ echo "Verificando si el archivo de configuración de MySQL existe..."
     echo "El archivo de configuración de MySQL no existe."
     exit 1
   fi
+  echo "El archivo de configuración de MySQL existe."
 }
 # Función para realizar una copia de seguridad de mysql.conf
 function backup_mysql_config_file() {
@@ -56,6 +58,7 @@ function backup_mysql_config_file() {
     echo "Error al realizar una copia de seguridad de mysqld.cnf."
     exit 1
   fi
+  echo "Copia de seguridad de mysqld.cnf realizada."
 }
 # Función para modificar el archivo de configuración y permitir conexiones desde cualquier IP
 function modify_mysql_config_file() {
@@ -64,6 +67,7 @@ function modify_mysql_config_file() {
     echo "Error al modificar el archivo de configuración."
     exit 1
   fi
+  echo "El archivo de configuración fue modificado."
 }
 # Función para verificar si el archivo de configuración existe
 function check_config_file() {
@@ -72,6 +76,7 @@ function check_config_file() {
     echo "El archivo de configuración de MySQL no se puede encontrar."
     exit 1
   fi
+  echo "El archivo de configuración de MySQL existe."
 }
 # Función para ejecutar el archivo de configuración
 function execute_config_file() {
@@ -84,6 +89,7 @@ function execute_config_file() {
     exit 1
   fi
 }
+
 # Función principal
 function mysql_install() {
     echo "*******MYSQL INSTALL******"
@@ -94,7 +100,7 @@ function mysql_install() {
     backup_mysql_config_file
     modify_mysql_config_file
     check_config_file
-    execute_config_file
+    #execute_config_file
     echo "*********ALL DONE********"
 }
 # Llamar a la funcion princial
