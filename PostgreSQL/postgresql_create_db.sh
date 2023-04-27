@@ -12,11 +12,12 @@ function check_dbs_file() {
         echo "El archivo de bases de datos '$DBS_FILE' no existe."
         exit 1
     fi
+    echo "El archivo de bases de datos '$DBS_FILE' existe en el directorio $SCRIPT_DIR/"
     echo "El archivo de bases de datos '$DBS_FILE' existe."
 }
 # Función para crear una base de datos en PostgreSQL
 function create_db() {
-    echo "Creando bases de datos en PostgreSQL desde $DBS_PATH..."
+    echo "Creando bases de datos en PostgreSQL desde '$SCRIPT_DIR/$DBS_FILE'..."
     # Leer la lista de bases de datos desde el archivo postgresql_db.csv
     while IFS=',' read -r dbname owner encoding; do
         # Crear base de datos
@@ -29,6 +30,7 @@ function create_db() {
             exit 1
         fi
     done < <(sed -e '$a\' "$DBS_PATH")
+    echo "Todas las bases de datos en '$DBS_FILE' fueron creadas."
 }
 # mostrar todas las bases de datos en PostgreSQL
 function show_databases() {
