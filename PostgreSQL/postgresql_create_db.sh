@@ -39,7 +39,7 @@ function show_databases() {
 }
 # Función principal
 function postgresql_create_db() {
-    echo "**********POSTGRESQL CONFIG**********"
+    echo "**********POSTGRESQL CREATE DB**********"
     check_dbs_file
     create_db
     show_databases
