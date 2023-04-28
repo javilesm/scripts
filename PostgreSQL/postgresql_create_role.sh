@@ -28,13 +28,13 @@ function create_roles() {
             echo "No se ha podido crear el rol de usuario '$rolename'."
             exit 1
         fi
-    done < "$ROLES_PATH"
+    done < <(sed -e '$a\' "$ROLES_PATH")
 }
-# mostrar todas las bases de datos en PostgreSQL
-function show_databases() {
-    echo "Mostrando todas las bases de datos en PostgreSQL..."
-    sudo -u postgres psql -c "SELECT datname FROM pg_database WHERE datistemplate = false;"
+# Función para mostrar todos los roles
+function show_roles() {
+    sudo -u postgres psql -c "\du"
 }
+
 # Función principal
 function postgresql_create_role() {
     echo "**********POSTGRESQL CREATE ROLE**********"
