@@ -51,6 +51,7 @@ function execute_psql_scripts() {
 function restart_postgresql_service() {
     echo "Reiniciando el servicio de PostgreSQL..."
     sudo service postgresql restart
+    sudo service postgresql status
 }
 # Función principal
 function postgresql_config() {
