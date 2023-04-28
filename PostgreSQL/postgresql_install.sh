@@ -36,6 +36,7 @@ function check_postgresql_installation() {
     echo "PostgreSQL no se ha instalado correctamente."
     exit 1
   fi
+  echo "PostgreSQL se ha instalado correctamente."
 }
 # Función para realizar una copia de seguridad de postgresql.conf
 function backup_postgresql_conf() {
@@ -44,6 +45,7 @@ function backup_postgresql_conf() {
     echo "Error al realizar una copia de seguridad de postgresql.conf"
     exit 1
   fi
+  echo "Copia de seguridad de postgresql.conf realizada."
 }
 # Función para configurar listen_addresses en postgresql.conf
 function configure_listen_addresses() {
@@ -52,6 +54,7 @@ function configure_listen_addresses() {
     echo "Error al configurar listen_addresses en postgresql.conf"
     exit 1
   fi
+  echo "Archivo listen_addresses en postgresql.conf configurado."
 }
 # Función para agregar una entrada en pg_hba.conf
 function add_entry_to_pg_hba() {
@@ -60,15 +63,19 @@ function add_entry_to_pg_hba() {
     echo "Error al agregar entrada en pg_hba.conf"
     exit 1
   fi
+  echo "Entrada en pg_hba.conf agregada."
 }
 function start_service() {
   echo "Iniciando el servicio PostgreSQL..."
   sudo pg_ctlcluster 12 main start
+  sudo service postgresql status
+  echo "Servicio PostgreSQL iniciado."
 }
 # Función para ejecutar el configurador de PostgreSQL
 function postgresql_config() {
   echo "Ejecutar el configurador de PostgreSQL..."
   sudo bash "$CURRENT_PATH/$CONFIG_FILE"
+  echo "Configurador de PostgreSQL ejecutado."
 }
 # Función principal
 function postgresql_install() {
