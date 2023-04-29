@@ -3,40 +3,54 @@
 # Variables
 CONFIG_FILE="postgresql_config.sh"
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
-# Función para verificar si se ejecuta el script como root
-function check_root() {
-  echo "Verificando si se ejecuta el script como root"
-  if [[ $EUID -ne 0 ]]; then
-    echo "Este script debe ser ejecutado como root"
-    exit 1
-  fi
-}
-# Función para verificar si PostgreSQL ya está instalado
-function check_postgresql_installed() {
-  echo "Verificando si PostgreSQL ya está instalado"
-  if command -v psql &> /dev/null
-  then
-    echo "PostgreSQL ya está instalado en este sistema."
-    exit 0
-  fi
-}
 # Función para instalar PostgreSQL
 function install_postgresql() {
-  echo "Instalando PostgreSQL..."
-  if ! sudo apt-get install postgresql postgresql-contrib -y; then
-    echo "Error: No se pudo instalar PostgreSQL."
-    exit 1
-  fi
+  install_and_restart postgresql postgresql-contrib
 }
-# Función para comprobar si PostgreSQL se ha instalado correctamente
-function check_postgresql_installation() {
-  echo "Comprobando si PostgreSQL se ha instalado correctamente"
-  if ! command -v psql &> /dev/null
-  then
-    echo "PostgreSQL no se ha instalado correctamente."
-    exit 1
+# Función para instalar un paquete y reiniciar los servicios afectados
+function install_and_restart() {
+  local package="$1"
+  # Verificar si el paquete ya está instalado
+  echo "Verificando si el paquete ya está instalado..."
+  if dpkg -s "$package" >/dev/null 2>&1; then
+    echo "El paquete '$package' ya está instalado."
+    return 0
   fi
-  echo "PostgreSQL se ha instalado correctamente."
+
+  # Instalar el paquete
+  echo "Instalando $package..."
+  if ! sudo apt-get install "$package" -y; then
+    echo "Error: no se pudo instalar el paquete '$package'."
+    return 1
+  fi
+  
+   # Verificar si el paquete se instaló correctamente
+   echo "Verificando si el paquete se instaló correctamente..."
+  if [ $? -eq 0 ]; then
+    echo "$package se ha instalado correctamente."
+  else
+    echo "Error al instalar $package."
+    return 1
+  fi
+  
+  # Buscar los servicios que necesitan reiniciarse
+  echo "Buscando los servicios que necesitan reiniciarse..."
+  services=$(systemctl list-dependencies --reverse "$package" | grep -oP '^\w+(?=.service)')
+
+  # Reiniciar los servicios que dependen del paquete instalado
+  echo "Reiniciando los servicios que dependen del paquete instalado..."
+  if [[ -n $services ]]; then
+    echo "Reiniciando los siguientes servicios: $services"
+    if ! sudo systemctl restart $services; then
+      echo "Error: no se pudieron reiniciar los servicios después de instalar el paquete '$package'."
+      return 1
+    fi
+  else
+    echo "No se encontraron servicios que necesiten reiniciarse después de instalar el paquete '$package'."
+  fi
+
+  echo "El paquete '$package' se instaló correctamente."
+  return 0
 }
 # Función para realizar una copia de seguridad de postgresql.conf
 function backup_postgresql_conf() {
@@ -80,10 +94,7 @@ function postgresql_config() {
 # Función principal
 function postgresql_install() {
   echo "*******POSTGRESQL INSTALL*******"
-  check_root
-  check_postgresql_installed
   install_postgresql
-  check_postgresql_installation
   backup_postgresql_conf
   configure_listen_addresses
   add_entry_to_pg_hba
