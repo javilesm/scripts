@@ -40,7 +40,7 @@ function verify_node_integrity() {
   echo "Arhivo descargado sin pedos."
 }
 # Función para extraer el archivo comprimido de Node.js
-extract_node_archive() {
+function extract_node_archive() {
   echo "Extrayendo archivos..."
   if ! tar -xvf node.tar.xz; then
     echo "Ocurrió un error al extraer el archivo de Node.js."
