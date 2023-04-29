@@ -3,13 +3,7 @@
 # Variables
 NEXTCLOUD_CONFIG="nextcloud_config.sh" # Script configurador
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
-# Función para verificar si se ejecuta el script como root
-function check_root() {
-  if [[ $EUID -ne 0 ]]; then
-     echo "Este script debe ser ejecutado como root" 
-     exit 1
-  fi
-}
+
 # Función para descargar la última versión de Nextcloud
 function download_nextcloud() {
     local version="22.0.0"
@@ -86,7 +80,6 @@ function run_configurator() {
 # Función principal
 function main () {
   echo "**********NEXTCLOUD INSTALL***********"
-  check_root
   download_nextcloud
   unpack_nextcloud
   move_nextcloud
