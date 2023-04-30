@@ -1,26 +1,67 @@
-├── Run server scripts
-│   ├── run_scripts.sh
-│   │   ├── python.sh
-│   │   │   ├── python_installpackages.sh
-│   │   │   │   └── packages.txt
-│   │   │   └── python_installenv.sh
-│   │   └── aws.sh
-│   │       └── aws_config.sh
-│   │           └── aws_credentials.txt
-│   ├── lemp.sh
-│   │   ├── nginx.sh
-│   │   │   └── nginx_config.sh
-│   │   ├── mysql.sh
-│   │   │   └── mysql_config.sh
-│   │   └── php.sh
-│   │       └── php_config.sh
-│   └── jq.sh
-└── Utilities
-    ├── chatgpt.sh
-    ├── confirm.sh
-    ├── ec2snap.sh
-    ├── mkscript.sh
-    ├── partdevice.sh
-    ├── s3snap.sh
-    ├── stop.sh
-    └── sysview.sh
+- scripts
+	- AWS/
+		- aws_config.sh
+		- aws_credentials.txt
+		- aws_install.sh
+	- JQ/
+		- jq_install.sh
+	- MySQL/
+		- mysql_config.sh
+		- mysql_create_db.sh
+		- mysql_create_user.sh
+		- mysql_db.csv
+		- mysql_grant_privileges.sh
+		- mysql_install.sh
+		- mysql_update_db.sh
+		- mysql_update_privileges.sh
+		- mysql_update_user.sh
+		- mysql_users.csv
+	- NEXTCLOUD/
+		- nextcloud_config.sh
+		- nextcloud_install.sh
+	- NGINX/
+		- nginx_config.sh
+		- nginx_install.sh
+	- NodeJS/
+		- nodejs_install.sh
+	- PHP/
+		- php_install.sh
+		- php_modules.txt
+	- PostgreSQL/
+		- postgresql_config.sh
+		- postgresql_create_db.sh
+		- postgresql_create_role.sh
+		- postgresql_create_user.sh
+		- postgresql_db.csv
+		- postgresql_grant_privileges.sh
+		- postgresql_install.sh
+		- postgresql_roles.csv
+		- postgresql_update_db.sh
+		- postgresql_update_privileges.sh
+		- postgresql_update_user.sh
+		- postgresql_users.csv
+	- Python/
+		- dependencies.txt
+		- environments.txt
+		- packages.txt
+		- python_config.cfg
+		- python_dependencies.sh
+		- python_environments.sh
+		- python_install.sh
+		- python_packages.sh
+	- utilities/
+		- chatgpt
+		- confirm
+		- ec2snap
+		- mkparts
+		- mkscript
+		- mysql_backup
+		- postgresql_backup
+		- s3snap
+		- syshalt
+		- sysview
+	- add_repositories.sh
+	- repositories.txt
+	- tree_install.sh
+	- update_system.sh
+	- zip_install.sh
