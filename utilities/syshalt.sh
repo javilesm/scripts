@@ -1,0 +1,57 @@
+#!/bin/bash
+# syshalt.sh
+# Variables
+# Función para obtener el ID de usuario actual
+function get_userID() {
+  echo "Obteniendo el ID del usuario actual..."
+  USER_ID=$(id -u)
+  if [ $? -ne 0 ]; then
+    echo "Error: no se pudo obtener el ID de usuario actual."
+    exit 1
+  fi
+  echo "El ID del usuario actual es: '$USER_ID'"
+  export USER_ID
+}
+# Función para obtener una lista de todos los procesos iniciados por el usuario actual
+function get_user_proceses() {
+  echo "Obteniendo una lista de todos los procesos iniciados por: $USER_ID"
+  PROCESS_LIST=$(ps -u $USER_ID -o pid=)
+  if [ $? -ne 0 ]; then
+    echo "Error: no se pudo obtener la lista de procesos del usuario actual."
+    exit 1
+  fi
+  echo $PROCESS_LIST
+  export PROCESS_LIST
+}
+# Función para iterar sobre los IDs de proceso y detenerlos de manera segura
+function stop_proceses() {
+  echo "Iterarando sobre los IDs de proceso y deteniendo de manera segura..."
+  for PID in $PROCESS_LIST; do
+    echo "Terminando el proceso: $PID..."
+    kill -TERM $PID
+    if [ $? -ne 0 ]; then
+      echo "Error: no se pudo detener el proceso '$PID'."
+    else
+      echo "Proceso '$PID' terminado."
+    fi
+  done
+  echo "Todos los procesos iniciados por el usuario $USER se han detenido de manera segura."
+}
+# Función para enviar una señal de apagado al sistema
+function halt_system() {
+  echo "Enviando la señal de apagado al sistema..."
+  sudo shutdown -h now
+  if [ $? -ne 0 ]; then
+    echo "Error: no se pudo apagar el sistema."
+    exit 1
+  fi
+}
+# Función principal
+function syshalt() {
+    get_userID
+    get_user_proceses
+    stop_proceses
+    halt_system
+}
+# Llamar a la función principal
+syshalt
