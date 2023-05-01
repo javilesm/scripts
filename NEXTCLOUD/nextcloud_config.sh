@@ -3,13 +3,14 @@
 # Variables
 DOMAIN="localhost"
 PASSWORD="root"
-# Configurar Nginx
-#!/bin/bash
+# Funcion para remover el archivo de configuracion
+
 function remove_default_config() {
+  # remover el archivo de configuracion
   echo "Removiendo archivo de configuracion..."
   sudo rm /etc/nginx/sites-enabled/default
 }
-# Configurar Nginx
+# Funcion para configurar Nginx
 function configure_nginx() {
   echo "Configurando NGINX..."
   sudo touch /etc/nginx/sites-available/nextcloud
