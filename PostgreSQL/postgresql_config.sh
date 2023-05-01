@@ -6,8 +6,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 scripts=(
     "postgresql_create_db.sh"
     "postgresql_create_user.sh"
-    "postgresql_create_role.sh"
-    "postgresql_grant_privileges.sh"
 )
 # Función para verificar si se ejecuta el script como root
 function check_root() {
