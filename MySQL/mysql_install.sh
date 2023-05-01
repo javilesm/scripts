@@ -3,6 +3,7 @@
 # Variables
 CONFIG_FILE="mysql_config.sh"
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 
 # Función para instalar MySQL
 function install_mysql () {
@@ -82,19 +83,19 @@ function modify_mysql_config_file() {
   echo "El archivo de configuración fue modificado."
 }
 # Función para verificar si el archivo de configuración existe
-function check_config_file() {
+function validate_config_file() {
   echo "Verificando si el archivo de configuración existe..."
-  if [ ! -f "$CURRENT_PATH/$CONFIG_FILE" ]; then
+  if [ ! -f "$CONFIG_PATH" ]; then
     echo "El archivo de configuración de MySQL no se puede encontrar."
     exit 1
   fi
   echo "El archivo de configuración de MySQL existe."
 }
 # Función para ejecutar el archivo de configuración
-function execute_config_file() {
+function mysql_config() {
   echo "Ejecutando el configurador de MySQL..."
   # Intentar ejecutar el archivo de configuración de MySQL
-  if sudo bash "$CURRENT_PATH/$CONFIG_FILE"; then
+  if sudo bash "$CONFIG_PATH"; then
     echo "El archivo de configuración de MySQL se ha ejecutado correctamente."
   else
     echo "No se pudo ejecutar el archivo de configuración de MySQL."
@@ -109,8 +110,8 @@ function mysql_install() {
     check_mysql_config_file
     backup_mysql_config_file
     modify_mysql_config_file
-    check_config_file
-    execute_config_file
+    validate_config_file
+    mysql_config
     echo "*********ALL DONE********"
 }
 # Llamar a la funcion princial
