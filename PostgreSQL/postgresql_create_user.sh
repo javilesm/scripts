@@ -79,7 +79,7 @@ function create_user() {
             echo "Otorgando privilegios '$privileges' al usuario '$username' en las bases de datos '$databases'..."
             IFS=';' read -ra dbs <<< "$databases"
             for db in "${dbs[@]}"; do
-                sudo -u postgres psql -c "GRANT $privileges PRIVILEGES ON DATABASE $db TO $username;"
+                sudo -u postgres psql -c "GRANT $privileges ON DATABASE $db TO $username;"
             done
 
             # Verificar que se han otorgado los privilegios correctamente
