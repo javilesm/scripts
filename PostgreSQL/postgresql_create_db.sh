@@ -11,7 +11,6 @@ function check_dbs_file() {
         echo "El archivo de bases de datos '$DBS_FILE' no existe."
         exit 1
     fi
-    echo "El archivo de bases de datos '$DBS_FILE' existe en el directorio $SCRIPT_DIR/"
     echo "El archivo de bases de datos '$DBS_FILE' existe."
 }
 # Función para crear una base de datos en PostgreSQL
@@ -26,7 +25,7 @@ function create_db() {
             continue
         else
             # Crear base de datos
-            echo "La base de datos '$dbname', creando..."
+            echo "La base de datos '$dbname' no existe, creando..."
             if ! sudo -u postgres psql -c "CREATE DATABASE $dbname"; then
                 echo "Error al crear la base de datos '$dbname'."
                 continue
