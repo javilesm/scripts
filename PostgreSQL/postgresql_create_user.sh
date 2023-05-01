@@ -28,7 +28,7 @@ function create_user() {
             ##########################################
             # Verificar que el valor de "host" sea válido
             echo "Verificando que el valor de "host" sea válido para el usuario '$username'..."
-            if ! [[ "$host" =~ ^(localhost|127\.0\.0\.1|\*)$ ]]; then
+            if ! [[ "$host" =~ ^(%|localhost|127\.0\.0\.1|\*)$ ]]; then
                 echo "El valor de 'host' para el usuario '$username' no es válido: '$host'"
                 continue
             fi
@@ -102,7 +102,7 @@ function show_users() {
 # Función principal
 function postgresql_create_user() {
     echo "**********POSTGRESQL CREATE USER**********"
-    check_USERS_FILE
+    check_users_file
     show_users
     create_user
     show_users
