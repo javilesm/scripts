@@ -1,20 +1,18 @@
 #!/bin/bash
 # nextcloud_install.sh
 # Variables
-NEXTCLOUD_CONFIG="nextcloud_config.sh" # Script configurador
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
-
+CONFIG_FILE="nextcloud_config.sh" # Script configurador
+CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 # Función para descargar la última versión de Nextcloud
 function download_nextcloud() {
     local version="22.0.0"
     local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
-    
     echo "Descargando la última versión de Nextcloud ($version)..."
     if ! wget -q --show-progress "$url" -O nextcloud.zip; then
         echo "Ha ocurrido un error al descargar Nextcloud."
         return 1
     fi
-    
     echo "Nextcloud se ha descargado con éxito."
 }
 
@@ -56,26 +54,26 @@ function set_nextcloud_permissions() {
     fi
 }
 
-# Función para verificar la existencia del archivo de configuración
-function check_config_file() {
-  echo "Verificando la existencia del archivo de configuración..."
-  if [ ! -f "$CURRENT_PATH/$NEXTCLOUD_CONFIG" ]; then
-  echo "No se ha encontrado el archivo de configuración. Proporcione un archivo válido antes de continuar." 
-  exit 1
-  fi
-}
-# Función para ejecutar configurador AWS CLI
-function run_configurator() {
-  echo "Ejecutando configurador de NEXTCLOUD."
-  
-  if [[ -f "$CURRENT_PATH/$NEXTCLOUD_CONFIG" ]]; then
-    sudo "$CURRENT_PATH/$NEXTCLOUD_CONFIG" || { echo "Ha ocurrido un error al ejecutar el configurador."; exit 1; }
-  else
-    echo "El archivo de configuración no se encuentra en la ubicación especificada: $CURRENT_PATH/$NEXTCLOUD_CONFIG"
+# Función para validar la existencia de nextcloud_config.sh
+function validate_config_file() {
+  echo "Validando la existencia de $CONFIG_FILE..."
+  if [ ! -f "$CONFIG_PATH" ]; then
+    echo "Error: no se encontró el archivo de configuración $CONFIG_FILE en $CURRENT_PATH."
     exit 1
   fi
-  
-  echo "Configuración completada."
+  echo "$CONFIG_FILE existe."
+}
+# Función para ejecutar el configurador de Nextcloud
+function nextcloud_config() {
+  echo "Ejecutar el configurador de PostgreSQL..."
+    # Intentar ejecutar el archivo de configuración de Nextcloud
+  if sudo bash "$CONFIG_PATH"; then
+    echo "El archivo de configuración '$CONFIG_FILE' se ha ejecutado correctamente."
+  else
+    echo "No se pudo ejecutar el archivo de configuración '$CONFIG_FILE'."
+    exit 1
+  fi
+  echo "Configurador '$CONFIG_FILE' ejecutado."
 }
 # Función principal
 function main () {
@@ -84,8 +82,8 @@ function main () {
   unpack_nextcloud
   move_nextcloud
   set_nextcloud_permissions
-  check_config_file
-  run_configurator
+  validate_config_file
+  nextcloud_config
   echo "*************ALL DONE**************"
 }
 # Llamar a la función principal
