@@ -72,8 +72,13 @@ function validate_config_file() {
 # Función para ejecutar configurador AWS CLI
 function aws_config() {
   echo "Ejecutando configurador de AWS CLI."
-  sudo bash "$CONFIG_PATH" || { echo "Ha ocurrido un error al ejecutar el configurador de AWS CLI."; exit 1; }
-  echo "Configurador de AWS ejecutado."
+  if sudo bash "$CONFIG_PATH"; then
+    echo "El archivo de configuración '$CONFIG_FILE' se ha ejecutado correctamente."
+  else
+    echo "No se pudo ejecutar el archivo de configuración '$CONFIG_FILE'."
+    exit 1
+  fi
+  echo "Configurador '$CONFIG_FILE' ejecutado."
 }
 # Función principal
 function aws_install () {
