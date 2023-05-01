@@ -1,8 +1,9 @@
 #!/bin/bash
 # postgresql_install.sh
 # Variables
-CONFIG_FILE="postgresql_config.sh"
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+CONFIG_FILE="postgresql_config.sh"
+CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 # Función para instalar PostgreSQL
 function install_postgresql() {
   install_and_restart postgresql postgresql-contrib
@@ -85,10 +86,19 @@ function start_service() {
   sudo service postgresql status
   echo "Servicio PostgreSQL iniciado."
 }
+# Función para validar la existencia de postgresql_config.sh
+function validate_config_file() {
+  echo "Validando la existencia de $CONFIG_FILE..."
+  if [ ! -f "$CONFIG_PATH" ]; then
+    echo "Error: no se encontró el archivo de configuración $CONFIG_FILE en $CURRENT_PATH."
+    exit 1
+  fi
+  echo "$CONFIG_FILE existe."
+}
 # Función para ejecutar el configurador de PostgreSQL
 function postgresql_config() {
   echo "Ejecutar el configurador de PostgreSQL..."
-  sudo bash "$CURRENT_PATH/$CONFIG_FILE"
+  sudo bash "$CONFIG_PATH"
   echo "Configurador de PostgreSQL ejecutado."
 }
 # Función principal
@@ -99,6 +109,7 @@ function postgresql_install() {
   configure_listen_addresses
   add_entry_to_pg_hba
   start_service
+  validate_config_file
   postgresql_config
   echo "**********ALL DONE**********"
 }
