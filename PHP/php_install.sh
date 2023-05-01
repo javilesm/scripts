@@ -22,7 +22,7 @@ function install_php () {
 function validate_config_file() {
   echo "Validando la existencia de $CONFIG_FILE..."
   if [ ! -f "$CONFIG_PATH" ]; then
-    echo "Error: no se encontró el archivo de configuración $CONFIG_FILE en $CURRENT_PATH."
+    echo "Error: no se encontró el archivo de configuración '$CONFIG_FILE' en $CURRENT_PATH."
     exit 1
   fi
   echo "$CONFIG_FILE existe."
@@ -30,7 +30,13 @@ function validate_config_file() {
 # Función para ejecutar el configurador de PHP
 function php_config() {
   echo "Ejecutar el configurador de PHPL..."
-  sudo bash "$CONFIG_PATH"
+  # Intentar ejecutar el archivo de configuración de PHP
+  if sudo bash "$CONFIG_PATH"; then
+    echo "El archivo de configuración '$CONFIG_FILE' se ha ejecutado correctamente."
+  else
+    echo "No se pudo ejecutar el archivo de configuración '$CONFIG_FILE'."
+    exit 1
+  fi
   echo "Configurador de PHP ejecutado."
 }
 # Función principal
