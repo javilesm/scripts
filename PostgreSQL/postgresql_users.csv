@@ -1,2 +1,6 @@
 user_test1,1234,testdb1,ALL
 user_test2,1234,testdb2,READ
+user_test3,1234,testdb3,ALL
+user_test4,1234,testdb4,READ
+user_test5,1234,testdb5,ALL
+user_test6,1234,testdb5,READ
