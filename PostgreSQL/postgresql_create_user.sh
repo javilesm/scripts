@@ -4,10 +4,6 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 USER_FILE="postgresql_users.csv"
 USERS_PATH="$SCRIPT_DIR/$USER_FILE"
-DBS_FILE="postgresql_db.csv"
-DBS_PATH="$SCRIPT_DIR/$DBS_FILE"
-ROLES_FILE="postgresql_roles.csv"
-ROLES_PATH="$SCRIPT_DIR/$ROLES_FILE"
 # Función para verificar la existencia del archivo de usuarios
 echo "Verificar la existencia del archivo de usuarios..."
 function check_user_file() {
@@ -23,14 +19,20 @@ function create_user() {
     # Leer la lista de usuarios y contraseñas desde el archivo postgresql_users.csv
     while IFS="," read -r username password host databases privileges; do
         # Crear usuario
-        sudo -u postgres psql -c "CREATE USER $username WITH PASSWORD '$password';"
-
+        echo "Creando el usuario '$username'..."
+        if sudo -u postgres psql -c "CREATE USER $username WITH PASSWORD '$password';"; then
+            echo "Error al crear al usuario '$username'."
+            exit 1
+        fi
+        echo "El usuario '$username' ha sido creado exitosamente."
         # Verificar que el usuario se ha creado correctamente
-        if ! sudo -u postgres psql -c "SELECT 1 FROM pg_roles WHERE rolname='$username'" | grep -q 1
+        echo "Verificando que el usuario '$username' se haya creado correctamente..."
+        if ! sudo -u postgres psql -c "SELECT 1 FROM pg_user WHERE username='$username'" | grep -q 1
         then
             echo "No se ha podido crear el usuario '$username'."
             exit 1
         fi
+        echo "El usurio '$username' ha sido verificado exitosamente."
     done < <(sed -e '$a\' "$USERS_PATH")
     echo "Todos los usuarios en '$USERS_FILE' fueron creados."
 }
@@ -41,7 +43,7 @@ function show_users() {
 }
 # Función principal
 function postgresql_create_user() {
-    echo "**********POSTGRESQL CREATE USER**********"
+    echo "**********MYSQL CREATE USER**********"
     check_user_file
     create_user
     show_users
