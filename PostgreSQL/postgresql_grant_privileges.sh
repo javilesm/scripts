@@ -2,7 +2,7 @@
 # mysql_grant_privileges.sh
 # Variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-USERS_FILE="mysql_users.csv"
+USERS_FILE="postgresql_users.csv"
 USERS_PATH="$SCRIPT_DIR/$USERS_FILE"
 password="root"
 # Función para validar la existencia del archivo de privilegios
