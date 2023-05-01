@@ -96,11 +96,12 @@ function mysql_config() {
   echo "Ejecutando el configurador de MySQL..."
   # Intentar ejecutar el archivo de configuración de MySQL
   if sudo bash "$CONFIG_PATH"; then
-    echo "El archivo de configuración de MySQL se ha ejecutado correctamente."
+    echo "El archivo de configuración '$CONFIG_FILE' se ha ejecutado correctamente."
   else
-    echo "No se pudo ejecutar el archivo de configuración de MySQL."
+    echo "No se pudo ejecutar el archivo de configuración '$CONFIG_FILE'."
     exit 1
   fi
+  echo "Configurador '$CONFIG_FILE' ejecutado."
 }
 
 # Función principal
