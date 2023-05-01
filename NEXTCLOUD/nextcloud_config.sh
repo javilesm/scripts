@@ -4,7 +4,6 @@
 DOMAIN="localhost"
 PASSWORD="root"
 # Funcion para remover el archivo de configuracion
-
 function remove_default_config() {
   # remover el archivo de configuracion
   echo "Removiendo archivo de configuracion..."
@@ -13,9 +12,17 @@ function remove_default_config() {
 # Funcion para configurar Nginx
 function configure_nginx() {
   echo "Configurando NGINX..."
-  sudo touch /etc/nginx/sites-available/nextcloud
-  sudo ln -s /etc/nginx/sites-available/nextcloud /etc/nginx/sites-enabled/
-  sudo tee /etc/nginx/sites-available/nextcloud >/dev/null <<EOF
+  if ! sudo touch /etc/nginx/sites-available/nextcloud; then
+    echo "Error: No se pudo crear el archivo de configuración de NGINX."
+    return 1
+  fi
+
+  if ! sudo ln -s /etc/nginx/sites-available/nextcloud /etc/nginx/sites-enabled/; then
+    echo "Error: No se pudo crear el enlace simbólico para el archivo de configuración de NGINX."
+    return 1
+  fi
+
+  if ! sudo tee /etc/nginx/sites-available/nextcloud >/dev/null <<EOF
   server {
     listen 80;
     server_name '$DOMAIN';
@@ -61,7 +68,24 @@ function configure_nginx() {
     client_max_body_size 0;
   }
 EOF
+  then
+    echo "Error: No se pudo escribir la configuración de NGINX en el archivo."
+    return 1
+  fi
+
+  if ! sudo nginx -t; then
+    echo "Error: La configuración de NGINX es inválida."
+    return 1
+  fi
+
+  if ! sudo systemctl reload nginx; then
+    echo "Error: No se pudo recargar la configuración de NGINX."
+    return 1
+  fi
+
+  echo "Configuración de NGINX exitosa."
 }
+
 # Configurar MySQL
 function configure_mysql() {
   echo "Configurando MySQL..."
@@ -69,34 +93,24 @@ function configure_mysql() {
   GRANT ALL PRIVILEGES ON nextcloud.* TO 'nextcloud'@'localhost' IDENTIFIED BY 'nextcloud-password';
   FLUSH PRIVILEGES;"
 }
-# Configurar PHP
-function configure_php() {
-  echo "Configurando PHP..."
-  php_version=$(php -v | head -n 1 | cut -d " " -f 2 | cut -f1-2 -d".")
-  sudo sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/$php_version/fpm/php.ini
-  sudo sed -i "s/upload_max_filesize = .*/upload_max_filesize = 100G/" /etc/php/$php_version/fpm/php.ini
-  sudo sed -i "s/post_max_size = .*/post_max_size = 100G/" /etc/php/$php_version/fpm/php.ini
-  sudo sed -i "s/;date.timezone.*/date.timezone = America\/Mexico_City/" /etc/php/$php_version/fpm/php.ini
-}
+
 # Configurar NEXTCLOUD
 function configure_nextcloud() {
   echo "Configurando Nextcloud..."
   sudo nextcloud.occ maintenance:install --database "mysql" --database-name "nextcloud" --database-user "nextcloud" --database-pass "tu-contraseña" --admin-user "tu-usuario-administrador" --admin-pass
 }
 # Reiniciar servicios
-function system_restart() {
+function restart_services() {
   sudo systemctl restart nginx
   sudo systemctl restart mysql
-  sudo systemctl restart php$php_version-fpm
 }
 # Función principal
 function nextcloud_config() {
   echo "**********NEXTCLOUD CONFIGURATOR***********"
   configure_nginx
   configure_mysql
-  configure_php
   configure_nextcloud
-  system_restart
+  restart_services
   echo "**********ALL DONE***********"
 }
 # Llamar a la función principal
