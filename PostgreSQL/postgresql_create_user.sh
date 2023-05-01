@@ -43,7 +43,7 @@ function show_users() {
 }
 # Función principal
 function postgresql_create_user() {
-    echo "**********MYSQL CREATE USER**********"
+    echo "**********POSTGRESQL CREATE USER**********"
     check_user_file
     create_user
     show_users
