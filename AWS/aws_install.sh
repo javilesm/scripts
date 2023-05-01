@@ -2,15 +2,8 @@
 # aws_install.sh
 # Variables
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
-AWS_CONFIG="aws_config.sh" # Script configurador
-AWS_CONFIG_PATH="$CURRENT_PATH/$AWS_CONFIG"
-
-# Función para instalar AWS CLI
-function install_aws_cli() {
-  echo "Instalando AWS CLI."
-  install_and_restart awscli
-  echo "Instalación de AWS CLI completa."
-}
+CONFIG_FILE="aws_config.sh" # Script configurador
+CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
   local package="$1"
@@ -36,8 +29,7 @@ function install_and_restart() {
     echo "Error al instalar $package."
     return 1
   fi
-  
-  # Buscar los servicios que necesitan reiniciarse
+    # Buscar los servicios que necesitan reiniciarse
   echo "Buscando los servicios que necesitan reiniciarse..."
   services=$(systemctl list-dependencies --reverse "$package" | grep -oP '^\w+(?=.service)')
 
@@ -56,32 +48,40 @@ function install_and_restart() {
   echo "El paquete '$package' se instaló correctamente."
   return 0
 }
+# Función para instalar AWS CLI
+function install_aws_cli() {
+  echo "Instalando AWS CLI."
+  install_and_restart awscli || { echo "Ha ocurrido un error al instalar AWS CLI."; exit 1; }
+  echo "Instalación de AWS CLI completa."
+}
 # Función para instalar S3FS
 function install_s3fs() {
   echo "Instalando S3FS."
-  install_and_restart s3fs
+  install_and_restart s3fs || { echo "Ha ocurrido un error al instalar S3FS."; exit 1; }
   echo "Instalación de S3FS completa."
 }
-# Función para verificar la existencia del archivo de configuración
-function check_aws_config_file() {
-  if [ ! -f "$CURRENT_PATH/$AWS_CONFIG" ]; then
-  echo "No se ha encontrado el archivo de configuración de AWS. Proporcione un archivo válido antes de continuar." 1>&2
-  exit 1
+# Función para validar la existencia de aws_config.sh
+function validate_config_file() {
+  echo "Validando la existencia de '$CONFIG_FILE'..."
+  if [ ! -f "$CONFIG_PATH" ]; then
+    echo "Error: no se encontró el archivo de configuración '$CONFIG_FILE' en $CURRENT_PATH."
+    exit 1
   fi
+  echo "$CONFIG_FILE existe."
 }
 # Función para ejecutar configurador AWS CLI
-function run_aws_cli_configurator() {
+function aws_config() {
   echo "Ejecutando configurador de AWS CLI."
-  echo "Ubicación del configurador: $AWS_CONFIG_PATH"
-  sudo "$AWS_CONFIG_PATH" || { echo "Ha ocurrido un error al ejecutar el configurador de AWS CLI."; exit 1; }
+  sudo bash "$CONFIG_PATH" || { echo "Ha ocurrido un error al ejecutar el configurador de AWS CLI."; exit 1; }
+  echo "Configurador de AWS ejecutado."
 }
 # Función principal
 function aws_install () {
-  echo "**********AWS INSTALL***********"
+  echo "**********AWS/S3FS INSTALL***********"
   install_aws_cli
   install_s3fs
-  check_aws_config_file
-  run_aws_cli_configurator
+  validate_config_file
+  aws_config
   echo "**********ALL DONE***********"
 }
 # Llamar a la función principal
