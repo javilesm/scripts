@@ -1,5 +1,9 @@
 #! /bin/bash
 # nginx_install.sh
+# Variables
+CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+CONFIG_FILE="nginx_config.sh"
+CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 # Función para instalar NGINX
 function install_nginx () {
   install_and_restart nginx
@@ -49,10 +53,33 @@ function install_and_restart() {
   echo "El paquete '$package' se instaló correctamente."
   return 0
 }
+# Función para validar la existencia de nginx_config.sh
+function validate_config_file() {
+  echo "Validando la existencia de $CONFIG_FILE..."
+  if [ ! -f "$CONFIG_PATH" ]; then
+    echo "Error: no se encontró el archivo de configuración $CONFIG_FILE en $CURRENT_PATH."
+    exit 1
+  fi
+  echo "$CONFIG_FILE existe."
+}
+# Función para ejecutar el configurador de Nginx
+function nginx_config() {
+  echo "Ejecutar el configurador de PostgreSQL..."
+    # Intentar ejecutar el archivo de configuración de Nginx
+  if sudo bash "$CONFIG_PATH"; then
+    echo "El archivo de configuración '$CONFIG_FILE' se ha ejecutado correctamente."
+  else
+    echo "No se pudo ejecutar el archivo de configuración '$CONFIG_FILE'."
+    exit 1
+  fi
+  echo "Configurador '$CONFIG_FILE' ejecutado."
+}
 # Función principal
 function nginx_install() {
     echo "*******NGINX INSTALL******"
     install_nginx
+    validate_config_file
+    nginx_config
     echo "*********ALL DONE********"
 }
 # Llamar a la funcion princial
