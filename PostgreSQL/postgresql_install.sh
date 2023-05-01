@@ -98,7 +98,7 @@ function validate_config_file() {
 # Función para ejecutar el configurador de PostgreSQL
 function postgresql_config() {
   echo "Ejecutar el configurador de PostgreSQL..."
-  sudo bash "$CONFIG_PATH"
+  sudo bash "$CONFIG_PATH"  || { echo "Ha ocurrido un error al ejecutar el configurador."; exit 1; }
   echo "Configurador de PostgreSQL ejecutado."
 }
 # Función principal
