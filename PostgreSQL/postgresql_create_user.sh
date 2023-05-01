@@ -24,8 +24,35 @@ function create_user() {
             echo "El usuario '$username' ya existe."
             continue
         else
+            echo "El usuario '$username' no existe, verificando..."
+            ##########################################
+            # Verificar que el valor de "host" sea válido
+            echo "Verificando que el valor de "host" sea válido para el usuario '$username'..."
+            if ! [[ "$host" =~ ^(localhost|127\.0\.0\.1|\*)$ ]]; then
+                echo "El valor de 'host' para el usuario '$username' no es válido: '$host'"
+                continue
+            fi
+            # Verificar que el valor de "databases" sea válido
+            echo "Verificando que el valor de "databases" sea válido para el usuario '$username'..."
+            valid_databases=$(sudo -u postgres psql -Atc "SELECT datname FROM pg_database")
+            for db in $(echo "$databases" | tr ',' ' '); do
+                if ! echo "$valid_databases" | grep -q "^$db$"; then
+                    echo "El valor de 'databases' para el usuario '$username' no es válido: '$db'"
+                    continue 2
+                fi
+            done
+            # Verificar que el valor de "privileges" sea válido
+            echo "Verificando que el valor de "privileges" sea válido para el usuario '$username'..."
+            valid_privileges="ALL, SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER"
+            for priv in $(echo "$privileges" | tr ',' ' '); do
+                if ! echo "$valid_privileges" | grep -q "\b$priv\b"; then
+                    echo "El valor de 'privileges' para el usuario '$username' no es válido: '$priv'"
+                    continue 2
+                fi
+            done
+            ##########################################
             # Crear usuario
-            echo "El usuario '$username' no existe, creando..."
+            echo "Creando al usuario '$username'..."
             if ! sudo -u postgres psql -c "CREATE USER $username WITH PASSWORD '$password';"; then
                 echo "Error al crear al usuario '$username'."
                 continue
@@ -48,14 +75,21 @@ function create_user() {
                 continue
             fi
             echo "La base de datos '$databases' existe."
+            # Otorgar privilegios a cada base de datos
+            echo "Otorgando privilegios '$privileges' al usuario '$username' en las bases de datos '$databases'..."
+            IFS=';' read -ra dbs <<< "$databases"
+            for db in "${dbs[@]}"; do
+                sudo -u postgres psql -c "GRANT $privileges PRIVILEGES ON DATABASE $db TO $username;"
+            done
 
-            # Asignar permisos a la base de datos correspondiente
-            echo "Asignando permisos a la base de datos '$databases' para el usuario '$username'..."
-            if ! sudo -u postgres psql -c "GRANT $privileges ON DATABASE $databases TO $username;"; then
-                echo "Error al asignar permisos a la base de datos '$databases' para el usuario '$username'."
-                continue
-            fi
-            echo "Los permisos para la base de datos '$databases' han sido asignados exitosamente al usuario '$username'."
+            # Verificar que se han otorgado los privilegios correctamente
+            for db in "${dbs[@]}"; do
+                if ! sudo -u postgres psql -c "SELECT has_database_privilege('$username', '$db', 'CREATE');" | grep -q "t"
+                then
+                    echo "No se han podido otorgar los privilegios al usuario '$username' en la base de datos '$db'."
+                    exit 1
+                fi
+            done
         fi
     done < <(sed -e '$a\' "$USERS_PATH")
     echo "Todos los usuarios en '$USERS_FILE' fueron creados y se les asignaron permisos en las bases de datos especificadas."
