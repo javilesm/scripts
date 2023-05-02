@@ -19,11 +19,30 @@ function create_db() {
     echo "Creando bases de datos en MySQL desde '$SCRIPT_DIR/$DBS_FILE' ..."
     # Leer la lista de bases de datos desde el archivo mysql_databases.csv
     while read -r dbname || [[ -n "$dbname" ]]; do
-        # Crear base de datos
-        echo "Creando base de datos '$dbname'..."
-        if ! sudo mysql -e "CREATE DATABASE IF NOT EXISTS $dbname"; then
-            echo "Error al crear la base de datos '$dbname'."
-            exit 1
+        # Verificar si la base de datos existe
+        echo "Verificando si la base de datos '$dbname' ya existe..."
+        if sudo mysql -e "USE $dbname" 2> /dev/null; then
+            echo "La base de datos '$dbname' ya existe. Saltando..."
+            continue
+        else
+            # Crear base de datos
+            echo "La base de datos '$dbname' no existe, creando..."
+            if ! sudo mysql -e "CREATE DATABASE $dbname"; then
+                echo "Error al crear la base de datos '$dbname'."
+                continue
+            fi
+            echo "La base de datos '$dbname' ha sido creada exitosamente."
+            # Esperar un corto período de tiempo antes de verificar la base de datos
+            sleep 5
+            # Verificar que la base de datos se ha creado correctamente
+            echo "Verificar que la base de datos '$dbname' se haya creado correctamente..."
+            # Verificar que la base de datos se ha creado correctamente
+            if sudo mysql -e "USE $dbname; SELECT 1" 2> /dev/null; then
+                echo "La base de datos '$dbname' se ha creado correctamente."
+            else
+                echo "Error al crear la base de datos '$dbname'."
+                continue
+            fi
         fi
     done < <(sed -e '$a\' "$DBS_PATH")
     echo "Todas las bases de datos en '$DBS_FILE' fueron creadas."
@@ -37,6 +56,7 @@ function show_databases() {
 function mysql_create_db() {
     echo "**********MYSQL CREATE DB**********"
     check_dbs_file
+    show_databases
     create_db
     show_databases
     echo "**************ALL DONE**************"
