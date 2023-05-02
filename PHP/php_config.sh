@@ -13,6 +13,7 @@ function configure_php() {
   if sudo sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/$php_version/fpm/php.ini &&
      sudo sed -i "s/upload_max_filesize = .*/upload_max_filesize = 100G/" /etc/php/$php_version/fpm/php.ini &&
      sudo sed -i "s/post_max_size = .*/post_max_size = 100G/" /etc/php/$php_version/fpm/php.ini &&
+     sudo sed -i "s/max_execution_time = .*/max_execution_time = 3600/" /etc/php/$php_version/fpm/php.ini &&
      sudo sed -i "s/;date.timezone.*/date.timezone = America\/Mexico_City/" /etc/php/$php_version/fpm/php.ini; then
     echo "PHP configurado con éxito."
   else
@@ -20,7 +21,6 @@ function configure_php() {
     return 1
   fi
 }
-
 # Reiniciar servicios
 function restart_services() {
   sudo systemctl restart php$php_version-fpm
