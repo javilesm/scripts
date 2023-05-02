@@ -1,7 +1,7 @@
 #!/bin/bash
 # php_config.sh
 # Variables
-php_version="$(php -v | head -n 1 | cut -d " " -f 2 | cut -f1-2 -d".")"
+php_version="8.2"
 PHP_PATH="/etc/php/$php_version/fpm"
 PHP_INI_FILE="php.ini"
 PHP_INI_PATH="$PHP_PATH/$PHP_INI_FILE"
