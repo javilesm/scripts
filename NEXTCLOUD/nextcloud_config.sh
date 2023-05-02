@@ -85,15 +85,6 @@ EOF
 
   echo "Configuración de NGINX exitosa."
 }
-
-# Configurar MySQL
-function configure_mysql() {
-  echo "Configurando MySQL..."
-  sudo mysql -u root $PASSWORD-e "CREATE DATABASE nextcloud;
-  GRANT ALL PRIVILEGES ON nextcloud.* TO 'nextcloud'@'localhost' IDENTIFIED BY 'nextcloud-password';
-  FLUSH PRIVILEGES;"
-}
-
 # Configurar NEXTCLOUD
 function configure_nextcloud() {
   echo "Configurando Nextcloud..."
@@ -102,13 +93,11 @@ function configure_nextcloud() {
 # Reiniciar servicios
 function restart_services() {
   sudo systemctl restart nginx
-  sudo systemctl restart mysql
 }
 # Función principal
 function nextcloud_config() {
   echo "**********NEXTCLOUD CONFIGURATOR***********"
   configure_nginx
-  configure_mysql
   configure_nextcloud
   restart_services
   echo "**********ALL DONE***********"
