@@ -4,56 +4,63 @@
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="nextcloud_config.sh" # Script configurador
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
+HTML_PATH="/var/www/html/"
+NEXTCLOUD="nextcloud"
+# Función para verificar si el paquete ya está instalado
+function verify_nextcloud() {
+    # Verifica si el paquete de Nextcloud está instalado usando dpkg
+    if dpkg -s nextcloud &> /dev/null; then
+        echo "Nextcloud está instalado en este sistema."
+    else
+        echo "Nextcloud no está instalado en este sistema."
+    fi
+}
 # Función para descargar la última versión de Nextcloud
 function download_nextcloud() {
-    local version="22.0.0"
+    local version="26.0.1"
     local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
-    echo "Descargando la última versión de Nextcloud ($version)..."
-    if ! wget -q --show-progress "$url" -O nextcloud.zip; then
-        echo "Ha ocurrido un error al descargar Nextcloud."
+    echo "Descargando '$NEXTCLOUD' en su versión : $version..."
+    if ! sudo wget -q --show-progress "$url" -O "$NEXTCLOUD".zip; then
+        echo "Ha ocurrido un error al descargar $NEXTCLOUD-$version."
         return 1
     fi
-    echo "Nextcloud se ha descargado con éxito."
+    echo "$NEXTCLOUD-$version se ha descargado con éxito."
 }
-
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
     echo "Desempaquetando el archivo descargado..."
-    if ! unzip -q nextcloud.zip; then
-        echo "Ha ocurrido un error al desempaquetar Nextcloud."
+    if ! unzip -q "$NEXTCLOUD".zip; then
+        echo "Ha ocurrido un error al desempaquetar "$NEXTCLOUD".zip."
         return 1
     fi
-    
-    if [[ ! -d "nextcloud" ]]; then
-        echo "No se ha encontrado el directorio 'nextcloud' después de desempaquetar Nextcloud."
+    echo "Verificando el directorio '$NEXTCLOUD'..."
+    if [[ ! -d "$NEXTCLOUD" ]]; then
+        echo "No se ha encontrado el directorio '$NEXTCLOUD' después de desempaquetar "$NEXTCLOUD".zip."
         return 1
     fi
-    
-    echo "El archivo se ha desempaquetado correctamente."
+    echo "El archivo "$NEXTCLOUD".zip se ha desempaquetado correctamente en el directorio '$NEXTCLOUD'."
 }
-# Función para mover el directorio de Nextcloud a la raíz de Apache
+# Función para mover el directorio de Nextcloud a la raíz de NGINX
 function move_nextcloud() {
-    echo "Moviendo el directorio de Nextcloud a la raíz de NGINX.."
-    sudo mkdir -p /var/www/html/ || { echo "Ha ocurrido un error al crear el directorio de NGINX."; exit 1; }
-    sudo mv nextcloud /var/www/html/ || { echo "Ha ocurrido un error al mover el directorio de Nextcloud."; exit 1; }
-    if [ ! -d /var/www/html/nextcloud ]; then
+    # Mover el directorio de Nextcloud a la raíz de NGINX
+    echo "Moviendo el directorio '$NEXTCLOUD' a la raíz de NGINX.."
+    sudo mv "$NEXTCLOUD" "$HTML_PATH" || { echo "Ha ocurrido un error al mover el directorio de Nextcloud."; exit 1; }
+    if [ ! -d "$HTML_PATH/$NEXTCLOUD" ]; then
         echo "Ha ocurrido un error al mover el directorio de Nextcloud."
         exit 1
     fi
-    echo "El directorio de Nextcloud se ha movido correctamente."
+    echo "El directorio '$NEXTCLOUD' se ha movido correctamente."
 }
-
 # Función para darle al directorio de Nextcloud los permisos necesarios
 function set_nextcloud_permissions() {
-    echo "Dando al directorio de Nextcloud los permisos necesarios..."
-    if sudo chown -R www-data:www-data /var/www/html/nextcloud; then
+    echo "Dando al directorio '$NEXTCLOUD' los permisos necesarios..."
+    if sudo chown -R www-data:www-data "$HTML_PATH/$NEXTCLOUD"; then
         echo "Los permisos se han establecido correctamente."
     else
-        echo "Ha ocurrido un error al establecer los permisos para Nextcloud."
+        echo "Ha ocurrido un error al establecer los permisos al directorio '$NEXTCLOUD'."
         exit 1
     fi
 }
-
 # Función para verificar si el archivo de configuración existe
 function validate_config_file() {
   echo "Verificando si el archivo de configuración existe..."
