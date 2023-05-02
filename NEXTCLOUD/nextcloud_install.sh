@@ -65,7 +65,7 @@ function set_nextcloud_permissions() {
 function start_service() {
     # Iniciar Nextcloud como servicio
     echo "Iniciando Nextcloud como servicio..."
-    if ! sudo systemctl start snap.nextcloud.nginx; then
+    if ! sudo service snap.nextcloud.nginx start; then
         echo "Error al iniciar Nextcloud como servicio."
         return 1
     fi
