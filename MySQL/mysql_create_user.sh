@@ -74,14 +74,8 @@ function create_user() {
             # Otorgar privilegios a cada base de datos
             echo "Otorgando privilegios '$privileges' al usuario '$username' en las bases de datos '$databases'..."
             for database in $(echo $databases | tr ',' ' '); do
+                echo "GRANT $privileges ON $database.* TO '$username'@'$host';"
                 sudo mysql -e "GRANT $privileges ON $database.* TO '$username'@'$host';"
-            done
-            # Verificar que se han otorgado los permisos correctamente
-            for database in $(echo $databases | tr ',' ' '); do
-                if ! sudo mysql -e "SHOW GRANTS FOR '$username'@'$host' ON $database.*" | grep -q "$privileges"; then
-                    echo "No se han otorgado los permisos correctamente para el usuario '$username' en la base de datos '$database'."
-                    exit 1
-                fi
             done
         fi
     done < <(sed -e '$a\' "$USERS_PATH")
@@ -90,7 +84,34 @@ function create_user() {
 # Función para mostrar todos los usuarios en MySQL
 function show_users() {
     echo "Mostrando todos los usuarios en MySQL..."
-    sudo mysql -e "SELECT User, Host FROM mysql.user;"
+    sudo mysql -e "SELECT User, Host, plugin FROM mysql.user;"
+}
+# Función para mostrar todos privilegios de un usuario en MySQL
+function show_grants() {
+    echo "Mostrando todos privilegios de un usuario en MySQL ..."
+    # Leer la lista de usuarios y contraseñas desde el archivo mysql_users.csv
+    while IFS="," read -r username password host databases privileges; do
+        # Verificar que se han otorgado los permisos correctamente
+        for user in $(echo $username | tr ',' ' '); do
+            if ! sudo mysql -e "SHOW GRANTS FOR $username@$host"; then
+                echo "No se han otorgado los permisos correctamente para el usuario '$username' en la base de datos '$database'."
+                exit 1
+            fi
+        done
+    done < <(sed -e '$a\' "$USERS_PATH")
+    echo "Todos los privilegios en '$USERS_PATH' fueron mostrados."
+}
+function apply_mysql_privileges() {
+     # Aplicar los privilegios en el servidor MySQL
+    echo "Aplicando los privilegios en el servidor MySQL..."
+    sudo mysql -e "FLUSH PRIVILEGES;"
+    
+    # Verificar si hubo errores
+    if [ $? -eq 0 ]; then
+        echo "Los privilegios en el servidor MySQL se han aplicado correctamente."
+    else
+        echo "Error al aplicar los privilegios en el servidor MySQL."
+    fi
 }
 # Función principal
 function mysql_create_user() {
@@ -99,6 +120,8 @@ function mysql_create_user() {
     show_users
     create_user
     show_users
+    show_grants
+    apply_mysql_privileges
     echo "**************ALL DONE**************"
 }
 # Llamar a la función principal
