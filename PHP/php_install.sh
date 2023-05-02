@@ -4,7 +4,7 @@
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PHP_MODULES_FILE="php_modules.txt"
 PHP_MODULES_PATH="$CURRENT_PATH/$PHP_MODULES_FILE" # Define la ruta del archivo de texto con los nombres de paquetes PHP
-CONFIG_FILE="postgresql_config.sh"
+CONFIG_FILE="php_config.sh"
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 # Función para instalar PHP si no está instalado
 function install_php () {
