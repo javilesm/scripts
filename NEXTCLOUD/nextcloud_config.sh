@@ -1,28 +1,33 @@
 #!/bin/bash
 # nextcloud_config.sh
 # Variables
+CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+CONFIG_FILE="nextcloud_nginx.conf"
+CONFIG_PATH="$CURRENT_PATH/$NGINX_CONFIG_FILE"
 DOMAIN="localhost"
-PASSWORD="root"
+NGINX_NEXTCLOUD_CONFIG="/etc/nginx/sites-available/nextcloud"
+NGINX_SITES_ENABLED="/etc/nginx/sites-enabled/"
+NGINX_SITES_AVAILABLE="/etc/nginx/sites-available/"
 # Funcion para remover el archivo de configuracion
 function remove_default_config() {
   # remover el archivo de configuracion
   echo "Removiendo archivo de configuracion..."
-  sudo rm /etc/nginx/sites-enabled/default
+  sudo rm "$NGINX_SITES_ENABLED/default"
 }
 # Funcion para configurar Nginx
 function configure_nginx() {
   echo "Configurando NGINX..."
-  if ! sudo touch /etc/nginx/sites-available/nextcloud; then
+  if ! sudo touch "$NGINX_NEXTCLOUD_CONFIG"; then
     echo "Error: No se pudo crear el archivo de configuración de NGINX."
     return 1
   fi
 
-  if ! sudo ln -s /etc/nginx/sites-available/nextcloud /etc/nginx/sites-enabled/; then
+  if ! sudo ln -s "$NGINX_NEXTCLOUD_CONFIG" "$NGINX_SITES_ENABLED"; then
     echo "Error: No se pudo crear el enlace simbólico para el archivo de configuración de NGINX."
     return 1
   fi
 
-  if ! sudo tee /etc/nginx/sites-available/nextcloud >/dev/null <<EOF
+  if ! sudo tee "$NGINX_NEXTCLOUD_CONFIG" >/dev/null <<EOF
   server {
     listen 80;
     server_name '$DOMAIN';
