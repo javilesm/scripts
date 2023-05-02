@@ -54,18 +54,18 @@ function set_nextcloud_permissions() {
     fi
 }
 
-# Función para validar la existencia de nextcloud_config.sh
+# Función para verificar si el archivo de configuración existe
 function validate_config_file() {
-  echo "Validando la existencia de $CONFIG_FILE..."
+  echo "Verificando si el archivo de configuración existe..."
   if [ ! -f "$CONFIG_PATH" ]; then
-    echo "Error: no se encontró el archivo de configuración $CONFIG_FILE en $CURRENT_PATH."
+    echo "El archivo de configuración de Nextcloud no se puede encontrar."
     exit 1
   fi
-  echo "$CONFIG_FILE existe."
+  echo "El archivo de configuración de Nextcloud existe."
 }
 # Función para ejecutar el configurador de Nextcloud
 function nextcloud_config() {
-  echo "Ejecutar el configurador de PostgreSQL..."
+  echo "Ejecutar el configurador de Nextcloud..."
     # Intentar ejecutar el archivo de configuración de Nextcloud
   if sudo bash "$CONFIG_PATH"; then
     echo "El archivo de configuración '$CONFIG_FILE' se ha ejecutado correctamente."
