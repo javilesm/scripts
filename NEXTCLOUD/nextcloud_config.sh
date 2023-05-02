@@ -103,11 +103,11 @@ function configure_nextcloud() {
 # Función para reiniciar servicios
 function restart_services() {
   echo "Reiniciando servicios..."
-  if ! sudo systemctl restart nginx; then
+  if ! sudo service nginx restart; then
     echo "Error al reiniciar el servicio nginx."
     return 1
   fi
-  if ! sudo systemctl reload snap.nextcloud.nginx; then
+  if ! sudo service snap.nextcloud.nginx reload; then
     echo "Error al recargar el servicio de Nextcloud."
     return 1
   fi
