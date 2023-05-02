@@ -87,7 +87,6 @@ function create_user() {
     done < <(sed -e '$a\' "$USERS_PATH")
     echo "Todos los usuarios en '$USERS_FILE' fueron creados."
 }
-
 # Función para mostrar todos los usuarios en MySQL
 function show_users() {
     echo "Mostrando todos los usuarios en MySQL..."
@@ -97,6 +96,7 @@ function show_users() {
 function mysql_create_user() {
     echo "**********MYSQL CREATE USER**********"
     check_user_file
+    show_users
     create_user
     show_users
     echo "**************ALL DONE**************"
