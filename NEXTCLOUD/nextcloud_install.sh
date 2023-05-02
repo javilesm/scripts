@@ -61,6 +61,18 @@ function set_nextcloud_permissions() {
         exit 1
     fi
 }
+# Función para iniciar Nextcloud como servicio
+function start_service() {
+    # Iniciar Nextcloud como servicio
+    echo "Iniciando Nextcloud como servicio..."
+    if ! sudo systemctl start snap.nextcloud.nginx; then
+        echo "Error al iniciar Nextcloud como servicio."
+        return 1
+    fi
+
+    echo "Nextcloud se ha iniciado correctamente."
+    return 0
+}
 # Función para verificar si el archivo de configuración existe
 function validate_config_file() {
   echo "Verificando si el archivo de configuración existe..."
@@ -89,6 +101,7 @@ function main () {
   unpack_nextcloud
   move_nextcloud
   set_nextcloud_permissions
+  start_service
   validate_config_file
   nextcloud_config
   echo "*************ALL DONE**************"
