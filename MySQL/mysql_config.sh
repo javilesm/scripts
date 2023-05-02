@@ -6,8 +6,8 @@ MYSQL_CONF="/etc/mysql/mysql.conf.d/mysqld.cnf"
 MYSQL_SOCKET="/var/run/mysqld/mysqld.sock"
 # Vector de sub-scripts a ejecutar recursivamente
 scripts=(
-    #"mysql_create_db.sh"
-    #"mysql_create_user.sh"
+    "mysql_create_db.sh"
+    "mysql_create_user.sh"
 )
 # Función para verificar si se ejecuta el script como root
 function check_root() {
@@ -101,6 +101,7 @@ function execute_mysql_scripts() {
 function restart_mysql_service() {
     echo "Reiniciando el servicio de MySQL..."
     sudo service mysql restart
+    sudo service mysql status
 }
 # Función principal
 function mysql_config() {
