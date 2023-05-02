@@ -4,6 +4,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 USERS_FILE="postgresql_users.csv"
 USERS_PATH="$SCRIPT_DIR/$USERS_FILE"
+
 # Función para verificar la existencia del archivo de usuarios
 echo "Verificar la existencia del archivo de usuarios..."
 function check_users_file() {
@@ -24,13 +25,12 @@ function create_user() {
             echo "El usuario '$username' ya existe."
             continue
         else
-            echo "El usuario '$username' no existe, verificando..."
-            ##########################################
+            echo "El usuario '$username' no existe, verificando requerimientos..."
             # Verificar que el valor de "host" sea válido
             echo "Verificando que el valor de "host" sea válido para el usuario '$username'..."
-            if ! [[ "$host" =~ ^(%|localhost|127\.0\.0\.1|\*)$ ]]; then
-                echo "El valor de 'host' para el usuario '$username' no es válido: '$host'"
-                continue
+            if [[ "$host" != "localhost" && "$host" != "%" && ! $host =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "El valor de 'host' ($host) para el usuario '$username' no es válido. Debe ser 'localhost', '%' o una dirección IP válida."
+                continue 2
             fi
             # Verificar que el valor de "databases" sea válido
             echo "Verificando que el valor de "databases" sea válido para el usuario '$username'..."
@@ -43,14 +43,13 @@ function create_user() {
             done
             # Verificar que el valor de "privileges" sea válido
             echo "Verificando que el valor de "privileges" sea válido para el usuario '$username'..."
-            valid_privileges="ALL, SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER"
+            valid_privileges="ALL,SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER"
             for priv in $(echo "$privileges" | tr ',' ' '); do
                 if ! echo "$valid_privileges" | grep -q "\b$priv\b"; then
                     echo "El valor de 'privileges' para el usuario '$username' no es válido: '$priv'"
                     continue 2
                 fi
             done
-            ##########################################
             # Crear usuario
             echo "Creando al usuario '$username'..."
             if ! sudo -u postgres psql -c "CREATE USER $username WITH PASSWORD '$password';"; then
@@ -67,7 +66,6 @@ function create_user() {
                 continue
             fi
             echo "El usuario '$username' ha sido verificado exitosamente."
-
             # Verificar que la base de datos exista antes de asignar permisos
             echo "Verificando que la base de datos '$databases' exista..."
             if ! sudo -u postgres psql -c "SELECT 1 FROM pg_database WHERE datname='$databases'" | grep -q 1; then
@@ -81,7 +79,6 @@ function create_user() {
             for db in "${dbs[@]}"; do
                 sudo -u postgres psql -c "GRANT $privileges ON DATABASE $db TO $username;"
             done
-
             # Verificar que se han otorgado los privilegios correctamente
             for db in "${dbs[@]}"; do
                 if ! sudo -u postgres psql -c "SELECT has_database_privilege('$username', '$db', 'CREATE');" | grep -q "t"
