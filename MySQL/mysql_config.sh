@@ -8,7 +8,6 @@ MYSQL_SOCKET="/var/run/mysqld/mysqld.sock"
 scripts=(
     "mysql_create_db.sh"
     "mysql_create_user.sh"
-    "mysql_grant_privileges.sh"
 )
 # Función para verificar si se ejecuta el script como root
 function check_root() {
@@ -106,10 +105,10 @@ function restart_mysql_service() {
 # Función principal
 function mysql_config() {
     echo "**********MYSQL CONFIG**********"
-    #check_root
-    #set_mysql_file_permissions
-    #set_mysql_socket
-    #start_mysql
+    check_root
+    set_mysql_file_permissions
+    set_mysql_socket
+    start_mysql
     validate_mysql_scripts
     execute_mysql_scripts
     restart_mysql_service
