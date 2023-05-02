@@ -90,14 +90,29 @@ EOF
 
   echo "Configuración de NGINX exitosa."
 }
-# Configurar NEXTCLOUD
+# Función para configurar Nextcloud
 function configure_nextcloud() {
   echo "Configurando Nextcloud..."
-  sudo nextcloud.occ maintenance:install --database "mysql" --database-name "nextcloud" --database-user "nextcloud" --database-pass "tu-contraseña" --admin-user "tu-usuario-administrador" --admin-pass
+  if ! sudo nextcloud.occ maintenance:install --database "mysql" --database-name "nextcloud" --database-user "nextcloud" --database-pass "65jyykjhvbk46156" --admin-user "root" --admin-pass; then
+    echo "Error al configurar Nextcloud."
+    return 1
+  fi
+  echo "Nextcloud se ha configurado correctamente."
+  return 0
 }
-# Reiniciar servicios
+# Función para reiniciar servicios
 function restart_services() {
-  sudo systemctl restart nginx
+  echo "Reiniciando servicios..."
+  if ! sudo systemctl restart nginx; then
+    echo "Error al reiniciar el servicio nginx."
+    return 1
+  fi
+  if ! sudo systemctl reload snap.nextcloud.nginx; then
+    echo "Error al recargar el servicio de Nextcloud."
+    return 1
+  fi
+  echo "Servicios reiniciados correctamente."
+  return 0
 }
 # Función principal
 function nextcloud_config() {
