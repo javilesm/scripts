@@ -22,16 +22,15 @@ function mkdir_nextcloud() {
     echo "Error al crear el directorio '$NEXTCLOUD_HTML_PATH'."
   fi
 }
-# Función para descargar la última versión de Nextcloud
 function download_nextcloud() {
     local version="26.0.1"
     local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
-    echo "Descargando '$NEXTCLOUD_DIR' en su versión : $version..."
-    if ! sudo wget -q --show-progress "$url" -O "$NEXTCLOUD_DIR".zip; then
+    echo "Descargando '$NEXTCLOUD_DIR' en su versión : $version en el directorio '$HTML_PATH' ..."
+    if ! sudo wget -q --show-progress "$url" -P "$HTML_PATH" -O "$NEXTCLOUD_DIR".zip; then
         echo "Ha ocurrido un error al descargar $NEXTCLOUD_DIR-$version."
         return 1
     fi
-    echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito."
+    echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito en el directorio '$HTML_PATH'."
 }
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
