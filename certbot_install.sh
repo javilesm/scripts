@@ -15,7 +15,7 @@ function actualizar_sistema() {
 # Función para instalar certbot
 function instalar_certbot() {
   echo "Instalando Certbot..."
-  if sudo apt-get install certbot -y; then
+  if sudo apt-get install python3-certbot-nginx -y; then
     echo "Certbot instalado correctamente."
   else
     echo "Error al instalar Certbot."
@@ -33,6 +33,5 @@ function main() {
     exit 1
   fi
 }
-
 # Llamar a la función principal
 main
