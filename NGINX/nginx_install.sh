@@ -64,13 +64,11 @@ function validate_config_file() {
 }
 # Función para ejecutar el configurador de Nginx
 function nginx_config() {
-  echo "Ejecutar el configurador de PostgreSQL..."
-    # Intentar ejecutar el archivo de configuración de Nginx
-  if sudo bash "$CONFIG_PATH"; then
-    echo "El archivo de configuración '$CONFIG_FILE' se ha ejecutado correctamente."
-  else
-    echo "No se pudo ejecutar el archivo de configuración '$CONFIG_FILE'."
-    exit 1
+  # Ejecutar el configurador de NGINX..
+  echo "Ejecutar el configurador de NGINX.."
+  if ! sudo bash "$CONFIG_PATH"; then
+    echo "Error: no se pudo ejecutar '$CONFIG_PATH'."
+    return 1
   fi
   echo "Configurador '$CONFIG_FILE' ejecutado."
 }
