@@ -1,8 +1,9 @@
 #! /bin/bash
 # snap_install.sh
-# Función para instalar Snap si no está instalado
-function snap_install() {
+# Función para instalar un paquete si no está instalado
+function package_install() {
   install_and_restart snapd
+  install_and_restart snap-store
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
@@ -62,5 +63,5 @@ function snap_in_path() {
   fi
 }
 # Llamar a las funciones principales
-snap_install
+package_install
 snap_in_path
