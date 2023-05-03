@@ -1,5 +1,8 @@
 ppa:ondrej/php
 ppa:ondrej/nginx
 ppa:deadsnakes/ppa
-universe
 ppa:transmissionbt/ppa
+main
+universe
+restricted
+multiverse
