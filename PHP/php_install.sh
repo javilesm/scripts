@@ -29,7 +29,7 @@ function validate_php_modules_file() {
 function install_php_modules() {
   echo "Instalando módulos PHP..."
   while read module; do
-    if ! sudo apt install "$module" -yqq; then
+    if ! sudo apt-get install "$module" -y; then
       echo "ERROR: No se pudo instalar el módulo $module"
     else
       echo "Módulo $module instalado correctamente."
