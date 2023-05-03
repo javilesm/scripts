@@ -37,6 +37,7 @@ function install_php_modules() {
       echo "Módulo $module instalado correctamente como $package_name."
     fi
   done < "$PHP_MODULES_PATH"
+  php -m
 }
 # Función para validar la existencia de php_config.sh
 function validate_config_file() {
