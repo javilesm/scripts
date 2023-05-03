@@ -25,4 +25,4 @@ function nginx_config() {
   echo "*************ALL DONE**************"
 }
 # Llamar a la funcion princial
-nginx_confi
+nginx_config
