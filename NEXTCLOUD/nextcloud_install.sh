@@ -99,6 +99,7 @@ function nextcloud_install() {
     rm_zip
     set_nextcloud_permissions
     validate_config_file
+    nextcloud_config
   echo "*************ALL DONE**************"
 }
 # Llamar a la función principal
