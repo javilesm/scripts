@@ -1,5 +1,5 @@
 #!/bin/bash
-# install_certbot.sh
+# certbot_install.sh
 
 # Función para actualizar el sistema
 function actualizar_sistema() {
