@@ -27,12 +27,14 @@ function validate_php_modules_file() {
 }
 # Función para instalar los módulos PHP del archivo php_modules.txt
 function install_php_modules() {
+  local php_version=$(php -v | head -n 1 | cut -d ' ' -f 2 | cut -f1-2 -d.)
   echo "Instalando módulos PHP..."
   while read module; do
-    if ! sudo apt-get install "$module" -y; then
+    local package_name="php-${php_version}-${module}"
+    if ! sudo apt-get install "$package_name" -y; then
       echo "ERROR: No se pudo instalar el módulo $module"
     else
-      echo "Módulo $module instalado correctamente."
+      echo "Módulo $module instalado correctamente como $package_name."
     fi
   done < "$PHP_MODULES_PATH"
 }
