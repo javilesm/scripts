@@ -14,8 +14,8 @@ function actualizar_sistema() {
 # Función para agregar repositorio
 function add_repository() {
   echo "Agregando repositorio..."
-  if sudo apt-add-repository -r ppa:certbot/certbot; then
-    echo "Repositorio agregado."
+  if sudo apt-add-repository -y -r ppa:certbot/certbot; then
+    echo "Repositorio agregado automáticamente."
   else
     echo "Error al agregar el repositorio."
     exit 1
