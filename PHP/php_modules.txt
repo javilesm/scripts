@@ -1,5 +1,6 @@
 php-apcu
 php-bcmath
+php-cgi
 php-cli
 php-common
 php-curl
