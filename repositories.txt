@@ -1,2 +1,6 @@
 ppa:ondrej/php
 ppa:ondrej/nginx
+ppa:certbot/certbot
+ppa:deadsnakes/ppa
+universe
+ppa:transmissionbt/ppa
