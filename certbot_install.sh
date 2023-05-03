@@ -11,7 +11,16 @@ function actualizar_sistema() {
     exit 1
   fi
 }
-
+# Función para agregar repositorio
+function add_repository() {
+  echo "Agregando repositorio..."
+  if sudo apt-add-repository -r ppa:certbot/certbot; then
+    echo "Repositorio agregado."
+  else
+    echo "Error al agregar el repositorio."
+    exit 1
+  fi
+}
 # Función para instalar certbot
 function instalar_certbot() {
   echo "Instalando Certbot..."
@@ -22,16 +31,13 @@ function instalar_certbot() {
     exit 1
   fi
 }
-
 # Función principal
 function main() {
-  echo "**********INSTALACIÓN DE CERTBOT**********"
-  if actualizar_sistema && instalar_certbot; then
-    echo "**********INSTALACIÓN COMPLETADA**********"
-  else
-    echo "**********ERROR DURANTE LA INSTALACIÓN**********"
-    exit 1
-  fi
+  echo "**********CERTBOT INSTALL**********"
+  actualizar_sistema
+  add_repository
+  instalar_certbot
+  echo "**********ALL DONE**********"
 }
 # Llamar a la función principal
 main
