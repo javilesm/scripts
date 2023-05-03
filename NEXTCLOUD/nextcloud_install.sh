@@ -22,6 +22,43 @@ function mkdir_nextcloud() {
     echo "Error al crear el directorio '$NEXTCLOUD_HTML_PATH'."
   fi
 }
+# Función para descargar la última versión de Nextcloud
+function download_nextcloud() {
+    local version="26.0.1"
+    local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
+    echo "Descargando '$NEXTCLOUD_DIR' en su versión : $version..."
+    if ! sudo wget -q --show-progress "$url" -O "$NEXTCLOUD_DIR".zip; then
+        echo "Ha ocurrido un error al descargar $NEXTCLOUD_DIR-$version."
+        return 1
+    fi
+    echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito."
+}
+# Función para desempaquetar el archivo descargado
+function unpack_nextcloud() {
+    echo "Desempaquetando el archivo descargado..."
+    if ! unzip -q "$NEXTCLOUD_DIR".zip; then
+        echo "Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
+        return 1
+    fi
+    echo "Verificando el directorio '$NEXTCLOUD_DIR'..."
+    if [[ ! -d "$NEXTCLOUD_DIR" ]]; then
+        echo "No se ha encontrado el directorio '$NEXTCLOUD_DIR' después de desempaquetar $NEXTCLOUD_DIR.zip."
+        return 1
+    fi
+    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$NEXTCLOUD_DIR'."
+    ls "$NEXTCLOUD_HTML_PATH"
+}
+function rm_zip() {
+   # Eliminar el archivo de descarga
+  echo "Eliminando el archivo de descarga..."
+  if sudo rm "$HTML_PATH/$NEXTCLOUD_DIR.zip"; then
+    echo "El archivo de descarga se eliminó correctamente."
+  else
+    echo "Error al eliminar el archivo de descarga."
+    return
+  fi
+  ls "$HTML_PATH"
+}
 # Función para darle al directorio de Nextcloud los permisos necesarios
 function set_nextcloud_permissions() {
     echo "Dando al directorio '$NEXTCLOUD_HTML_PATH' los permisos necesarios..."
@@ -29,28 +66,6 @@ function set_nextcloud_permissions() {
         echo "Los permisos se han establecido correctamente al directorio '$NEXTCLOUD_HTML_PATH'."
     else
         echo "Ha ocurrido un error al establecer los permisos al directorio '$NEXTCLOUD_HTML_PATH'."
-        exit 1
-    fi
-}
-# Función para obtener Nextcloud usando wget
-function get_nextcloud() {
-  # Descargar Nextcloud con wget
-  echo "Descargando Nextcloud con wget en '$NEXTCLOUD_HTML_PATH'..."
-  if sudo wget "$NEXTCLOUD_HTML_PATH" "https://download.nextcloud.com/server/installer/setup-nextcloud.php"; then
-    echo "Nextcloud se descargó correctamente en '$NEXTCLOUD_HTML_PATH'."
-    cd "$NEXTCLOUD_HTML_PATH" & ll
-  else
-    echo "Error al descargar Nextcloud."
-    return
-  fi
-}
-# Función para darle al archivo de Nextcloud los permisos necesarios
-function set_setup_permissions() {
-    echo "Dando al archivo '$NEXTCLOUD_HTML_PATH/setup-nextcloud.php' los permisos necesarios..."
-    if sudo chown www-data:www-data "$NEXTCLOUD_HTML_PATH/setup-nextcloud.php"; then
-        echo "Los permisos se han establecido correctamente al archivo '$NEXTCLOUD_HTML_PATH/setup-nextcloud.php'."
-    else
-        echo "Ha ocurrido un error al establecer los permisos al archivo '$NEXTCLOUD_HTML_PATH/setup-nextcloud.php'."
         exit 1
     fi
 }
@@ -79,11 +94,11 @@ function nextcloud_config() {
 function nextcloud_install() {
   echo "**********NEXTCLOUD INSTALL***********"
     mkdir_nextcloud
+    download_nextcloud
+    unpack_nextcloud
+    rm_zip
     set_nextcloud_permissions
-    get_nextcloud
-    set_setup_permissions
     validate_config_file
-    nextcloud_config
   echo "*************ALL DONE**************"
 }
 # Llamar a la función principal
