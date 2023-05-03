@@ -7,21 +7,7 @@ CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 HTML_PATH="/var/www"
 NEXTCLOUD_DIR="nextcloud"
 NEXTCLOUD_HTML_PATH="$HTML_PATH/$NEXTCLOUD_DIR"
-# Funcion para crear el directorio Nextcloud
-function mkdir_nextcloud() {
-  # Verificar si el directorio ya existe
-  if [ -d "$NEXTCLOUD_HTML_PATH" ]; then
-    echo "El directorio '$NEXTCLOUD_HTML_PATH' ya existe."
-    return
-  fi
-  # Creando el directorio Nextcloud
-  echo "Creando el directorio Nextcloud..."
-  if sudo mkdir -p "$NEXTCLOUD_HTML_PATH"; then
-    echo "El directorio '$NEXTCLOUD_HTML_PATH' se creó correctamente."
-  else
-    echo "Error al crear el directorio '$NEXTCLOUD_HTML_PATH'."
-  fi
-}
+# Funcion para descargar Nextcloud
 function download_nextcloud() {
     local version="26.0.1"
     local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
@@ -45,6 +31,7 @@ function unpack_nextcloud() {
         return 1
     fi
     echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$NEXTCLOUD_DIR'."
+    echo "$NEXTCLOUD_HTML_PATH:"
     ls "$NEXTCLOUD_HTML_PATH"
 }
 function rm_zip() {
@@ -56,6 +43,7 @@ function rm_zip() {
     echo "Error al eliminar el archivo de descarga."
     return
   fi
+  echo "$HTML_PATH:"
   ls "$HTML_PATH"
 }
 # Función para darle al directorio de Nextcloud los permisos necesarios
@@ -92,13 +80,12 @@ function nextcloud_config() {
 # Función principal
 function nextcloud_install() {
   echo "**********NEXTCLOUD INSTALL***********"
-    mkdir_nextcloud
-    download_nextcloud
-    unpack_nextcloud
-    rm_zip
-    set_nextcloud_permissions
-    validate_config_file
-    nextcloud_config
+  download_nextcloud
+  unpack_nextcloud
+  rm_zip
+  set_nextcloud_permissions
+  validate_config_file
+  nextcloud_config
   echo "*************ALL DONE**************"
 }
 # Llamar a la función principal
