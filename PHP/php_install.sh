@@ -85,10 +85,11 @@ function install_php_modules() {
   while read module; do
     local module_name="php-${module}"
     # Verificar si el módulo ya está instalado
+    echo "Verificando si el módulo '${module}' ya está instalado..."
     if dpkg -l | grep -q "^ii.*$module_name"; then
       echo "El módulo '$module_name' ya está instalado."
     else
-      echo "Instalando módulo: '$module_name'..."
+      echo "*****Instalando módulo: '$module_name'..."
       if ! sudo apt-get install "$module_name" -y; then
         echo "ERROR: No se pudo instalar el módulo '$module' como '$module_name'."
         failed_modules+=("$module")
@@ -97,37 +98,6 @@ function install_php_modules() {
       fi
     fi
   done < <(sed -e '$a\' "$PHP_MODULES_PATH")
-}
-# Función para instalar el módulo brotli para PHP
-function install_brotli() {
-  # instalar el módulo brotli para PHP
-  echo "Instalando el módulo brotli para PHP..."
-  if ! sudo apt-get update ; then
-    echo "Error al actualizar los paquetes del sistema."
-    exit 1
-  fi
-
-  if ! sudo apt-get install -y libbrotli-dev ; then
-    echo "Error al instalar las dependencias del módulo brotli."
-    exit 1
-  fi
-
-  if ! sudo pecl install brotli ; then
-    echo "Error al instalar el módulo brotli de PECL."
-    exit 1
-  fi
-
-  if ! echo "extension=brotli.so" | sudo tee /etc/php/$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")/mods-available/brotli.ini > /dev/null ; then
-    echo "Error al crear el archivo de configuración del módulo brotli."
-    exit 1
-  fi
-
-  if ! sudo ln -s /etc/php/$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")/mods-available/brotli.ini /etc/php/$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")/cli/conf.d/20-brotli.ini ; then
-    echo "Error al crear el enlace simbólico para el módulo brotli."
-    exit 1
-  fi
-
-  echo "El módulo brotli para PHP se ha instalado correctamente."
 }
 # Función para instalar los módulos virtuales PHP del archivo php_virtuals.txt
 function install_php_virtuals() {
@@ -246,13 +216,12 @@ function php_install() {
     validate_php
     install_php
     install_comp
-    install_brotli
     validate_php_modules_file
     validate_php_virtuals_file
     validate_php_packages_file
     install_php_modules
-    install_php_virtuals
-    install_php_packages
+    #install_php_virtuals
+    #install_php_packages
     validate_config_file
     php_config
     report
