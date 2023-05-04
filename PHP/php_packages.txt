@@ -1,5 +1,13 @@
-brotli
-filter
-openssl
-spl
+date
+json
+pear
+sodium
+hash
+libxml
+pcntl
+pdo-mysql
+pdo-sqlite
+reflection
+session
+zend-opcache
 zlib
