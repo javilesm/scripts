@@ -4,7 +4,7 @@
 function instalar_utilidades() {
   # instalar utilidades
   echo "Instalando utilidades..."
-  if sudo apt-get install software-properties-common -y; then
+  if sudo apt-get install lsb-release ca-certificates apt-transport-https software-properties-common -y; then
     echo "Utilidades instaladas."
   else
     echo "Error al instalar las utilidades."
