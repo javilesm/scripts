@@ -1,9 +1,9 @@
+common
 apcu
 bcmath
 bz2
 cgi
 cli
-common
 curl
 date
 fpm
