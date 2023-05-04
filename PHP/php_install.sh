@@ -74,7 +74,7 @@ function install_php_modules() {
   failed_modules=()
 
   while read module; do
-    local module_name="php-${module}"
+    local module_name="php${PHP_VERSION}-${module}"
     # Verificar si el módulo ya está instalado
     if dpkg -l | grep -q "^ii.*$module_name"; then
       echo "El módulo '$module_name' ya está instalado."
@@ -150,6 +150,7 @@ function php_config() {
 }
 # Función para generar un reporte de instalaciones
 function report() {
+  php --modules
   total_modules=$(wc -l < "$PHP_MODULES_PATH")
   total_virtuals=$(wc -l < "$PHP_VIRTUALS_PATH")
   total_packages=$(wc -l < "$PHP_PACKAGES_PATH")
