@@ -150,29 +150,54 @@ function php_config() {
 }
 # Función para generar un reporte de instalaciones
 function report() {
-  if [ ${#failed_modules[@]} -gt 0 ]; then
-    echo "Los siguientes módulos no pudieron instalarse: ${failed_modules[*]}"
-    return 1
-  else
-    echo "Todos los módulos se instalaron correctamente."
-    return 0
-  fi
+  total_modules=$(wc -l < "$PHP_MODULES_PATH")
+  total_virtuals=$(wc -l < "$PHP_VIRTUALS_PATH")
+  total_packages=$(wc -l < "$PHP_PACKAGES_PATH")
+  successful_modules=()
+  successful_virtuals=()
+  successful_packages=()
+  failed_modules=()
+  failed_virtuals=()
+  failed_packages=()
 
-  if [ ${#failed_virtuals[@]} -gt 0 ]; then
-    echo "Los siguientes módulos virtuales no pudieron instalarse: ${failed_virtuals[*]}"
-    return 1
-  else
-    echo "Todos los módulos virtuales se instalaron correctamente."
-    return 0
-  fi
+  for module in $(cat "$PHP_MODULES_PATH"); do
+    if dpkg-query -W -f='${Status}' "$module" 2>/dev/null | grep -q "install ok installed"; then
+      successful_modules+=("$module")
+    else
+      failed_modules+=("$module")
+    fi
+  done
 
-  if [ ${#failed_packages[@]} -gt 0 ]; then
-    echo "Los siguientes paquetes no pudieron instalarse: ${failed_packages[*]}"
-    return 1
-  else
-    echo "Todos los paquetes se instalaron correctamente."
-    return 0
-  fi
+  for virtual in $(cat "$PHP_VIRTUALS_PATH"); do
+    virtual_name="php${php_version}-${virtual}"
+    if dpkg-query -W -f='${Status}' "$virtual_name" 2>/dev/null | grep -q "install ok installed"; then
+      successful_virtuals+=("$virtual_name")
+    else
+      failed_virtuals+=("$virtual")
+    fi
+  done
+
+  for package in $(cat "$PHP_PACKAGES_PATH"); do
+    if dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q "install ok installed"; then
+      successful_packages+=("$package")
+    else
+      failed_packages+=("$package")
+    fi
+  done
+
+  echo "Resumen del informe de instalación:"
+  echo "-----------------------------------"
+  echo "Total de módulos intentados: $total_modules"
+  echo "Módulos instalados correctamente (${#successful_modules[@]}/$total_modules): ${successful_modules[*]}"
+  echo "Módulos que no se pudieron instalar (${#failed_modules[@]}/$total_modules): ${failed_modules[*]}"
+  echo ""
+  echo "Total de módulos virtuales intentados: $total_virtuals"
+  echo "Módulos virtuales instalados correctamente (${#successful_virtuals[@]}/$total_virtuals): ${successful_virtuals[*]}"
+  echo "Módulos virtuales que no se pudieron instalar (${#failed_virtuals[@]}/$total_virtuals): ${failed_virtuals[*]}"
+  echo ""
+  echo "Total de paquetes intentados: $total_packages"
+  echo "Paquetes instalados correctamente (${#successful_packages[@]}/$total_packages): ${successful_packages[*]}"
+  echo "Paquetes que no se pudieron instalar (${#failed_packages[@]}/$total_packages): ${failed_packages[*]}"
 }
 # Función principal
 function php_install() {
