@@ -52,7 +52,7 @@ function install_php_common() {
     echo "$php_common_package instalado exitosamente."
     return 0
   else
-    echo "Error: no se pudo instalar $php_common_package."
+    echo "ERROR: no se pudo instalar $php_common_package."
     return 1
   fi
 }
@@ -76,7 +76,8 @@ function install_php_modules() {
   failed_modules=()
 
   while read module; do
-    local package_name="php-${module}"
+    echo "Instalando módulo: '${module}'..."
+    local package_name="${module}"
     if ! sudo apt-get install "$package_name" -y; then
       echo "ERROR: No se pudo instalar el módulo $module como $package_name."
       failed_modules+=("$module")
