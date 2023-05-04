@@ -33,7 +33,6 @@ uploadprogress
 xml
 xmlrpc
 zip
-core
 hash
 libxml
 pcntl
@@ -41,5 +40,4 @@ pdo_mysql
 pdo_sqlite
 reflection
 session
-standard
 zend-opcache
