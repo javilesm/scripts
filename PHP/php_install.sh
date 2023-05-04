@@ -5,11 +5,12 @@ CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actu
 PHP_MODULES_FILE="php_modules.txt"
 PHP_VIRTUALS_FILE="php_virtuals.txt"
 PHP_PACKAGES_FILE="php_packages.txt"
+CONFIG_FILE="php_config.sh"
 PHP_MODULES_PATH="$CURRENT_PATH/$PHP_MODULES_FILE" # Define la ruta del archivo de texto con los nombres de paquetes PHP
 PHP_VIRTUALS_PATH="$CURRENT_PATH/$PHP_VIRTUALS_FILE"
 PHP_PACKAGES_PATH="$CURRENT_PATH/$PHP_PACKAGES_FILE"
-CONFIG_FILE="php_config.sh"
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
+PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
 # Función para validar si PHP está instalado y obtener la versión instalada
 function validate_php() {
   echo "Validando si PHP está instalado..."
@@ -17,8 +18,7 @@ function validate_php() {
     echo "PHP no está instalado."
     return 1
   else
-    php_version=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
-    echo "PHP $php_version ya está instalado."
+    echo "PHP $PHP_VERSION ya está instalado."
     php -v
     return 0
   fi
@@ -69,90 +69,63 @@ function validate_php_packages_file() {
 }
 # Función para instalar los módulos PHP del archivo php_modules.txt
 function install_php_modules() {
-  if [ ! -f "$PHP_MODULES_PATH" ]; then
-    echo "ERROR: No se encontró el archivo $PHP_MODULES_PATH."
-    return 1
-  fi
-
+  # instalar los módulos PHP del archivo php_modules.txt
   echo "Instalando módulos PHP..."
   failed_modules=()
 
   while read module; do
-    echo "Instalando módulo: '${module}'..."
     local module_name="php-${module}"
-    if ! sudo apt-get install "$module_name" -y; then
-      echo "ERROR: No se pudo instalar el módulo $module como $module_name."
-      failed_modules+=("$module")
+    # Verificar si el módulo ya está instalado
+    if dpkg -l | grep -q "^ii.*$module_name"; then
+      echo "El módulo '$module_name' ya está instalado."
     else
-      echo "Módulo $module instalado correctamente como $module_name."
+      echo "Instalando módulo: '$module_name'..."
+      if ! sudo apt-get install "$module_name" -y; then
+        echo "ERROR: No se pudo instalar el módulo '$module' como '$module_name'."
+        failed_modules+=("$module")
+      else
+        echo "Módulo '$module' instalado correctamente como '$module_name'."
+      fi
     fi
-  done < "$PHP_MODULES_PATH"
-
-  if [ ${#failed_modules[@]} -gt 0 ]; then
-    echo "Los siguientes módulos no pudieron instalarse: ${failed_modules[*]}"
-    return 1
-  else
-    echo "Todos los módulos se instalaron correctamente."
-    return 0
-  fi
+  done < <(sed -e '$a\' "$PHP_MODULES_PATH")
 }
 # Función para instalar los módulos virtuales PHP del archivo php_virtuals.txt
 function install_php_virtuals() {
-  if [ ! -f "$PHP_VIRTUALS_PATH" ]; then
-    echo "ERROR: No se encontró el archivo $PHP_VIRTUALS_PATH."
-    return 1
-  fi
-
+  # instalar los módulos virtuales PHP del archivo php_virtuals.txt
   echo "Instalando módulos virtuales PHP..."
   failed_virtuals=()
 
   while read virtual; do
-    echo "Instalando módulo: '${virtual}'..."
-    local virtual_name="php${php_version}-${virtual}"
+    echo "Instalando módulo: '$virtual_name'..."
+    local virtual_name="php${PHP_VERSION}-${virtual}"
     if ! sudo apt-get install "$virtual_name" -y; then
-      echo "ERROR: No se pudo instalar el módulo $virtual como $virtual_name."
+      echo "ERROR: No se pudo instalar el módulo '$virtual' como '$virtual_name'."
       failed_virtuals+=("$virtual")
     else
-      echo "Módulo virtual $virtual instalado correctamente como $virtual_name."
+      echo "Módulo virtual '$virtual' instalado correctamente como '$virtual_name'."
     fi
-  done < "$PHP_VIRTUALS_PATH"
-
-  if [ ${#failed_virtuals[@]} -gt 0 ]; then
-    echo "Los siguientes módulos virtuales no pudieron instalarse: ${failed_virtuals[*]}"
-    return 1
-  else
-    echo "Todos los módulos se instalaron correctamente."
-    return 0
-  fi
+  done < <(sed -e '$a\' "$PHP_VIRTUALS_PATH")
 }
 # Función para instalar los paquetes PHP del archivo php_packages.txt
 function install_php_packages() {
-  if [ ! -f "$PHP_PACKAGES_PATH" ]; then
-    echo "ERROR: No se encontró el archivo $PHP_PACKAGES_PATH."
-    return 1
-  fi
-
+  # instalar los paquetes PHP del archivo php_packages.txt
   echo "Instalando paquetes PHP..."
   failed_packages=()
 
   while read package; do
-    echo "Instalando paquete: '${package}'..."
-    local package_name="${package}"
-    if ! sudo apt-get install "$package_name" -y; then
-      echo "ERROR: No se pudo instalar el paquete $package como $package_name."
-      failed_packages+=("$package")
+    echo "Verificando si el paquete '$package' ya está instalado..."
+    if dpkg -s "$package" >/dev/null 2>&1; then
+      echo "Paquete '$package' ya está instalado."
     else
-      echo "Paquete $package instalado correctamente como $package_name."
+      echo "Instalando paquete: '$package'..."
+      if ! sudo apt-get install "$package" -y; then
+        echo "ERROR: No se pudo instalar el paquete '$package'."
+        failed_packages+=("$package")
+      else
+        echo "Paquete '$package' instalado correctamente."
+      fi
     fi
-  done < "$PHP_PACKAGES_PATH"
-
-  if [ ${#failed_packages[@]} -gt 0 ]; then
-    echo "Los siguientes paquetes no pudieron instalarse: ${failed_packages[*]}"
-    return 1
-  else
-    echo "Todos los paquetes se instalaron correctamente."
-    return 0
-  fi
+  done < <(sed -e '$a\' "$PHP_PACKAGES_PATH")
 }
 # Función para validar la existencia de php_config.sh
 function validate_config_file() {
@@ -175,6 +148,32 @@ function php_config() {
   fi
   echo "Configurador de PHP ejecutado."
 }
+# Función para generar un reporte de instalaciones
+function report() {
+  if [ ${#failed_modules[@]} -gt 0 ]; then
+    echo "Los siguientes módulos no pudieron instalarse: ${failed_modules[*]}"
+    return 1
+  else
+    echo "Todos los módulos se instalaron correctamente."
+    return 0
+  fi
+
+  if [ ${#failed_virtuals[@]} -gt 0 ]; then
+    echo "Los siguientes módulos virtuales no pudieron instalarse: ${failed_virtuals[*]}"
+    return 1
+  else
+    echo "Todos los módulos virtuales se instalaron correctamente."
+    return 0
+  fi
+
+  if [ ${#failed_packages[@]} -gt 0 ]; then
+    echo "Los siguientes paquetes no pudieron instalarse: ${failed_packages[*]}"
+    return 1
+  else
+    echo "Todos los paquetes se instalaron correctamente."
+    return 0
+  fi
+}
 # Función principal
 function php_install() {
     echo "*******PHP INSTALL******"
@@ -188,7 +187,9 @@ function php_install() {
     install_php_packages
     validate_config_file
     php_config
+    report
     echo "*********ALL DONE********"
 }
 # Llamar a la funcion principal
 php_install
+
