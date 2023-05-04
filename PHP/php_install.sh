@@ -74,7 +74,7 @@ function install_php_modules() {
   failed_modules=()
 
   while read module; do
-    local module_name="php${PHP_VERSION}-${module}"
+    local module_name="php-${module}"
     # Verificar si el módulo ya está instalado
     if dpkg -l | grep -q "^ii.*$module_name"; then
       echo "El módulo '$module_name' ya está instalado."
