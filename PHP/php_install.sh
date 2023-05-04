@@ -21,7 +21,7 @@ function validate_php() {
 }
 # Función para instalar PHP
 function install_php() {
-   if sudo apt install php; then
+   if sudo apt install php -y; then
     # Verifica que PHP se haya instalado correctamente
     if php -v; then
       echo "PHP instalado exitosamente."
