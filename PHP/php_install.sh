@@ -40,6 +40,15 @@ function install_php() {
     return 1
   fi
 }
+# Función para instalar los paquetes necesarios para compilar los módulos de PHP
+function install_comp() {
+   # Instalar los paquetes necesarios para compilar los módulos de PHP
+  echo "Instalando los paquetes necesarios para compilar los módulos de PHP..."
+  if ! sudo apt-get install -y build-essential autoconf libtool; then
+    echo "Error al instalar los paquetes necesarios para compilar los módulos de PHP. Salida del script..."
+    exit 1
+  fi
+}
 # Función para validar la existencia del archivo con la lista de módulos
 function validate_php_modules_file() {
   echo "Validando la existencia de $PHP_MODULES_FILE..."
@@ -88,6 +97,37 @@ function install_php_modules() {
       fi
     fi
   done < <(sed -e '$a\' "$PHP_MODULES_PATH")
+}
+# Función para instalar el módulo brotli para PHP
+function install_brotli() {
+  # instalar el módulo brotli para PHP
+  echo "Instalando el módulo brotli para PHP..."
+  if ! sudo apt-get update ; then
+    echo "Error al actualizar los paquetes del sistema."
+    exit 1
+  fi
+
+  if ! sudo apt-get install -y libbrotli-dev ; then
+    echo "Error al instalar las dependencias del módulo brotli."
+    exit 1
+  fi
+
+  if ! sudo pecl install brotli ; then
+    echo "Error al instalar el módulo brotli de PECL."
+    exit 1
+  fi
+
+  if ! echo "extension=brotli.so" | sudo tee /etc/php/$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")/mods-available/brotli.ini > /dev/null ; then
+    echo "Error al crear el archivo de configuración del módulo brotli."
+    exit 1
+  fi
+
+  if ! sudo ln -s /etc/php/$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")/mods-available/brotli.ini /etc/php/$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")/cli/conf.d/20-brotli.ini ; then
+    echo "Error al crear el enlace simbólico para el módulo brotli."
+    exit 1
+  fi
+
+  echo "El módulo brotli para PHP se ha instalado correctamente."
 }
 # Función para instalar los módulos virtuales PHP del archivo php_virtuals.txt
 function install_php_virtuals() {
@@ -205,6 +245,8 @@ function php_install() {
     echo "*******PHP INSTALL******"
     validate_php
     install_php
+    install_comp
+    install_brotli
     validate_php_modules_file
     validate_php_virtuals_file
     validate_php_packages_file
