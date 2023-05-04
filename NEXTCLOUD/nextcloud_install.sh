@@ -13,24 +13,26 @@ function download_nextcloud() {
     local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
     echo "Descargando '$NEXTCLOUD_DIR' en su versión : $version en el directorio '$HTML_PATH' ..."
     if ! sudo wget -q --show-progress "$url" -P "$HTML_PATH" -O "$NEXTCLOUD_DIR".zip; then
-        echo "Ha ocurrido un error al descargar $NEXTCLOUD_DIR-$version."
+        echo "ERROR: Ha ocurrido un error al descargar $NEXTCLOUD_DIR-$version."
         return 1
     fi
     echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito en el directorio '$HTML_PATH'."
+    echo "$HTML_PATH:"
+    ls "$HTML_PATH"
 }
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
     echo "Desempaquetando el archivo descargado..."
-    if ! unzip -q "$NEXTCLOUD_DIR".zip; then
-        echo "Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
+    if ! unzip -q "$HTML_PATH/$NEXTCLOUD_DIR".zip; then
+        echo "ERROR: Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
     echo "Verificando el directorio '$NEXTCLOUD_DIR'..."
-    if [[ ! -d "$NEXTCLOUD_DIR" ]]; then
-        echo "No se ha encontrado el directorio '$NEXTCLOUD_DIR' después de desempaquetar $NEXTCLOUD_DIR.zip."
+    if [[ ! -d "$HTML_PATH/$NEXTCLOUD_DIR" ]]; then
+        echo "ERROR: No se ha encontrado el directorio '$HTML_PATH/$NEXTCLOUD_DIR' después de desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
-    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$NEXTCLOUD_DIR'."
+    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$HTML_PATH/$NEXTCLOUD_DIR'."
     echo "$NEXTCLOUD_HTML_PATH:"
     ls "$NEXTCLOUD_HTML_PATH"
 }
@@ -40,7 +42,7 @@ function rm_zip() {
   if sudo rm "$HTML_PATH/$NEXTCLOUD_DIR.zip"; then
     echo "El archivo de descarga se eliminó correctamente."
   else
-    echo "Error al eliminar el archivo de descarga."
+    echo "ERROR: Error al eliminar el archivo de descarga."
     return
   fi
   echo "$HTML_PATH:"
@@ -52,7 +54,7 @@ function set_nextcloud_permissions() {
     if sudo chown -R www-data:www-data "$NEXTCLOUD_HTML_PATH"; then
         echo "Los permisos se han establecido correctamente al directorio '$NEXTCLOUD_HTML_PATH'."
     else
-        echo "Ha ocurrido un error al establecer los permisos al directorio '$NEXTCLOUD_HTML_PATH'."
+        echo "ERROR: Ha ocurrido un error al establecer los permisos al directorio '$NEXTCLOUD_HTML_PATH'."
         exit 1
     fi
 }
