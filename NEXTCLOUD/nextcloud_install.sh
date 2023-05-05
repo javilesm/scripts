@@ -16,6 +16,7 @@ function download_nextcloud() {
         echo "ERROR: Ha ocurrido un error al descargar $NEXTCLOUD_DIR-$version."
         return 1
     fi
+    sleep 5
     echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito en el directorio '$HTML_PATH'."
     echo "$HTML_PATH:"
     ls "$HTML_PATH"
@@ -23,16 +24,16 @@ function download_nextcloud() {
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
     echo "Desempaquetando el archivo descargado..."
-    if ! unzip -q "$HTML_PATH/$NEXTCLOUD_DIR".zip; then
+    if ! unzip -q "$HTML_PATH/$NEXTCLOUD_DIR.zip"; then
         echo "ERROR: Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
-    echo "Verificando el directorio '$NEXTCLOUD_DIR'..."
-    if [[ ! -d "$HTML_PATH/$NEXTCLOUD_DIR" ]]; then
-        echo "ERROR: No se ha encontrado el directorio '$HTML_PATH/$NEXTCLOUD_DIR' después de desempaquetar $NEXTCLOUD_DIR.zip."
+    echo "Verificando el directorio '$NEXTCLOUD_HTML_PATH'..."
+    if [[ ! -d "$NEXTCLOUD_HTML_PATH" ]]; then
+        echo "ERROR: No se ha encontrado el directorio '$NEXTCLOUD_HTML_PATH' después de desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
-    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$HTML_PATH/$NEXTCLOUD_DIR'."
+    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$NEXTCLOUD_HTML_PATH'."
     echo "$NEXTCLOUD_HTML_PATH:"
     ls "$NEXTCLOUD_HTML_PATH"
 }
