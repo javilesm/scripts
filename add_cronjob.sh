@@ -10,13 +10,13 @@ function add_cronjob {
 }
 
 # Configurar el cronjob para que ejecute clamscan todos los días a la 1 a.m. y escanee el directorio /home
-add_cronjob "0 1 * * *" "/usr/bin/clamscan -r /home"
+add_cronjob "0 1 * * * /usr/bin/clamscan -r /home"
 
 # Configurar el cronjob para que ejecute un comando cada hora
-add_cronjob "0 * * * *" "comando1"
+add_cronjob "0 0 * * * s3snap"
 
 # Configurar el cronjob para que ejecute un comando cada 30 minutos
-add_cronjob "*/30 * * * *" "comando2"
+add_cronjob "0 2 * * * ec2snap"
 
 # Agregar el archivo de cronjob a la configuración de crontab
 if crontab /tmp/cronjob; then
