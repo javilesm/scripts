@@ -92,6 +92,7 @@ function verify_mount() {
     done
     if [[ $mounted_points -eq ${#MOUNTING_POINT[@]} && $(df -h | grep -c '/var/ec2-safety-vault') -eq 1 ]]; then
         echo "Los buckets de S3 se han montado correctamente"
+        df -h
     else
         echo "ERROR: Hubo un error al verificar el montaje de los buckets de S3"
         exit 1
