@@ -4,8 +4,20 @@
 SOURCE_DIR="/*" # Directorio local a respaldar
 BACKUP_DIR="/vault/xvda1" # Directorio temporal para archivo comprimido
 BACKUP_FILE="snapshot_$(date +%Y%m%d_%H%M%S).tar.gz" # Nombre del archivo de respaldo
+# Función para verificar la existencia del directorio temporal para archivo comprimido
+function check_backup_dir() {
+    # verificar la existencia del directorio temporal
+    echo "Verificando la existencia del directorio temporal..."
+    if [ -d "/vault/xvda1" ]; then
+        echo "El directorio de respaldo '$BACKUP_DIR' existe."
+    else
+        echo "ERROR: El directorio de respaldo '$BACKUP_DIR' no existe. Cree el directorio y vuelva a intentarlo."
+        exit 1
+    fi
+}
 # Función para comprimir el directorio local en un archivo tar.gz
 function compress_dir() {
+    # comprimir el directorio local en un archivo tar.gz
     echo "Comprimiendo el directorio local en un archivo tar.gz..."
     sudo tar czf "$BACKUP_DIR/$BACKUP_FILE" --one-file-system --exclude='proc' --exclude='tmp' --exclude='var/tmp' --exclude='var/cache' --exclude='var/log' --exclude='data' --exclude='run' --exclude='lost+found' --exclude='mnt' --exclude='vault' -P $SOURCE_DIR
     if [ $? -ne 0 ]; then
@@ -13,8 +25,10 @@ function compress_dir() {
         exit 1
     fi
 }
-# Función para calcular el tamaño total del archivo creado con rsync
+# Función para calcular el tamaño total del archivo creado
 function calculate_size() {
+    # calcular el tamaño total del archivo creado
+    echo "Calculando el tamaño total del archivo creado..."
     tamano_total=$(du -sh $BACKUP_DIR/$BACKUP_FILE | awk '{print $1}')  # Obtener el tamaño total en formato legible por humanos
     if [ $? -ne 0 ]; then
         echo "Ha ocurrido un error al calcular el tamaño total del archivo"
@@ -23,6 +37,8 @@ function calculate_size() {
 }
 # Función para mostrar información de la copia de seguridad
 function report() {
+    # mostrar información de la copia de seguridad
+    echo "Mostrando información de la copia de seguridad..."
     echo "Hora de copia de seguridad: $inicio"
     echo "Tiempo transcurrido: $tiempo_transcurrido segundos."
     echo "El tamaño total de la copia de seguridad es: $tamano_total."
