@@ -1,7 +1,7 @@
 #!/bin/bash
 # aws_config.sh
 # Variables 
-CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )"  # Directorio de este script
+CURRENT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"  # Directorio de este script
 S3_CREDENTIALS_FILE=".s3"
 S3_CREDENTIALS_PATH="$HOME/$S3_CREDENTIALS_FILE"
 CREDENTIALS_FILE="aws_credentials.txt" # Ubicacion segura de las credenciales de acceso
@@ -46,6 +46,7 @@ function configure_aws_cli() {
 function export_variables() {
     # exportar las variables de entorno
     echo "Exportando las variables de entorno..."
+    source $CREDENTIALS_PATH
     export AWS_ACCESS_KEY_ID=$AWS_Access_Key
     export AWS_SECRET_ACCESS_KEY=$AWS_Secret_Access_Key
     export AWS_DEFAULT_REGION=$AWS_Default_Region
