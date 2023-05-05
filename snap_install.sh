@@ -3,7 +3,6 @@
 # Función para instalar un paquete si no está instalado
 function package_install() {
   install_and_restart snapd
-  install_and_restart snap-store
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
