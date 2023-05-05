@@ -1,7 +1,8 @@
 #!/bin/bash
 # s3_config.sh
 # Variables
-S3_PASSWD_FILE=$(find $HOME -type f -name ".s3")
+S3_CREDENTIALS_FILE=".keysS3"
+S3_PASSWD_FILE=$(find $HOME -type f -name "${S3_CREDENTIALS_FILE}")
 # Vectores
 MOUNTING_POINTS=(
     "s3-cloudpress"
