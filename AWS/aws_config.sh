@@ -2,7 +2,7 @@
 # aws_config.sh
 # Variables 
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )"  # Directorio de este script
-S3_CREDENTIALS_FILE=".keysS3"
+S3_CREDENTIALS_FILE=".s3"
 S3_CREDENTIALS_PATH="$HOME/$S3_CREDENTIALS_FILE"
 CREDENTIALS_FILE="aws_credentials.txt" # Ubicacion segura de las credenciales de acceso
 CREDENTIALS_PATH="$CURRENT_PATH/$CREDENTIALS_FILE" # Ruta a las credenciales de acceso
@@ -50,31 +50,22 @@ function export_variables() {
     export AWS_SECRET_ACCESS_KEY=$AWS_Secret_Access_Key
     export AWS_DEFAULT_REGION=$AWS_Default_Region
 }
-# Función para comprobar la existencia de .s3
-function verify_s3file() {
-    # comprobar la existencia de .s3
-    echo "Comprobando la existencia de '$S3_CREDENTIALS_PATH'..."
-    if [ ! -f "$S3_CREDENTIALS_PATH" ]; then
-        echo "ERROR: El archivo '$S3_CREDENTIALS_FILE' no existe en la ubicación '$S3_CREDENTIALS_PATH'. Por favor, cree el archivo con las credenciales de S3 en el formato ACCESS_KEY:SECRET_KEY y vuelva a intentarlo."
-        exit 1
-    fi
-}
 # Función para crear y editar el archivo de credenciales
 function create_credentials_file() {
     # Verificar si el archivo de credenciales ya existe
+    echo "Verificando si el archivo de credenciales ya existe..."
     if [ -f "$S3_CREDENTIALS_PATH" ]; then
         echo "El archivo de credenciales ya existe en '$S3_CREDENTIALS_PATH'"
         exit 1
     fi
-
     # Verificar que las credenciales de Amazon S3 se hayan proporcionado
+    echo "Verificando que las credenciales de Amazon S3 se hayan proporcionado..."
     if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
         echo "ERROR: Debe proporcionar las credenciales de Amazon S3."
         exit 1
     fi
-
     # Crear el archivo de credenciales
-    echo "Creando archivo de credenciales..."
+    echo "Creando archivo de credenciales en la ruta '$S3_CREDENTIALS_PATH'..."
     if sudo touch "$S3_CREDENTIALS_PATH"; then
         # Editar el archivo de credenciales
         echo "Editando archivo de credenciales..."
@@ -88,11 +79,12 @@ function create_credentials_file() {
 # Función para cambiar los permisos del archivo de credenciales
 function change_credentials_permissions() {
     # Verificar que el archivo de credenciales exista
+    echo "Verificando que el archivo de credenciales exista..."
     if [ ! -f "$S3_CREDENTIALS_PATH" ]; then
-        echo "El archivo de credenciales no existe en '$S3_CREDENTIALS_PATH'"
+        echo "ERROR: El archivo de credenciales no existe en '$S3_CREDENTIALS_PATH'"
         exit 1
     fi
-
+    echo "El archivo de credenciales existe en '$S3_CREDENTIALS_PATH'"
     # Cambiar los permisos del archivo de credenciales
     echo "Cambiando permisos del archivo de credenciales..."
     if sudo chmod 600 $S3_CREDENTIALS_PATH; then
@@ -112,16 +104,16 @@ function verify_configuration() {
 }
 # Función principal para configurar AWS CLI
 function aws_config() {
-    echo "**********CONFIGURE AWS***********"
+    echo "**********AWS CONFIGURE***********"
     read_credentials
     print_credentials
     check_aws_cli
     configure_aws_cli
     export_variables
-    verify_s3file
     create_credentials_file
     change_credentials_permissions
     verify_configuration
+    echo "**********ALL DONE***********"
 }
 # Ejecutar la función principal
 aws_config
