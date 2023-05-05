@@ -220,7 +220,7 @@ function php_install() {
     validate_php_virtuals_file
     validate_php_packages_file
     install_php_modules
-    #install_php_virtuals
+    install_php_virtuals
     #install_php_packages
     validate_config_file
     php_config
