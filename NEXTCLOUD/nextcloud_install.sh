@@ -12,19 +12,21 @@ function download_nextcloud() {
     local version="26.0.1"
     local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
     echo "Descargando '$NEXTCLOUD_DIR' en su versión : $version en el directorio '$HTML_PATH' ..."
-    if ! sudo wget -q --show-progress "$url" -P "$HTML_PATH" -O "$NEXTCLOUD_DIR".zip; then
+    if sudo wget -q "$url" -O "$HTML_PATH/$NEXTCLOUD_DIR.zip"; then
+        sleep 5
+        echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito en el directorio '$HTML_PATH'."
+        echo "$HTML_PATH:"
+        ls "$HTML_PATH"
+    else
         echo "ERROR: Ha ocurrido un error al descargar $NEXTCLOUD_DIR-$version."
         return 1
     fi
-    sleep 5
-    echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito en el directorio '$HTML_PATH'."
-    echo "$HTML_PATH:"
-    ls "$HTML_PATH"
 }
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
     echo "Desempaquetando el archivo descargado..."
-    if ! unzip -q "$HTML_PATH/$NEXTCLOUD_DIR.zip"; then
+    cd "$HTML_PATH"
+    if ! unzip -q "$NEXTCLOUD_DIR.zip"; then
         echo "ERROR: Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
