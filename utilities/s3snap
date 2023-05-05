@@ -1,40 +1,57 @@
 #!/bin/bash
 # s3snap.sh
-# Llamada a reconfigurar_aws_cli.sh
-echo "Ejecutando aws_setup desde s3backup..."
-SCRIPT_PATH="/home/ubuntu/scripts/aws_setup"
-bash $SCRIPT_PATH
+source aws_config.sh
+# Variables
+SOURCE_DIR=$(dirname "$(readlink -f "$0")") # Obtener el directorio padre del script
+BUCKET="s3://ec2-safety-vault" # Bucket de Amazon S3 para el respaldo
+DESTINATION_DIR="$BUCKET/vol-07fa8e9b466bbe2eb" # Directorio de respaldo remoto
+BACKUP_DIR="backup" # Directorio de respaldo local
+BACKUP_PATH="$HOME/$BACKUP_DIR" # Ruta del directorio local
+BACKUP_FILE="backup_$SOURCE_DIR_$(date +%Y%m%d_%H%M%S).tar.gz" # Nombre del archivo de respaldo
+# Funcion para comprobar si el directorio de respaldo existe
+function check_backup_path() {
+    # Comprobar si el directorio de respaldo existe
+    echo "Comprobando si el directorio de respaldo existe..."
+    if [ ! -d "$BACKUP_PATH" ]; then
+        echo "El directorio de respaldo no existe. Creando directorio..."
+        mkdir -p "$BACKUP_PATH"
+    fi
+}
+# Funcion para limpiar respaldos viejos
+function clean_up() {
+    # Comprobar si hay archivos en el directorio de respaldo
+    echo "Comprobando si hay archivos en el directorio de respaldo..."
+    shopt -s nullglob
+    files=("$BACKUP_PATH"/*)
+    if [ ${#files[@]} -eq 0 ]; then
+        echo "ADVERTENCIA: No hay archivos en el directorio de respaldo."
+        return
+    fi
 
-# Directorio local a respaldar
-SOURCE_DIR="/home/ubuntu/scripts/"
-
-# Bucket de Amazon S3 para el respaldo
-DESTINATION_DIR="s3://ec2-safety-vault/vol-07fa8e9b466bbe2eb"
-
-# Directorio de respaldo comprimido
-BACKUP_DIR="/home/ubuntu/backups/"
-
-# Nombre del archivo de respaldo
-BACKUP_FILE="respaldo_$SOURCE_DIR_$(date +%Y%m%d_%H%M%S).tar.gz"
-
-# Comando para limpiar respaldos viejos
-echo "Limpiando..."
-rm -R /home/ubuntu/backups/*
-sleep 5
-
-# Comando para comprimir el directorio local en un archivo tar.gz
-echo "Comprimiendo..."
-tar czf "$BACKUP_DIR/$BACKUP_FILE" -C "$SOURCE_DIR" .
-
-# Comando para esperar hasta que se actulice 
-sleep 5
-
-# Comando para copiar el archivo de respaldo a S3 utilizando awscli
-echo "Sincronizando con S3..."
-aws s3 sync $BACKUP_DIR $DESTINATION_DIR
-echo "Copia de seguridad realizada con exito..."
-
-# Agregar tarea de cron para la copia de seguridad diaria
-CRON_LINE="0 0 * * * /home/ubuntu/scripts/s3snap"
-(crontab -l ; echo "$CRON_LINE") | sort - | uniq - | crontab -
-echo "Crontab actualizado con exito..."
+    # Limpiar respaldos viejos
+    echo "Limpiando respaldos viejos..."
+    rm -f ${BACKUP_PATH:?}/*
+    sleep 5
+}
+# Funcion para comprimir el directorio de origen en un archivo tar.gz
+function compress_source(){
+    # comprimir el directorio de origen en un archivo tar.gz
+    echo "Comprimiendo el directorio '$SOURCE_DIR' con destino '$BACKUP_PATH'..."
+    tar czf "$BACKUP_PATH/$BACKUP_FILE" -C "$SOURCE_DIR" .
+    sleep 5
+}
+# Funcion para copiar el archivo de respaldo a S3 utilizando awscli
+function s3_sync() {
+    echo "Sincronizando con S3..."
+    aws s3 sync $BACKUP_PATH $DESTINATION_DIR
+    echo "Copia de seguridad realizada con exito..."
+}
+# Funcion principal
+function s3snap() {
+    check_backup_path
+    clean_up
+    compress_source
+    s3_sync
+}
+# Llamar a la funcion principal
+s3snap
