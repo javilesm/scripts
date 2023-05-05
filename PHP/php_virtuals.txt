@@ -7,7 +7,6 @@ ftp
 iconv
 mysqli
 mysqlnd
-pdo
 phar
 posix
 shmop
@@ -19,3 +18,5 @@ sysvsem
 xmlreader
 xmlwriter
 xsl
+pdo
+pdo-mysql
