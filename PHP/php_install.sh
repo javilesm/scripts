@@ -95,6 +95,7 @@ function install_php_modules() {
         failed_modules+=("$module")
       else
         echo "Módulo '$module' instalado correctamente como '$module_name'."
+        php -m | grep ${module}
       fi
     fi
   done < <(sed -e '$a\' "$PHP_MODULES_PATH")
@@ -113,6 +114,7 @@ function install_php_virtuals() {
       failed_virtuals+=("$virtual")
     else
       echo "Módulo virtual '$virtual' instalado correctamente como '$virtual_name'."
+      php -m | grep ${virtual}
     fi
   done < <(sed -e '$a\' "$PHP_VIRTUALS_PATH")
 }
