@@ -1,35 +1,37 @@
 #!/bin/bash
 # add_cronjob.sh
-# Función para agregar una tarea de cronjob al archivo temporal
-function add_cronjob {
-  if [[ $# -ne 2 ]]; then
-    echo "Error: add_cronjob requiere dos argumentos"
-    exit 1
+# Definir vector de tareas
+tareas=(
+    "0 1 * * * /usr/bin/clamscan -r /home"
+    "0 0 * * * s3snap"
+    "0 0 * * * ec2snap"
+    "0 0 * * * mysql_backup"
+    "0 0 * * * postgresql_backup"
+)
+# Función para verificar si el archivo crontab existe
+function verify_crontab() {
+  # Verificar si el archivo crontab existe
+  if [ ! -f "/etc/crontab" ]; then
+      echo "ERROR: El archivo crontab no existe"
+      exit 1
   fi
-  echo "$1 $2" >> /tmp/cronjob
 }
-
-# Configurar el cronjob para que ejecute clamscan todos los días a la 1 a.m. y escanee el directorio /home
-add_cronjob "0 1 * * * /usr/bin/clamscan -r /home"
-
-# Configurar el cronjob para que ejecute un comando cada hora
-add_cronjob "0 0 * * * s3snap"
-
-# Configurar el cronjob para que ejecute un comando cada 30 minutos
-add_cronjob "0 2 * * * ec2snap"
-
-# Agregar el archivo de cronjob a la configuración de crontab
-if crontab /tmp/cronjob; then
-  echo "¡La configuración de crontab ha finalizado!"
-else
-  echo "Error: no se pudo agregar la configuración de cronjob"
-  exit 1
-fi
-
-# Eliminar el archivo temporal de cronjob
-if rm /tmp/cronjob; then
-  echo "¡El archivo temporal de cronjob ha sido eliminado!"
-else
-  echo "Error: no se pudo eliminar el archivo temporal de cronjob"
-  exit 1
-fi
+# Función para agregar tareas a crontab
+function add_task() {
+    # Verificar si las tareas ya existen en crontab
+    for tarea in "${tareas[@]}"; do
+        if grep -q "$tarea" "/etc/crontab"; then
+            echo "La tarea ya existe en crontab: $tarea"
+        else
+            echo "Agregando tarea a crontab: $tarea"
+            echo "$tarea" >> /etc/crontab
+        fi
+    done
+}
+# Funcion principal
+function add_cronjob() {
+  verify_crontab
+  add_task
+}
+# Llamar a la funcion principal
+add_cronjob
