@@ -5,7 +5,6 @@ PARAMETERS_FILE="python_config.cfg" # Parámetros de configuración
 # Función para instalar Python
 function instalar_python() {
   install_and_restart python3
-
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
@@ -20,7 +19,7 @@ function install_and_restart() {
   # Instalar el paquete
   echo "Instalando $package..."
   if ! sudo apt-get install "$package" -y; then
-    echo "Error: no se pudo instalar el paquete '$package'."
+    echo "ERROR: no se pudo instalar el paquete '$package'."
     return 1
   fi
   
@@ -29,7 +28,7 @@ function install_and_restart() {
   if [ $? -eq 0 ]; then
     echo "$package se ha instalado correctamente."
   else
-    echo "Error al instalar $package."
+    echo "ERROR: Error al instalar $package."
     return 1
   fi
   
@@ -42,7 +41,7 @@ function install_and_restart() {
   if [[ -n $services ]]; then
     echo "Reiniciando los siguientes servicios: $services"
     if ! sudo systemctl restart $services; then
-      echo "Error: no se pudieron reiniciar los servicios después de instalar el paquete '$package'."
+      echo "ERROR: no se pudieron reiniciar los servicios después de instalar el paquete '$package'."
       return 1
     fi
   else
@@ -64,10 +63,10 @@ function find_bashrc() {
   echo "Buscando el archivo .bashrc en el sistema"
   BASHRC_PATH=$(find /home/ -name ".bashrc" 2>/dev/null)
   if [ -z "$BASHRC_PATH" ]; then
-    echo "No se encontró el archivo .bashrc en la carpeta home."
+    echo "ERROR: No se encontró el archivo .bashrc en la carpeta home."
     BASHRC_PATH=$(find / -name ".bashrc" 2>/dev/null)
     if [ -z "$BASHRC_PATH" ]; then
-      echo "No se pudo encontrar el archivo .bashrc en el sistema."
+      echo "ERROR: No se pudo encontrar el archivo .bashrc en el sistema."
       exit 1
     fi
   fi
@@ -82,7 +81,7 @@ function add_to_bashrc() {
   echo 'export PATH="'"$PARENT_PATH"'/utilities:$PATH"' >> "$BASHRC_PATH"
   echo 'export PATH="/usr/local/python/'"$CURRENT_PYTHON_VERSION"'/bin:$PATH"' >>"$BASHRC_PATH"
   if ! source "$BASHRC_PATH"; then
-        echo "No se pudo actualizar el archivo $BASHRC_PATH."
+        echo "ERROR: No se pudo actualizar el archivo $BASHRC_PATH."
         exit 1
   fi
   echo "$BASHRC_PATH ha sido actualizado exitosamente."
@@ -97,7 +96,7 @@ function run_python_scripts() {
   echo "Ejecutando scripts complementarios..."
   for script in "${python_scripts[@]}"; do
     if [ "$script" != "$0" ]; then
-      bash "$CURRENT_PATH/$script"
+      sudo bash "$CURRENT_PATH/$script"
     fi
   done
 }
