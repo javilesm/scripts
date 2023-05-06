@@ -60,7 +60,15 @@ with open(users_file, "a") as f:
 print("El nombre de usuario y la información de la base de datos se han almacenado en el archivo 'usuarios.csv'.")
 
 # Crear un archivo de texto para el usuario
-user_file = os.path.join(current_dir, "{}.txt".format(username))
+# Crear el subdirectorio "credentials" si no existe
+credentials_dir = os.path.join(os.path.expanduser("~"), "credentials")
+os.makedirs(credentials_dir, exist_ok=True)
+
+# Crear un archivo de texto para el usuario dentro del subdirectorio "credentials"
+user_dir = os.path.join(credentials_dir, username)
+os.makedirs(user_dir, exist_ok=True)
+user_file = os.path.join(user_dir, "{}.txt".format(username))
+
 with open(user_file, "w") as f:
     f.write("Nombre de usuario: {}\n".format(username))
     f.write("Contraseña: {}\n".format(password))
@@ -70,4 +78,4 @@ with open(user_file, "w") as f:
     f.write("Privilegio: {}\n".format(privilege))
 
 # Imprimir un mensaje de confirmación
-print("El archivo de texto para el usuario '{}' se ha creado en el directorio actual.".format(username))
+print("El archivo de texto para el usuario '{}' se ha creado en el directorio: {}".format(username, user_file))
