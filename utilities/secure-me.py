@@ -1,14 +1,22 @@
 import os
 import hashlib
 from Crypto.Random import get_random_bytes
+from random import choice
+import string
 
 def generate_password(length):
+    # Definir los caracteres especiales permitidos
+    special_chars = string.punctuation.replace(",", "")
+    
+    # Definir los demás caracteres permitidos
+    other_chars = string.ascii_letters + string.digits
+    
     # Generar una cantidad de bytes igual a la mitad de la longitud deseada
     num_bytes = (length + 1) // 2
     rand_bytes = get_random_bytes(num_bytes)
 
-    # Convertir los bytes en una cadena hexadecimal de la longitud deseada
-    password = rand_bytes.hex()[:length]
+    # Seleccionar caracteres aleatorios de ambas listas y combinarlos en una sola cadena
+    password = ''.join([choice(special_chars + other_chars) for i in range(length)])
     return password
 
 # Obtener la ruta del archivo usuarios.csv
