@@ -2,9 +2,8 @@
 # mysql_create_user.sh
 # Variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-PARENT_DIR="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
 USERS_FILE="mysql_users.csv"
-USERS_PATH="$PARENT_DIR/Python/$USERS_FILE"
+USERS_PATH="$PARENT_DIR/$USERS_FILE"
 password="root"
 # Función para verificar la existencia del archivo de usuarios
 function check_user_file() {
