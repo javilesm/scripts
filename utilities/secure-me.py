@@ -11,22 +11,25 @@ def generate_password(length):
     password = ''.join([random.choice(special_chars + other_chars.replace(",", "")) for i in range(length)])
     return password
 
-# Obtener la ruta del archivo usuarios.csv
-current_dir = os.path.dirname(os.path.abspath(__file__))
-users_file = os.path.join(current_dir, "users.csv")
-
 # Solicitar el nombre de usuario, el motor de base de datos, la base de datos y el host deseado para cada usuario
 username = input("Ingrese el nombre de usuario: ")
-db_engine = input("Ingrese el motor de base de datos deseado (1 para MySQL, cualquier otro valor para PostgreSQL): ")
+db_engine = input("Ingrese el motor de base de datos deseado (1 para MySQL, 2 para PostgreSQL, 3 para otro motor): ")
+if db_engine == "1":
+    db_engine_str = "MySQL"
+    users_file = "mysql_users.csv"
+elif db_engine == "2":
+    db_engine_str = "PostgreSQL"
+    users_file = "postgresql_users.csv"
+else:
+    db_engine_str = input("Ingrese el nombre del motor de base de datos: ")
+    users_file = f"{db_engine_str}_users.csv"
 database = input("Ingrese el nombre de la base de datos: ")
 host = input("Ingrese el host deseado (presione Enter para usar 'localhost'): ") or 'localhost'
 privilege = input("Ingrese el privilegio deseado (presione Enter para usar 'ALL PRIVILEGES'): ") or 'ALL PRIVILEGES'
 
-# Establecer el motor de base de datos
-if db_engine == "1":
-    db_engine_str = "MySQL"
-else:
-    db_engine_str = "PostgreSQL"
+# Obtener la ruta del archivo usuarios.csv
+current_dir = os.path.dirname(os.path.abspath(__file__))
+users_file = os.path.join(current_dir, users_file)
 
 # Generar una contraseña aleatoria
 password_length = 64
@@ -46,10 +49,10 @@ password_hash = sha256.hexdigest()
 
 # Guardar el nombre de usuario, la contraseña, el motor de base de datos, la base de datos, el host y el privilegio en un archivo csv
 with open(users_file, "a") as f:
-    f.write("{},{},{},{},{},{}\n".format(username, password, db_engine_str, host, database, privilege))
+    f.write("{},{},{},{},{}\n".format(username, password, host, database, privilege))
 
 # Imprimir un mensaje de confirmación
-print("El nombre de usuario y la información de la base de datos se han almacenado en el archivo 'usuarios.csv'.")
+print("El nombre de usuario y la información de la base de datos se han almacenado en el archivo '{}'.".format(users_file))
 
 # Crear un archivo de texto para el usuario
 # Crear el subdirectorio "credentials" si no existe
