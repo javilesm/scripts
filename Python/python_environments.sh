@@ -19,7 +19,7 @@ function read_directory() {
 }
 function create_envs() {
   echo "Creando entornos virtuales..."
-
+  ENV_DIR="$(dirname "$(dirname "$(dirname "$(realpath "$BASH_SOURCE")")")")/envs"
   # Verificar si el archivo "environments.txt" existe y no está vacío
   if [ ! -f "$CURRENT_DIR/$FILE" ] || [ ! -s "$CURRENT_DIR/$FILE" ]; then
     echo "ERROR: El archivo '$CURRENT_DIR/$FILE' no existe o está vacío."
@@ -33,16 +33,16 @@ function create_envs() {
     if [ -z "$env" ]; then
       continue
     fi
-    if [ -d "$CURRENT_DIR/envs/$env" ]; then
+    if [ -d "$ENV_DIR/$env" ]; then
       echo "El entorno virtual '$env' ya existe, no se instalará de nuevo."
       continue
     fi
-    echo "Creando entorno virtual '$env' en el directorio '$CURRENT_DIR/envs'..."
-    mkdir -p $CURRENT_DIR/envs
-    cd $CURRENT_DIR/envs && python3 -m venv "$env"
+    echo "Creando entorno virtual '$env' en el directorio '$ENV_DIR'..."
+    mkdir -p $ENV_DIR
+    cd $ENV_DIR && python3 -m venv "$env"
   done < "$CURRENT_DIR/$FILE"
   echo "Todos los entornos virtuales fueron creados"
-  ls $CURRENT_DIR/envs
+  ls $ENV_DIR
 }
 function install_python_packages () {
   echo "Ejecutando el sub-script para instalar paquetes de Python..."
