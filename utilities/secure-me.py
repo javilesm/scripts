@@ -4,7 +4,7 @@ import random
 from Crypto.Random import get_random_bytes
 from random import choice
 import string
-
+# Funcion para generar contrasenas
 def generate_password(length):
     special_chars = "!:/\#$%&()*+<=>?@[\\]^_{|}~"
     other_chars = string.ascii_letters + string.digits
@@ -17,16 +17,70 @@ db_engine = input("Ingrese el motor de base de datos deseado (1 para MySQL, 2 pa
 if db_engine == "1":
     db_engine_str = "MySQL"
     users_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scripts", "MySQL", "mysql_users.csv")
+    privileges = {
+        0: "ALL PRIVILEGES",
+        1: "CREATE",
+        2: "DROP",
+        3: "ALTER",
+        4: "SELECT",
+        5: "INSERT",
+        6: "UPDATE",
+        7: "DELETE",
+        8: "PROCESS",
+        9: "RELOAD",
+        "A": "SHUTDOWN",
+        "B": "USAGE",
+        "C": "INDEX",
+        "D": "FILE",
+        "E": "SUPER",
+        "F": "SHUTDOWN",
+        "G": "EXECUTE"
+    }
+    print("Seleccione un privilegio:")
+    for i, privilege in privileges.items():
+        print(f"{i}: {privilege}")
+    privilege_option = input("Ingrese el número de privilegio deseado: ")
+    privilege = privileges.get(int(privilege_option), None)
+    if privilege is None:
+        print("Opción de privilegio inválida")
+        exit()
 elif db_engine == "2":
     db_engine_str = "PostgreSQL"
     users_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scripts", "PostgreSQL", "postgresql_users.csv")
+    privileges = {
+        0: "USAGE",
+        1: "SELECT,
+        2: "INSERT",
+        3: "UPDATE",
+        4: "DELETE",
+        5: "TRUNCATE",
+        6: "REFERENCES",
+        7: "TRIGGER",
+        8: "ALL",
+        9: "CONNECT",
+        "A": "TEMPORARY",
+        "B": "EXECUTE",
+        "C": "SET",
+        "D": "ALTER SYSTEM",
+        "E": "CREATE AND DROP",
+        "F": "CREATE AND DROP",
+        "G": "CREATE AND DROP"
+    }
+    print("Seleccione un privilegio:")
+    for i, privilege in privileges.items():
+        print(f"{i}: {privilege}")
+    privilege_option = input("Ingrese el número de privilegio deseado: ")
+    privilege = privileges.get(int(privilege_option), None)
+    if privilege is None:
+        print("Opción de privilegio inválida")
+        exit()
 else:
     db_engine_str = input("Ingrese el nombre del motor de base de datos: ")
     users_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{db_engine_str}_users.csv")
+    privilege = input("Ingrese el privilegio deseado: ")
+
 database = input("Ingrese el nombre de la base de datos: ")
 host = input("Ingrese el host deseado (presione Enter para usar 'localhost'): ") or 'localhost'
-privilege = input("Ingrese el privilegio deseado (presione Enter para usar 'ALL PRIVILEGES'): ") or 'ALL PRIVILEGES'
-
 
 # Generar una contraseña aleatoria
 password_length = 64
@@ -71,4 +125,3 @@ with open(user_file, "w") as f:
 
 # Imprimir un mensaje de confirmación
 print("El archivo de texto para el usuario '{}' se ha creado en el directorio: {}".format(username, user_file))
-
