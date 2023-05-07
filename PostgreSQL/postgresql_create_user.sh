@@ -6,10 +6,10 @@ USERS_FILE="postgresql_users.csv"
 USERS_PATH="$SCRIPT_DIR/$USERS_FILE"
 
 # Función para verificar la existencia del archivo de usuarios
-echo "Verificar la existencia del archivo de usuarios..."
+echo "Verificar la existencia del archivo de usuarios '$USERS_FILE'..."
 function check_users_file() {
     if [ ! -f "$USERS_PATH" ]; then
-        echo "El archivo de usuarios '$USERS_FILE' no existe."
+        echo "ERROR: El archivo de usuarios '$USERS_FILE' no existe en el directorio '$USERS_PATH'"
         exit 1
     fi
     echo "El archivo de usuarios '$USERS_FILE' existe."
@@ -29,7 +29,7 @@ function create_user() {
             # Verificar que el valor de "host" sea válido
             echo "Verificando que el valor de "host" sea válido para el usuario '$username'..."
             if [[ "$host" != "localhost" && "$host" != "%" && ! $host =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                echo "El valor de 'host' ($host) para el usuario '$username' no es válido. Debe ser 'localhost', '%' o una dirección IP válida."
+                echo "ERROR: El valor de 'host' ($host) para el usuario '$username' no es válido. Debe ser 'localhost', '%' o una dirección IP válida."
                 continue 2
             fi
             # Verificar que el valor de "databases" sea válido
@@ -37,7 +37,7 @@ function create_user() {
             valid_databases=$(sudo -u postgres psql -Atc "SELECT datname FROM pg_database")
             for db in $(echo "$databases" | tr ',' ' '); do
                 if ! echo "$valid_databases" | grep -q "^$db$"; then
-                    echo "El valor de 'databases' para el usuario '$username' no es válido: '$db'"
+                    echo "ERROR: El valor de 'databases' para el usuario '$username' no es válido: '$db'"
                     continue 2
                 fi
             done
@@ -46,14 +46,14 @@ function create_user() {
             valid_privileges="ALL,SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER"
             for priv in $(echo "$privileges" | tr ',' ' '); do
                 if ! echo "$valid_privileges" | grep -q "\b$priv\b"; then
-                    echo "El valor de 'privileges' para el usuario '$username' no es válido: '$priv'"
+                    echo "ERROR: El valor de 'privileges' para el usuario '$username' no es válido: '$priv'"
                     continue 2
                 fi
             done
             # Crear usuario
             echo "Creando al usuario '$username'..."
             if ! sudo -u postgres psql -c "CREATE USER $username WITH PASSWORD '$password';"; then
-                echo "Error al crear al usuario '$username'."
+                echo "ERROR: Error al crear al usuario '$username'."
                 continue
             fi
             echo "El usuario '$username' ha sido creado exitosamente."
@@ -62,14 +62,14 @@ function create_user() {
             # Verificar que el usuario se ha creado correctamente
             echo "Verificando que el usuario '$username' se haya creado correctamente..."
             if ! sudo -u postgres psql -c "SELECT 1 FROM pg_user WHERE usename='$username'" | grep -q 1; then
-                echo "No se ha podido crear el usuario '$username'."
+                echo "ERROR: No se ha podido crear el usuario '$username'."
                 continue
             fi
             echo "El usuario '$username' ha sido verificado exitosamente."
             # Verificar que la base de datos exista antes de asignar permisos
             echo "Verificando que la base de datos '$databases' exista..."
             if ! sudo -u postgres psql -c "SELECT 1 FROM pg_database WHERE datname='$databases'" | grep -q 1; then
-                echo "La base de datos '$databases' no existe."
+                echo "ERROR: La base de datos '$databases' no existe."
                 continue
             fi
             echo "La base de datos '$databases' existe."
@@ -83,7 +83,7 @@ function create_user() {
             for db in "${dbs[@]}"; do
                 if ! sudo -u postgres psql -c "SELECT has_database_privilege('$username', '$db', 'CREATE');" | grep -q "t"
                 then
-                    echo "No se han podido otorgar los privilegios al usuario '$username' en la base de datos '$db'."
+                    echo "ERROR: No se han podido otorgar los privilegios al usuario '$username' en la base de datos '$db'."
                     exit 1
                 fi
             done
