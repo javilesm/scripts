@@ -33,15 +33,16 @@ function create_envs() {
     if [ -z "$env" ]; then
       continue
     fi
-    if [ -d "$env" ]; then
+    if [ -d "$CURRENT_DIR/envs/$env" ]; then
       echo "El entorno virtual '$env' ya existe, no se instalará de nuevo."
       continue
     fi
-    echo "Creando entorno virtual '$env' en el directorio '$HOME'..."
-    cd $HOME && sudo python3 -m venv "$env"
+    echo "Creando entorno virtual '$env' en el directorio '$CURRENT_DIR/envs'..."
+    mkdir -p $CURRENT_DIR/envs
+    cd $CURRENT_DIR/envs && python3 -m venv "$env"
   done < "$CURRENT_DIR/$FILE"
   echo "Todos los entornos virtuales fueron creados"
-  ls $HOME
+  ls $CURRENT_DIR/envs
 }
 function install_python_packages () {
   echo "Ejecutando el sub-script para instalar paquetes de Python..."
@@ -58,4 +59,5 @@ function python_environments () {
 }
 # Llamar a la función principal
 python_environments
+
 
