@@ -54,7 +54,7 @@ function python_environments () {
   usage
   read_directory
   create_envs
-  #install_python_packages
+  install_python_packages
   echo "****PYTHON ALL DONE****"
 }
 # Llamar a la función principal
