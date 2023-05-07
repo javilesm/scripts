@@ -49,7 +49,7 @@ elif db_engine == "2":
     users_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scripts", "PostgreSQL", "postgresql_users.csv")
     privileges = {
         0: "USAGE",
-        1: "SELECT,
+        1: "SELECT",
         2: "INSERT",
         3: "UPDATE",
         4: "DELETE",
