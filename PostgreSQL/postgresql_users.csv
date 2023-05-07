@@ -1,6 +1,0 @@
-user_test1,1234,localhost,testdb1,USAGE
-user_test2,1234,localhost,testdb2,USAGE
-user_test3,1234,localhost,testdb3,USAGE
-user_test4,1234,localhost,testdb4,USAGE
-user_test5,1234,127.0.0.1,testdb5,USAGE
-user_test6,1234,%,testdb5,ALL
