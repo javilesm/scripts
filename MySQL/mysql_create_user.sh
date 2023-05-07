@@ -3,13 +3,13 @@
 # Variables
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 USERS_FILE="mysql_users.csv"
-USERS_PATH="$PARENT_DIR/$USERS_FILE"
+USERS_PATH="$SCRIPT_DIR/$USERS_FILE"
 password="root"
 # Función para verificar la existencia del archivo de usuarios
 function check_user_file() {
-    echo "Verificando la existencia del archivo de usuarios"
+    echo "Verificando la existencia del archivo de usuarios '$USERS_FILE'"
     if [ ! -f "$USERS_PATH" ]; then
-        echo "El archivo de usuarios '$USERS_FILE' no existe en el directorio $SCRIPT_DIR/"
+        echo "ERROR: El archivo de usuarios '$USERS_FILE' no existe en el directorio '$USERS_PATH'"
         exit 1
     fi
     echo "El archivo de usuarios '$USERS_FILE' existe."
@@ -29,14 +29,14 @@ function create_user() {
             # Verificar que el valor de 'host' sea válido
             echo "Verificando que el valor de "host" sea válido para el usuario '$username'..."
             if [[ "$host" != "localhost" && "$host" != "%" && ! $host =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                echo "El valor de 'host' ($host) para el usuario '$username' no es válido. Debe ser 'localhost', '%' o una dirección IP válida."
+                echo "ERROR: El valor de 'host' ($host) para el usuario '$username' no es válido. Debe ser 'localhost', '%' o una dirección IP válida."
                 continue 2
             fi
             # Verificar que los valores de 'databases' sean válidos
             echo "Verificando que el valor de "databases" sea válido para el usuario '$username'..."
            for database in $(echo $databases | tr ',' ' '); do
                 if ! sudo mysql -e "USE $database" 2>/dev/null; then
-                    echo "El valor de 'databases' ($database) para el usuario '$username' no es válido. No existe la base de datos '$database'."
+                    echo "ERROR: El valor de 'databases' ($database) para el usuario '$username' no es válido. No existe la base de datos '$database'."
                     continue 2
                 fi
             done
@@ -45,14 +45,14 @@ function create_user() {
             valid_privileges=("ALL PRIVILEGES" "CREATE" "DROP" "ALTER" "SELECT" "INSERT" "UPDATE" "DELETE")
             for privilege in $(echo $privileges | tr ',' ' '); do
                 if ! [[ " ${valid_privileges[@]} " =~ " $privilege " ]]; then
-                    echo "El valor de 'privileges' ($privilege) para el usuario '$username' no es válido. Debe ser uno de los siguientes: ${valid_privileges[@]}"
+                    echo "ERROR: El valor de 'privileges' ($privilege) para el usuario '$username' no es válido. Debe ser uno de los siguientes: ${valid_privileges[@]}"
                     continue 2
                 fi
             done
             # Crear usuario
             echo "Creando al usuario '$username'..."
             if ! sudo mysql -e "CREATE USER '$username'@'$host' IDENTIFIED BY '$password';"; then
-                echo "Error al crear al usuario '$username'."
+                echo "ERROR: Error al crear al usuario '$username'."
                 continue
             fi
             echo "El usuario '$username' ha sido creado exitosamente."
@@ -62,13 +62,13 @@ function create_user() {
             echo "Verificando que el usuario '$username' se haya creado correctamente..."
             if ! sudo mysql -e "SELECT 1 FROM mysql.user WHERE user='$username'" | grep -q 1
             then
-                echo "No se ha podido crear el usuario '$username' en el host '$host'."
+                echo "ERROR: No se ha podido crear el usuario '$username' en el host '$host'."
                 exit 1
             fi
             echo "El usuario '$username' ha sido verificado exitosamente."
             # Verificar que la base de datos exista antes de asignar permisos
            if ! sudo mysql -e "USE $db;" 2>/dev/null; then
-                echo "La base de datos '$db' no existe. No se asignarán permisos al usuario '$username' para esta base de datos."
+                echo "ERROR: La base de datos '$db' no existe. No se asignarán permisos al usuario '$username' para esta base de datos."
                 continue
             fi
             # Otorgar privilegios a cada base de datos
@@ -94,7 +94,7 @@ function show_grants() {
         # Verificar que se han otorgado los permisos correctamente
         for user in $(echo $username | tr ',' ' '); do
             if ! sudo mysql -e "SHOW GRANTS FOR $username@$host"; then
-                echo "No se han otorgado los permisos correctamente para el usuario '$username' en la base de datos '$database'."
+                echo "ERROR: No se han otorgado los permisos correctamente para el usuario '$username' en la base de datos '$database'."
                 exit 1
             fi
         done
@@ -110,7 +110,7 @@ function apply_mysql_privileges() {
     if [ $? -eq 0 ]; then
         echo "Los privilegios en el servidor MySQL se han aplicado correctamente."
     else
-        echo "Error al aplicar los privilegios en el servidor MySQL."
+        echo "ERROR: Error al aplicar los privilegios en el servidor MySQL."
     fi
 }
 # Función principal
