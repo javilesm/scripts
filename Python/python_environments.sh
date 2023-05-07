@@ -22,7 +22,7 @@ function create_envs() {
 
   # Verificar si el archivo "environments.txt" existe y no está vacío
   if [ ! -f "$CURRENT_DIR/$FILE" ] || [ ! -s "$CURRENT_DIR/$FILE" ]; then
-    echo "El archivo $CURRENT_DIR/$FILE no existe o está vacío."
+    echo "ERROR: El archivo $CURRENT_DIR/$FILE no existe o está vacío."
     exit 1
   fi
 
@@ -38,7 +38,7 @@ function create_envs() {
       continue
     fi
     echo "Creando entorno virtual $env..."
-    sudo python3 -m venv "$env"
+    cd "$HOME" && sudo python3 -m venv "$env"
   done < "$CURRENT_DIR/$FILE"
 }
 function install_python_packages () {
@@ -52,7 +52,7 @@ function python_environments () {
   read_directory
   create_envs
   #install_python_packages
-  echo "El proceso de instalación de entornos virtuales ha finalizado."
+  echo "****PYTHON ALL DONE****"
 }
 # Llamar a la función principal
 python_environments
