@@ -9,79 +9,108 @@ ENVIRONMENTS_FILE="environments.txt"
 ENVIRONMENTS_PATH="$CURRENT_DIR/$ENVIRONMENTS_FILE"
 REPORT_FILE="report.txt"
 REPORT_PATH="$CURRENT_DIR/$REPORT_FILE"
-# Función para comprobar la existencia del archivo de paquetes
-function check_packages_file() {
+# Función para comprobar la existencia del archivo de paquetes pip
+function verify_list1() {
   if [ ! -f "$PACKAGES_PATH" ]; then
     echo "ERROR: El archivo de paquetes pip '$PACKAGES_FILE' no se puede encontrar en la ruta '$PACKAGES_PATH'."
     exit 1
   fi
-  echo "El archivo de paquetes pip '$PACKAGES_FILE' existe"
 }
 # Función para comprobar la existencia del archivo de entornos
-function check_environments_file() {
+function verify_list2() {
   if [ ! -f "$ENVIRONMENTS_PATH" ]; then
     echo "ERROR: El archivo de entornos virtuales '$ENVIRONMENTS_FILE' no se puede encontrar en la ruta '$ENVIRONMENTS_PATH'."
     exit 1
   fi
-  echo "El archivo de entornos virtuales '$ENVIRONMENTS_FILE' existe"
 }
+
 # Función para comprobar la existencia del archivo de reporte
 function check_report_file() {
   if [ ! -f "$REPORT_PATH" ]; then
-    echo "ERROR: El archivo de reporte '$REPORT_FILE' no existe en la ruta '$REPORT_PATH'. Creando archivo de reporte..."
-    sudo touch "$REPORT_PATH"
-    echo "Entorno,Paquete" > "$REPORT_PATH"
+    echo "El archivo de reporte '$REPORT_FILE' no existe en la ruta '$REPORT_PATH'. Creando archivo de reporte..."
+    touch "$REPORT_PATH"
+    echo "Entorno    //    PIP" >> "$REPORT_PATH"
   fi
-  echo "El archivo de reporte '$REPORT_FILE' existe"
 }
-# Función para instalar paquetes PIP dentro de entornos virtuales
-function install_packages() {
-  # Read environments file and loop over each environment
-  while IFS= read -r environment || [[ -n "$environment" ]]; do
-    # Create environment virtual if it does not exist
-    if [ ! -d "$ENV_DIR/$environment" ]; then
-      echo "Creating virtual environment $environment"
-      virtualenv -p python3 "$ENV_DIR/$environment"
-    fi
+############################################################################################
+declare -A PACKAGES_PATH
+declare -A ENVIRONMENTS_PATH
 
-    # Activate environment
-    source "$ENV_DIR/$environment/bin/activate"
+function read_lists() {
+  # Leer la lista de colores
+  if [[ -f "$PACKAGES_PATH" ]]; then
+    readarray -t paquetes < "$PACKAGES_PATH"
+    for i in "${!paquetes[@]}"; do
+      PACKAGES_PATH[$i]=${paquetes[$i]}
+    done
+  else
+    echo "Error: no se encontró '$PACKAGES_PATH'"
+    exit 1
+  fi
 
-    # Read packages file and loop over each package
-    while IFS= read -r package || [[ -n "$package" ]]; do
-      echo "Installing package '$package' in environment '$environment'"
-      pip install "$package"
-    done < "$PACKAGES_PATH"
-
-    # Deactivate environment
-    deactivate
-    sleep 15
-  done < "$ENVIRONMENTS_PATH"
+  # Leer la lista de acciones
+  if [[ -f "$ENVIRONMENTS_PATH" ]]; then
+    readarray -t entornos < "$ENVIRONMENTS_PATH"
+    for i in "${!entornos[@]}"; do
+      ENVIRONMENTS_PATH[$i]=${entornos[$i]}
+    done
+  else
+    echo "Error: no se encontró '$ENVIRONMENTS_PATH'"
+    exit 1
+  fi
 }
 
+function min() {
+  if [[ ${#PACKAGES_PATH[@]} -lt ${#ENVIRONMENTS_PATH[@]} ]]; then
+    echo ${#PACKAGES_PATH[@]}
+  else
+    echo ${#ENVIRONMENTS_PATH[@]}
+  fi
+}
+function iteration() {
+  local num_elementos=$(min)
+  # Iteramos sobre la lista de paquetees
+  for ((i=0; i<num_elementos; i++))
+  do
+    # Obtenemos el paquete y la acción correspondiente
+    paquete="${PACKAGES_PATH[$i]}"
+    entorno="${ENVIRONMENTS_PATH[$i]}"
+    # Imprimimos el mensaje correspondiente al paquete
+    print_message "$paquete" "$entorno"
+    
+  done
+  
+}
+function print_message() {
+  local paquete="$1"
+  # Mostrar item 1
+  echo "Paquete: '$paquete'"
+  local entorno="$2"
+  # Mostrar item 2
+  echo "Entorno: '$entorno'"
+  # Imprimimos el mensaje
+  echo "Activando el entorno '$entorno' e instalando el paquete PIP '$paquete'."
+  echo "'$entorno' --> '$paquete'" >> "$REPORT_PATH"
+  # Activate environment
+  source "$ENV_DIR/$entorno/bin/activate"
+  sleep 2
+  # Instalar paquete PIP
+  pip install "$paquete"
+  # Deactivate environment
+  deactivate
+  sleep 3
+}
+function check_pip() {
+  pip list
+}
+############################################################################################
 # Función principal
-function python_packages() {
-  echo "***SCRIPT DE INSTALACIÓN DE PAQUETES PYTHON***"
-  check_packages_file
-  check_environments_file
+function main() {
+  verify_list1
+  verify_list2
   check_report_file
-
-  # Loop over each package
-  while read package || [ -n "$package" ]; do
-    # Install package in each environment
-    while IFS= read -r environment || [[ -n "$environment" ]]; do
-      # Activate environment
-      source "$ENV_DIR/$environment/bin/activate"
-
-      # Install package
-      echo "Installing package '$package' in environment '$environment'"
-      pip install "$package"
-
-      # Deactivate environment
-      deactivate
-      sleep 15
-    done < "$ENVIRONMENTS_PATH"
-  done < "$PACKAGES_PATH"
-  echo "***ALL DONE***"
+  read_lists
+  iteration
+  check_pip
 }
-python_packages
+main
