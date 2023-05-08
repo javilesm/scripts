@@ -5,7 +5,7 @@ CONFIG_FILE="dovecot.conf"
 DOVECOT_PATH="/etc/dovecot"
 CONFIG_PATH="$DOVECOT_PATH/$CONFIG_FILE"
 USERS_FILE="users.csv"
-INTERFACE_IP="192.168.1.10"
+INTERFACE_IP="*"
 MAILBOX_PATH=$HOME
 POSTFIX_USER="postfix"
 POSTFIX_GROUP="postfix"
@@ -46,7 +46,7 @@ function edit_auth_config() {
 # Función para editar la dirección IP de la interfaz
 function listen_interface() {
     # Buscar la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP
-    sudo sed -i "/listen = /c\listen = $INTERFACE_IP, ::" $CONFIG_PATH
+    sudo sed -i "/listen = /c\listen = $INTERFACE_IP," $CONFIG_PATH
 }
 
 # Función para editar la ubicacion de las bandejas de correo
@@ -72,8 +72,16 @@ function enable_ssl() {
 # Función para inciar y habilitar el servicio de Dovecot
 function start_and_enable() {
     sudo service dovecot start
-    sudo chkconfig dovecot on
-    service dovecot status
+    if [ $? -eq 0 ]; then
+        echo "El servicio de Dovecot se inició correctamente."
+        if systemctl is-active --quiet dovecot; then
+            echo "El servicio de Dovecot está en ejecución."
+        else
+            echo "ERROR: El servicio de Dovecot no se está ejecutando."
+        fi
+    else
+        echo "ERROR: No se pudo iniciar el servicio de Dovecot."
+    fi
 }
 # Función principal
 function dovecot_config() {
