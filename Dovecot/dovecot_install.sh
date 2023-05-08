@@ -6,8 +6,6 @@ CONFIG_FILE="dovecot_config.sh" # Script configurador
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 # Function for installing the core components of Dovecot
 function install_packages() {
-  install_and_restart postfix
-  install_and_restart postfix-sqlite
   install_and_restart dovecot-core
   install_and_restart dovecot-dev
   install_and_restart dovecot-ldap
