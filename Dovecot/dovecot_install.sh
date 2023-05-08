@@ -8,6 +8,7 @@ CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 function install_packages() {
   install_and_restart dovecot-core
   install_and_restart dovecot-dev
+  install_and_restart dovecot-ldap
   install_and_restart dovecot-imapd
   install_and_restart dovecot-pop3d
   install_and_restart dovecot-mysql
