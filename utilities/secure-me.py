@@ -12,15 +12,15 @@ def generate_password(length):
     return password
 
 def solicitar_datos_usuario():
-    # Solicitar el nombre de usuario, el motor de base de datos, la base de datos y el host deseado para cada usuario
+    # Solicitar el motor de base de datos
     engines = {
         "1": "MySQL",
         "2": "PostgreSQL",
         "3": "SQLite",
-        "4": "Dovecot"
+        "4": "MariaDB"
     }
     print("Seleccione el nombre de su motor:")
-    username = input("Ingrese el nombre de usuario: ")
+    
     for key, value in engines.items():
         print(f"{key}: {value}")
     db_engine_option = input("Ingrese el número de motor de base de datos deseado: ")
@@ -28,7 +28,12 @@ def solicitar_datos_usuario():
     if db_engine is None:
         print("Opción de motor de base de datos inválida")
         exit()
-
+       # Solicitar el nombre de usuario
+    username = input("Ingrese el nombre de usuario: ")
+    # Solicitar la base de datos
+    database = input("Ingrese el nombre de la base de datos: ")
+    # Solicitar el host
+    host = input("Ingrese el host deseado (presione Enter para usar 'localhost'): ") or 'localhost'
     if db_engine == "MySQL":
         users_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scripts", "MySQL", "mysql_users.csv")
         privileges = {
@@ -42,13 +47,13 @@ def solicitar_datos_usuario():
             7: "DELETE",
             8: "PROCESS",
             9: "RELOAD",
-            "A": "SHUTDOWN",
-            "B": "USAGE",
-            "C": "INDEX",
-            "D": "FILE",
-            "E": "SUPER",
-            "F": "SHUTDOWN",
-            "G": "EXECUTE"
+            10: "SHUTDOWN",
+            11: "USAGE",
+            12: "INDEX",
+            13: "FILE",
+            14: "SUPER",
+            15: "SHUTDOWN",
+            16: "EXECUTE"
         }
         print("Seleccione un privilegio:")
         for i, privilege in privileges.items():
@@ -71,10 +76,10 @@ def solicitar_datos_usuario():
             7: "TRIGGER",
             8: "ALL",
             9: "CONNECT",
-            "A": "TEMPORARY",
-            "B": "EXECUTE",
-            "C": "SET",
-            "D": "ALTER SYSTEM",
+            10: "TEMPORARY",
+            11: "EXECUTE",
+            12: "SET",
+            13: "ALTER SYSTEM",
         }
         print("Seleccione un privilegio:")
         for i, privilege in privileges.items():
@@ -97,13 +102,13 @@ def solicitar_datos_usuario():
             7: "CREATE_TABLE",
             8: "CREATE_INDEX",
             9: "CREATE_VIEW",
-            "A": "CREATE_TRIGGER",
-            "B": "DROP_ABLE",
-            "C": "DROP_INDEX",
-            "D": "DROP_VIEW",
-            "E": "DROP_TRIGGER",
-            "F": "ALTER_TABLE",
-            "G": "ANALYZE"
+            10: "CREATE_TRIGGER",
+            11: "DROP_ABLE",
+            12: "DROP_INDEX",
+            13: "DROP_VIEW",
+            14: "DROP_TRIGGER",
+            15: "ALTER_TABLE",
+            16: "ANALYZE"
         }
         print("Seleccione un privilegio:")
         for i, privilege in privileges.items():
@@ -113,17 +118,39 @@ def solicitar_datos_usuario():
         if privilege is None:
             print("Opción de privilegio inválida")
             exit()
-    elif db_engine == "Dovecot":
-        users_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dovecot_users.csv")
-        privilege = input("Ingrese el privilegio deseado: ")
-
-    database = input("Ingrese el nombre de la base de datos: ")
-    host = input("Ingrese el host deseado (presione Enter para usar 'localhost'): ") or 'localhost'
-
+    elif db_engine == "MariaDB":
+        users_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  "scripts", "MariaDB", "mariadb_users.csv")
+        privileges = {
+            0: "NONE",
+            1: "ALTER",
+            2: "INSERT",
+            3: "UPDATE",
+            4: "DELETE",
+            5: "DROP",
+            6: "INDEX",
+            7: "REFERENCES",
+            8: "LOCKTABLES",
+            9: "EXECUTE",
+            10: "CREATETEMPORARYTABLES",
+            11: "FILE",
+            12: "SUPER",
+            13: "DROP_VIEW",
+            14: "DROP_TRIGGER",
+            15: "ALTER_TABLE",
+            16: "ANALYZE"
+        }
+        print("Seleccione un privilegio:")
+        for i, privilege in privileges.items():
+            print(f"{i}: {privilege}")
+        privilege_option = input("Ingrese el número de privilegio deseado: ")
+        privilege = privileges.get(int(privilege_option), None)
+        if privilege is None:
+            print("Opción de privilegio inválida")
+            exit()
     return username, db_engine, database, host, users_file, privilege
 
 # Obtener los datos del usuario
-username, db_engine, database, host, users_file, privilege = solicitar_datos_usuario()
+db_engine, username, database, host, users_file, privilege = solicitar_datos_usuario()
 
 # Generar una contraseña aleatoria
 password_length = 64
