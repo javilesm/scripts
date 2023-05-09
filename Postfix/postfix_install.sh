@@ -4,12 +4,13 @@
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="postfix_config.sh" # Script configurador
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
+MAIL_NAME="example.com"
 # Function for installing the core components of postfix
 function install_packages() {
   # Configurar las opciones de debconf
   echo "Configurando debconf..."
   sudo debconf-set-selections <<< "postfix postfix/main_mailer_type select Internet Site"
-  sudo debconf-set-selections <<< "postfix postfix/mailname string example.com"
+  sudo debconf-set-selections <<< "postfix postfix/mailname string $MAIL_NAME"
   sudo debconf-set-selections <<< "postfix postfix/sqlite/dbconfig-install boolean true"
   sudo debconf-set-selections <<< "postfix postfix/sqlite/dbconfig-upgrade boolean true"
   sudo debconf-set-selections <<< "postfix-sqlite postfix-sqlite/dbconfig-install boolean true"
