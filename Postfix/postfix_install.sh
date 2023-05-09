@@ -1,10 +1,10 @@
 #!/bin/bash
-# dovecot_install.sh
+# postfix_install.sh
 # Variables
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="postfix_config.sh" # Script configurador
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
-# Function for installing the core components of Dovecot
+# Function for installing the core components of postfix
 function install_packages() {
   install_and_restart postfix
   install_and_restart postfix-sqlite
@@ -76,7 +76,7 @@ function run_config() {
   echo "Configurador '$CONFIG_FILE' ejecutado."
 }
 # funcion principal
-function dovecot_install() {
+function postfix_install() {
     echo "***************POSTFIX INSTALL***************"
     install_packages
     validate_config_file
@@ -84,4 +84,4 @@ function dovecot_install() {
     echo "***************ALL DONE***************"
 }
 # Llamar a la funcion principal
-dovecot_install
+postfix_install
