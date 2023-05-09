@@ -6,6 +6,16 @@ CONFIG_FILE="postfix_config.sh" # Script configurador
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 # Function for installing the core components of postfix
 function install_packages() {
+  # Configurar las opciones de debconf
+  echo "Configurando debconf..."
+  sudo debconf-set-selections <<< "postfix postfix/main_mailer_type select Internet Site"
+  sudo debconf-set-selections <<< "postfix postfix/mailname string example.com"
+  sudo debconf-set-selections <<< "postfix postfix/sqlite/dbconfig-install boolean true"
+  sudo debconf-set-selections <<< "postfix postfix/sqlite/dbconfig-upgrade boolean true"
+  sudo debconf-set-selections <<< "postfix-sqlite postfix-sqlite/dbconfig-install boolean true"
+  sudo debconf-set-selections <<< "postfix-sqlite postfix-sqlite/dbconfig-upgrade boolean true"
+  
+  # Instalar y reiniciar postfix y postfix-sqlite
   install_and_restart postfix
   install_and_restart postfix-sqlite
 }
@@ -54,6 +64,7 @@ function install_and_restart() {
   echo "El paquete '$package' se instaló correctamente."
   return 0
 }
+
 # Función para verificar si el archivo de configuración existe
 function validate_config_file() {
   echo "Verificando si el archivo de configuración existe..."
