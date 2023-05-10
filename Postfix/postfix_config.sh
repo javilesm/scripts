@@ -222,12 +222,14 @@ function config_postfix() {
 }
 # Función para leer la lista de direcciones de correo
 function read_accounts() {
-    while IFS="," read -r user alias; do
+    while IFS="," read -r username nombre apellido email alias password; do
         # leer la lista de direcciones de correo
         echo "Leyendo la lista de dominios '$ACCOUNTS_PATH'..."
         # Generar archivo de prueba
-        echo "Usuario: $user"
-        echo "Alias: $alias"
+        echo "Usario: $username"
+        echo "Correo principal: $email"
+        echo "Correo secundario: $alias"
+        echo "Contraseña: ${password:0:3}*********"
         #sudo adduser "$alias"
         #sudo mkmailbox "$alias"
    
