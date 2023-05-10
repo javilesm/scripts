@@ -58,9 +58,16 @@ print("La contraseña para ambas cuentas es:", password)
 print("Recuerda revisar la política de cuentas antes de cualquier uso, así como cambiar tu contraseña a la brevedad.")
 print("Saludos!")
 
-# generar el archivo de texto con la información del usuario
-file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), f"{nombre}_{apellido}.txt")
-print(file_path)
+# Crear un archivo de texto para el usuario
+# Crear el subdirectorio "credentials" si no existe
+credentials_dir = os.path.join(os.path.expanduser("~"), "mail_credentials")
+os.makedirs(credentials_dir, exist_ok=True)
+
+# Crear un archivo de texto para el usuario dentro del subdirectorio "credentials"
+user_dir = os.path.join(credentials_dir, username)
+os.makedirs(user_dir, exist_ok=True)
+file_path = os.path.join(user_dir, "{}.txt".format(username))
+
 with open(file_path, "w") as file:
     file.write(f"Nombre de usuario: {username}\n")
     file.write(f"Dirección de correo electrónico: {email}\n")
@@ -70,7 +77,7 @@ print(f"La información del usuario ha sido guardada en el archivo {file_path}."
 
 # almacenar la información en un archivo CSV
 users_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  "scripts", "Postfix", "mail_users.csv")
-with open(users_file, "w") as f:
+with open(users_file, "a") as f:
     f.write("{},{}\n".format(email, alias))
 
 # Imprimir un mensaje de confirmación   
