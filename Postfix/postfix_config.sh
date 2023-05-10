@@ -5,6 +5,8 @@ LOG_FILE="/var/log/mail.log"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
+ACCOUNTS_FILE="mail_users.csv"
+ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_FILE"
 POSTFIX_PATH="/etc/postfix"
 POSTFIX_MAIN="$POSTFIX_PATH/main.cf"
 VIRTUAL_DOMAINS="$POSTFIX_PATH/virtual_domains.cf"
@@ -218,6 +220,19 @@ function config_postfix() {
     echo "" >> "$CURRENT_DIR/test.txt"
     echo "El archivo '$POSTFIX_MAIN' ha sido configurado."
 }
+# Función para leer la lista de direcciones de correo
+function read_accounts() {
+    while IFS="," read -r user alias; do
+        # leer la lista de direcciones de correo
+        echo "Leyendo la lista de dominios '$ACCOUNTS_PATH'..."
+        # Generar archivo de prueba
+        echo "Usuario: $user"
+        echo "Alias: $alias"
+        #sudo adduser "$alias"
+        #sudo mkmailbox "$alias"
+   
+    done < <(sed -e '$a\' "$ACCOUNTS_PATH")
+}
 # Función principal
 function postfix_config() {
   echo "***************POSTFIX CONFIG***************"
@@ -227,6 +242,7 @@ function postfix_config() {
   read_domains_file
   mkdirs
   config_postfix
+  read_accounts
   echo "***************ALL DONE***************"
 }
 # Llamar a la función principal
