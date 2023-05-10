@@ -17,8 +17,8 @@ domains = ['gmail.com',
           ]
 
 # solicitar nombre de usuario
-nombre = input("Ingrese su nombre: ")
-apellido = input("Ingrese su apellido: ")
+nombre = input("Ingrese su primer nombre: ")
+apellido = input("Ingrese su primer apellido: ")
 username = f"{nombre}.{apellido}"
 
 # solicitar al usuario que elija un subdominio
@@ -41,7 +41,7 @@ if choice == '':
 else:
     choice = int(choice)
     while choice < 1 or choice > len(domains):
-        choice = int(input("Seleccione un dominio válido: "))
+        choice = int(input("Seleccione un proveedor válido: "))
     domain = domains[choice-1]
 
 # generar una contraseña aleatoria de 12 caracteres alfanuméricos
@@ -78,7 +78,7 @@ print(f"La información del usuario ha sido guardada en el archivo {file_path}."
 # almacenar la información en un archivo CSV
 users_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  "scripts", "Postfix", "mail_users.csv")
 with open(users_file, "a") as f:
-    f.write("{},{}\n".format(email, alias))
+    f.write("{},{},{},{},{},{}\n".format(username, nombre, apellido, email, alias, password))
 
 # Imprimir un mensaje de confirmación   
 print(f"La información del usuario ha sido guardada en el archivo: {users_file}")
