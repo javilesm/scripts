@@ -1,6 +1,7 @@
 #!/bin/bash
 # postfix_config.sh
 # Variables
+LOG_FILE="/var/log/mail.log"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
@@ -145,8 +146,8 @@ function read_domains_file() {
             echo "ERROR: Error al escribir 'QUERY=SELECT email FROM alias WHERE source='%s@$domain' AND active = '1'' en el archivo '$VIRTUAL_ALIAS'."
             exit 1
         fi
-    echo "Todos los archivos han sido configurados."
     done < <(sed -e '$a\' "$DOMAINS_PATH")
+    echo "Todos los archivos han sido configurados."
 }
 # Función para leer la lista de dominios y crear directorios
 function mkdirs() {
@@ -157,23 +158,65 @@ function mkdirs() {
         echo "Creando directorio '$POSTFIX_PATH/dovecot/$domain'..."
         sudo mkdir -p "$POSTFIX_PATH/dovecot/$domain"
     done < <(sed -e '$a\' "$DOMAINS_PATH")
+    echo "Todos los directorios han sido creados."
+    ls "$POSTFIX_PATH/dovecot"
 }
 # Función para leer la lista de dominios y configurar el archivo main.cf
 function config_postfix() {
-    # leer la lista de dominio
-    echo "Leyendo la lista de dominios..."
+    virtual_alias_domains=""
     while read -r domain; do
-        echo "Configurando dominio: $domain"
-        # Configurar el archivo main.cf
-        echo "Configurando el archivo '$POSTFIX_MAIN'..."
-        sudo sed -i "s/#myhostname =.*/myhostname = $domain/" $POSTFIX_MAIN || { echo "ERROR:al configurar el archivo '$POSTFIX_MAIN': myhostname"; exit 1; }
-        sudo sed -i "s/#mydomain =.*/mydomain = $domain/" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': mydomain"; exit 1; }
-        sudo sed -i "s/#myorigin =.*/myorigin = \$mydomain/" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': myorigin"; exit 1; }
-        sudo sed -i "s/#virtual_alias_domains =.*/virtual_alias_domains = $1/" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': virtual_alias_domains"; exit 1; }         
-        sudo sed -i "s|#smtpd_tls_cert_file =.*|smtpd_tls_cert_file = $POSTFIX_PATH\/$domain\/$CERT_FILE|" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_cert_file"; exit 1; }
-        sudo sed -i "s|#smtpd_tls_key_file =.*|smtpd_tls_key_file = $POSTFIX_PATH\/$domain\/$KEY_FILE|" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_key_file"; exit 1; } 
-    echo "El archivo '$POSTFIX_MAIN' ha sido configurado."
+        # leer la lista de dominio
+        echo "Leyendo la lista de dominios '$DOMAINS_PATH'..."
+        # Generar archivo de prueba
+        echo "Generando archivo de prueba para el dominio: $domain"
+        echo "mydomain = $domain" >> "$CURRENT_DIR/$domain.test"
+        echo "myhostname = mail.$domain" > "$CURRENT_DIR/$domain.test"
+        echo "myorigin = \$mydomain" >> "$CURRENT_DIR/$domain.test"
+
+        virtual_alias_domains+="$domain "
     done < <(sed -e '$a\' "$DOMAINS_PATH")
+    echo "Configurando el archivo '$POSTFIX_MAIN' con los dominios virtuales..."
+    # Generar archivo de prueba
+    echo "virtual_mailbox_domains = mysql:$VIRTUAL_DOMAINS" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#virtual_mailbox_domains =./virtual_mailbox_domains = mysql:$VIRTUAL_DOMAINS" $POSTFIX_MAIN || { echo "ERROR:al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_domains"; exit 1; }
+    echo "virtual_mailbox_maps = mysql:$VIRTUAL_MAILBOX" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#virtual_mailbox_maps =./virtual_mailbox_maps = mysql:$VIRTUAL_MAILBOX" $POSTFIX_MAIN || { echo "ERROR:al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_maps"; exit 1; }
+    echo "virtual_alias_maps = hash:$VIRTUAL_ALIAS" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#virtual_alias_maps =./virtual_alias_maps = hash:$VIRTUAL_ALIAS" $POSTFIX_MAIN || { echo "ERROR:al configurar el archivo '$POSTFIX_MAIN': virtual_alias_maps"; exit 1; }
+    echo "virtual_transport = lmtp:unix:private/dovecot-lmtp" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#virtual_transport =./virtual_transport = lmtp:unix:private/dovecot-lmtp" $POSTFIX_MAIN || { echo "ERROR:al configurar el archivo '$POSTFIX_MAIN': virtual_transport"; exit 1; }
+    echo "virtual_alias_domains = ${virtual_alias_domains::-1}" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s|^#virtual_alias_domains =.*|virtual_alias_domains = ${virtual_alias_domains::-1}" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': virtual_alias_domains"; exit 1; }
+    echo "smtpd_tls_cert_file = /etc/ssl/certs/$CERT_FILE" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s|^#smtpd_tls_cert_file =.*|smtpd_tls_cert_file = /etc/ssl/certs/$CERT_FILE|" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_cert_file"; exit 1; }
+    echo "smtpd_tls_key_file = /etc/ssl/private/$KEY_FILE" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s|^#smtpd_tls_key_file =.*|smtpd_tls_key_file = /etc/ssl/private/$KEY_FILE|" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_key_file"; exit 1; } 
+    echo "smtpd_tls_security_level = may" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "/^#smtpd_tls_security_level =./smtpd_tls_security_level = may" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_security_level"; exit 1; } 
+    echo "smtpd_use_tls = yes" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#smtpd_use_tls =./smtpd_use_tls = yes" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_use_tls; exit 1; } 
+    echo "smtpd_sasl_auth_enable = yes" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#smtpd_sasl_auth_enable =./smtpd_sasl_auth_enable = yes" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_auth_enable"; exit 1; } 
+    echo "smtpd_sasl_type = dovecot" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#smtpd_sasl_type =./smtpd_sasl_type = dovecot" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_type"; exit 1; } 
+    echo "smtpd_sasl_path = private/auth" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#smtpd_sasl_path =./smtpd_sasl_path = private/auth" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_path"; exit 1; } 
+    echo "smtpd_sasl_local_domain =" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#smtpd_sasl_local_domain =./smtpd_sasl_local_domain =" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_local_domain"; exit 1; } 
+    echo "smtpd_sasl_security_options = noanonymous" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#smtpd_sasl_security_options =./smtpd_sasl_security_options = noanonymous" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_security_options"; exit 1; } 
+    echo "broken_sasl_auth_clients = yes" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#broken_sasl_auth_clients =./broken_sasl_auth_clients = yes" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': broken_sasl_auth_clients"; exit 1; } 
+    echo "mydomain = example.com" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#mydomain =.*/mydomain = example.com" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': mydomain"; exit 1; }
+    echo "myhostname = mail.example.com" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#myhostname =.*/myhostname = mail.example.com" $POSTFIX_MAIN || { echo "ERROR:al configurar el archivo '$POSTFIX_MAIN': myhostname"; exit 1; }
+    echo "mydestination = \$myhostname, localhost.$myhostname, localhost" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#mydestination =.*/mydestination = \$myhostname, localhost.$myhostname, localhost" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
+    echo "myorigin = \$mydomain" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#myorigin =.*/myorigin = \$mydomain" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': myorigin"; exit 1; }
+    echo "" >> "$CURRENT_DIR/test.txt"
+    echo "El archivo '$POSTFIX_MAIN' ha sido configurado."
 }
 # Función principal
 function postfix_config() {
@@ -183,7 +226,7 @@ function postfix_config() {
   validate_domains_file
   read_domains_file
   mkdirs
-  #config_postfix
+  config_postfix
   echo "***************ALL DONE***************"
 }
 # Llamar a la función principal
