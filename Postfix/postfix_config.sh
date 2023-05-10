@@ -148,6 +148,16 @@ function read_domains_file() {
     echo "Todos los archivos han sido configurados."
     done < <(sed -e '$a\' "$DOMAINS_PATH")
 }
+# Función para leer la lista de dominios y crear directorios
+function mkdirs() {
+    # leer la lista de dominio
+    echo "Leyendo la lista de dominios..."
+    while read -r domain; do
+        # crear directorios
+        echo "Creando directorio '$POSTFIX_PATH/dovecot/$domain'..."
+        sudo mkdir -p "$POSTFIX_PATH/dovecot/$domain"
+    done < <(sed -e '$a\' "$DOMAINS_PATH")
+}
 # Función para leer la lista de dominios y configurar el archivo main.cf
 function config_postfix() {
     # leer la lista de dominio
@@ -172,6 +182,7 @@ function postfix_config() {
   backup_config_files
   validate_domains_file
   read_domains_file
+  mkdirs
   #config_postfix
   echo "***************ALL DONE***************"
 }
