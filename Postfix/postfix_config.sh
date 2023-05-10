@@ -209,14 +209,16 @@ function config_postfix() {
     #sudo sed -i "s/^#smtpd_sasl_security_options =./smtpd_sasl_security_options = noanonymous" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_security_options"; exit 1; } 
     echo "broken_sasl_auth_clients = yes" >> "$CURRENT_DIR/test.txt"
     #sudo sed -i "s/^#broken_sasl_auth_clients =./broken_sasl_auth_clients = yes" $POSTFIX_MAIN || { echo "ERROR: Error al configurar el archivo '$POSTFIX_MAIN': broken_sasl_auth_clients"; exit 1; } 
-    echo "mydomain = example.com" >> "$CURRENT_DIR/test.txt"
-    #sudo sed -i "s/^#mydomain =.*/mydomain = example.com" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': mydomain"; exit 1; }
-    echo "myhostname = mail.example.com" >> "$CURRENT_DIR/test.txt"
-    #sudo sed -i "s/^#myhostname =.*/myhostname = mail.example.com" $POSTFIX_MAIN || { echo "ERROR:al configurar el archivo '$POSTFIX_MAIN': myhostname"; exit 1; }
+    echo "mydomain = avilesworks.com" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#mydomain =.*/mydomain = avilesworks.com" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': mydomain"; exit 1; }
+    echo "myhostname = mail.avilesworks.com" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#myhostname =.*/myhostname = mail.avilesworks.com" $POSTFIX_MAIN || { echo "ERROR:al configurar el archivo '$POSTFIX_MAIN': myhostname"; exit 1; }
     echo "mydestination = \$myhostname, localhost.$myhostname, localhost" >> "$CURRENT_DIR/test.txt"
     #sudo sed -i "s/^#mydestination =.*/mydestination = \$myhostname, localhost.$myhostname, localhost" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
     echo "myorigin = \$mydomain" >> "$CURRENT_DIR/test.txt"
     #sudo sed -i "s/^#myorigin =.*/myorigin = \$mydomain" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': myorigin"; exit 1; }
+    echo "compatibility_level = 3" >> "$CURRENT_DIR/test.txt"
+    #sudo sed -i "s/^#compatibility_level =.*/compatibility_level = 3" $POSTFIX_MAIN || { echo "ERROR: al configurar el archivo '$POSTFIX_MAIN': compatibility_level"; exit 1; }
     echo "" >> "$CURRENT_DIR/test.txt"
     echo "El archivo '$POSTFIX_MAIN' ha sido configurado."
 }
