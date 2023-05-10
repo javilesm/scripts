@@ -222,19 +222,21 @@ function config_postfix() {
 }
 # Función para leer la lista de direcciones de correo
 function read_accounts() {
+    # leer la lista de direcciones de correo
+    echo "Leyendo la lista de dominios '$ACCOUNTS_PATH'..."
     while IFS="," read -r username nombre apellido email alias password; do
-        # leer la lista de direcciones de correo
-        echo "Leyendo la lista de dominios '$ACCOUNTS_PATH'..."
-        # Generar archivo de prueba
         echo "Usario: $username"
         echo "Correo principal: $email"
         echo "Correo secundario: $alias"
         echo "Contraseña: ${password:0:3}*********"
         #sudo adduser "$alias"
         #sudo mkmailbox "$alias"
+        # Escribiendo datos 
+        echo "${alias} ${email}" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
+        echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
         echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-   
-    done < <(sed -e '$a\' "$ACCOUNTS_PATH")
+    done < <(grep -v '^$' "$ACCOUNTS_PATH")
+    echo "Todas las cuentas de correo han sido copiadas."
 }
 # Función principal
 function postfix_config() {
