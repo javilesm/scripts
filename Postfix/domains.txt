@@ -1,4 +1,4 @@
-"tecnotools.shop"
-"creativeering.com"
-"aplika-t.com"
-"samava.com"
+tecnotools.shop
+creativeering.com
+aplika-t.com
+samava.com
