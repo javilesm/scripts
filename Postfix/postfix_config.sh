@@ -232,6 +232,7 @@ function read_accounts() {
         echo "Contraseña: ${password:0:3}*********"
         #sudo adduser "$alias"
         #sudo mkmailbox "$alias"
+        echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
    
     done < <(sed -e '$a\' "$ACCOUNTS_PATH")
 }
