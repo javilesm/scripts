@@ -4,6 +4,7 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 ACCOUNTS_FILE="mail_users.csv"
 ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_FILE"
+POSTFIX_PATH="/etc/postfix"
 # Función para verificar si el archivo de dominios existe
 function validate_accounts_file() {
     # verificar si el archivo de dominios existe
