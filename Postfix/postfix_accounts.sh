@@ -34,7 +34,7 @@ function read_accounts() {
 }
 # Función principal
 function postfix_accounts() {
-  echo "***************POSTFIX CONFIG***************"
+  echo "***************POSTFIX ACCOUNTS***************"
   validate_accounts_file
   read_accounts
   echo "***************ALL DONE***************"
