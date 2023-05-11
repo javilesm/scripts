@@ -3,6 +3,7 @@
 # Función para instalar Tree si no está instalado
 function tree_install() {
   install_and_restart tree
+  install_and_restart telnet
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
