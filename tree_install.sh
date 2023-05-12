@@ -1,15 +1,16 @@
 #! /bin/bash
 # tree_install.sh
-# Función para instalar Tree si no está instalado
-function tree_install() {
+# Función para instalar paquetes si no están instalados
+function package_install() {
   install_and_restart tree
   install_and_restart telnet
+  install_and_restart dnsutils
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
   local package="$1"
   # Verificar si el paquete ya está instalado
-  echo "Verificando si el paquete ya está instalado..."
+  echo "Verificando si el paquete '$package' ya está instalado..."
   if dpkg -s "$package" >/dev/null 2>&1; then
     echo "El paquete '$package' ya está instalado."
     return 0
@@ -52,4 +53,4 @@ function install_and_restart() {
 }
 
 # Llamar a la funcion princial
-tree_install
+package_install
