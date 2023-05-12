@@ -16,6 +16,8 @@ function package_install() {
   install_and_restart zip
   install_and_restart snapd
   install_and_restart jq
+  install_and_restart sqlite3
+  install_and_restart libsqlite3-dev
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
