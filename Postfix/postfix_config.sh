@@ -161,11 +161,11 @@ function mkdirs() {
     echo "Leyendo la lista de dominios..."
     while read -r domain; do
         # crear directorios
-        echo "Creando directorio '$POSTFIX_PATH/dovecot/$domain'..."
-        sudo mkdir -p "$POSTFIX_PATH/dovecot/$domain"
+        echo "Creando directorio '$POSTFIX_PATH/virtual/$domain'..."
+        sudo mkdir -p "$POSTFIX_PATH/virtual/$domain"
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     echo "Todos los directorios han sido creados."
-    ls "$POSTFIX_PATH/dovecot"
+    ls "$POSTFIX_PATH/virtual"
 }
 # Función para leer la lista de dominios y configurar el archivo main.cf
 function config_postfix() {
