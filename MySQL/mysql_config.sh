@@ -34,6 +34,33 @@ function set_mysql_file_permissions() {
 
   echo "La propiedad de lectura y escritura del archivo $MYSQL_CONF se ha establecido correctamente."
 }
+# Función para verificar si el archivo de configuración de MySQL existe
+function check_mysql_config_file() {
+echo "Verificando si el archivo de configuración de MySQL existe..."
+  if [[ ! -f /etc/mysql/mysql.conf.d/mysqld.cnf ]]; then
+    echo "El archivo de configuración de MySQL no existe."
+    exit 1
+  fi
+  echo "El archivo de configuración de MySQL existe."
+}
+# Función para realizar una copia de seguridad de mysql.conf
+function backup_mysql_config_file() {
+  echo "Realizando una copia de seguridad de mysqld.cnf..."
+  if ! sudo cp /etc/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf.bak; then
+    echo "Error al realizar una copia de seguridad de mysqld.cnf."
+    exit 1
+  fi
+  echo "Copia de seguridad de mysqld.cnf realizada."
+}
+# Función para modificar el archivo de configuración y permitir conexiones desde cualquier IP
+function modify_mysql_config_file() {
+  echo "Modificando el archivo de configuración y permitir conexiones desde cualquier IP..."
+  if ! sudo sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf; then
+    echo "Error al modificar el archivo de configuración."
+    exit 1
+  fi
+  echo "El archivo de configuración fue modificado."
+}
 # Función para establecer la ubicación del socket de MySQL
 function set_mysql_socket() {
   echo "Estableciendo la ubicación del socket de MySQL en $MYSQL_CONF..."
@@ -108,6 +135,9 @@ function mysql_config() {
     echo "**********MYSQL CONFIG**********"
     check_root
     set_mysql_file_permissions
+    check_mysql_config_file
+    backup_mysql_config_file
+    modify_mysql_config_file(
     set_mysql_socket
     start_mysql
     validate_mysql_scripts
