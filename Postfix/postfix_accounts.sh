@@ -24,10 +24,8 @@ function read_accounts() {
         echo "Correo principal: $email"
         echo "Correo secundario: $alias"
         echo "Contraseña: ${password:0:3}*********"
-        #sudo adduser "$alias"
-        #sudo mkmailbox "$alias"
         # Escribiendo datos 
-        echo "${alias} ${email}" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
+        echo "${alias} ${username}" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
         echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
         echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
