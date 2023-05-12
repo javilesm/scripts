@@ -5,6 +5,7 @@ function package_install() {
   install_and_restart tree
   install_and_restart telnet
   install_and_restart dnsutils
+  install_and_restart libmailutils-dev
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
