@@ -2,7 +2,6 @@
 # postfix_config.sh
 # Variables
 MY_DOMAIN="avilesworks.com"
-LOG_FILE="/var/log/mail.log"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
@@ -336,7 +335,6 @@ function restart_postfix() {
     sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
     echo "Postfix service restarted successfully."
     sudo service postfix status || { echo "Error: Failed to check Postfix status."; return 1; }
-    tail -F "$LOG_FILE" -f || { echo "Error: Failed to tail log file."; return 1; }
 }
 # Función principal
 function postfix_config() {
