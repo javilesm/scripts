@@ -4,7 +4,7 @@
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="postfix_config.sh" # Script configurador
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
-MAIL_NAME="samava-group.com"
+MAIL_NAME="avilesworks.com"
 # Function for installing the core components of postfix
 function install_packages() {
   # Configurar las opciones de debconf
