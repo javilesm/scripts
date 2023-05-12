@@ -46,13 +46,18 @@ function create_index() {
   while read -r domain; do
     # generar los archivos de índice para el archivo de alias virtual
     echo "Generando los archivos de índice para el alias virtual: $domain"
-    echo "$VIRTUAL_ALIAS/$domain"
-    #postmap "$VIRTUAL_ALIAS/$domain"
-    echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    postmap "$VIRTUAL_ALIAS/$domain"
   done < <(sed -e '$a\' "$DOMAINS_PATH")
   echo "Todos los archivos de índice han sido generados."
-  echo "$VMAILBOX_PATH"
-  #postmap "$VMAILBOX_PATH"
+  postmap "$VMAILBOX_PATH"
+}
+# Función para reiniciar el servicio de Postfix
+function restart_postfix() {
+    # reiniciar el servicio de Postfix
+    echo "Restarting Postfix service..."
+    sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
+    echo "Postfix service restarted successfully."
+    sudo service postfix status || { echo "Error: Failed to check Postfix status."; return 1; }
 }
 # Función principal
 function postfix_vmailbox() {
@@ -60,6 +65,7 @@ function postfix_vmailbox() {
   validate_accounts_file
   read_accounts
   create_index
+  restart_postfix
   echo "***************ALL DONE***************"
 }
 # Llamar a la función principal
