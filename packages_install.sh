@@ -1,11 +1,21 @@
 #! /bin/bash
-# tree_install.sh
+# packages_install.sh
 # Función para instalar paquetes si no están instalados
 function package_install() {
+  install_and_restart lsb-release
+  install_and_restart ca-certificates
+  install_and_restart apt-transport-https
+  install_and_restart software-properties-common
+  install_and_restart clamav
+  install_and_restart clamav-daemon
   install_and_restart tree
   install_and_restart telnet
   install_and_restart dnsutils
   install_and_restart libmailutils-dev
+  install_and_restart python3-certbot-nginx
+  install_and_restart zip
+  install_and_restart snapd
+  install_and_restart jq
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
