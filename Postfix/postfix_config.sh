@@ -285,12 +285,6 @@ function config_postfix() {
         else
             echo "mydestination = localhost.localdomain, localhost" >> "$POSTFIX_MAIN" && echo "mydestination = localhost.localdomain, localhost" >> "$CURRENT_DIR/test.txt"
     fi
-    #19myorigin
-    if grep -q "#myorigin" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#myorigin =.*/myorigin = /etc/mailname/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': myorigin"; exit 1; }
-    else
-        echo "myorigin = /etc/mailname" >> "$POSTFIX_MAIN" && echo "myorigin = /etc/mailname" >> "$CURRENT_DIR/test.txt"
-    fi
     #20compatibility_level
     if grep -q "#compatibility_level" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^#compatibility_level =./compatibility_level = 3/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': compatibility_level"; exit 1; }
