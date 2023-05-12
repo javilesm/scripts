@@ -1,15 +1,5 @@
 #!/bin/bash
-# clamav_install.sh
-function install_clamav {
-  echo "Instalando ClamAV..."
-  if sudo apt-get install -y clamav clamav-daemon; then
-    echo "ClamAV instalado correctamente."
-  else
-    echo "Error al instalar ClamAV." >&2
-    exit 1
-  fi
-}
-
+# clamav_config.sh
 function update_virus_db {
   echo "Actualizando base de datos de virus..."
   if sudo freshclam; then
@@ -54,13 +44,14 @@ function restart_clamav {
 }
 
 function install_and_configure_clamav {
+  echo "**********CLAMAV CONFIG***********"
   update_packages
   install_clamav
   update_virus_db
   backup_config
   configure_clamav
   restart_clamav
-  echo "¡La instalación y configuración de ClamAV ha finalizado!"
+  echo "**************ALL DONE***************"
 }
 
 install_and_configure_clamav
