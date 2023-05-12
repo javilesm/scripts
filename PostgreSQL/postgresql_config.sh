@@ -15,6 +15,30 @@ function check_root() {
         exit 1
     fi
 }
+# Función para configurar listen_addresses en postgresql.conf
+function configure_listen_addresses() {
+  echo "Configurando listen_addresses en postgresql.conf..."
+  if ! sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/$(ls /etc/postgresql)/main/postgresql.conf; then
+    echo "Error al configurar listen_addresses en postgresql.conf"
+    exit 1
+  fi
+  echo "Archivo listen_addresses en postgresql.conf configurado."
+}
+# Función para agregar una entrada en pg_hba.conf
+function add_entry_to_pg_hba() {
+  echo "Agregando entrada en pg_hba.conf..."
+  if ! echo "host    all             all             0.0.0.0/0               md5" | sudo tee -a /etc/postgresql/$(ls /etc/postgresql)/main/pg_hba.conf > /dev/null; then
+    echo "Error al agregar entrada en pg_hba.conf"
+    exit 1
+  fi
+  echo "Entrada en pg_hba.conf agregada."
+}
+function start_service() {
+  echo "Iniciando el servicio PostgreSQL..."
+  sudo pg_ctlcluster 12 main start
+  sudo service postgresql status
+  echo "Servicio PostgreSQL iniciado."
+}
 # Función para validar si cada script en el vector "scripts" existe y tiene permiso de ejecución
 function validate_pysql_scripts() {
   echo "Validando la existencia de cada script en la lista de sub-scripts..."
@@ -55,6 +79,9 @@ function restart_postgresql_service() {
 function postgresql_config() {
     echo "**********POSTGRESQL CONFIG**********"
     check_root
+    configure_listen_addresses
+    add_entry_to_pg_hba
+    start_service
     validate_pysql_scripts
     execute_psql_scripts
     restart_postgresql_service
