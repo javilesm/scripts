@@ -67,6 +67,10 @@ function install_and_restart() {
   echo "El paquete '$package' se instaló correctamente."
   return 0
 }
-
+# Función para instalar Certbot
+function install_certbot() {
+  curl -o- https://raw.githubusercontent.com/vinyll/certbot-install/master/install.sh | bash
+}
 # Llamar a la funcion princial
 package_install
+install_certbot
