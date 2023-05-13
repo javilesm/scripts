@@ -2,6 +2,7 @@
 # packages_install.sh
 # Función para instalar paquetes si no están instalados
 function package_install() {
+  install_and_restart dos2unix
   install_and_restart lsb-release
   install_and_restart ca-certificates
   install_and_restart apt-transport-https
