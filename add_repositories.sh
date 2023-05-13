@@ -9,7 +9,7 @@ function add_repositories() {
     echo "Agregando repositorios..."
     while read -r repository; do
         echo "Agregando el repositorio: '$repository'"
-        if ! yes '' | sudo add-apt-repository -y -r"$repository"; then
+        if ! yes '' | sudo add-apt-repository -y -r "$repository"; then
             echo "ERROR: No se pudo agregar el repositorio '$repository'"
             exit 1
         fi
