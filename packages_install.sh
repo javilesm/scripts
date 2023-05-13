@@ -21,6 +21,10 @@ function package_install() {
   install_and_restart mysql-server
   install_and_restart postgresql
   install_and_restart postgresql-contrib
+  install_and_restart transmission-gtk 
+  install_and_restart transmission-cli 
+  install_and_restart transmission-common 
+  install_and_restart transmission-daemon
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
