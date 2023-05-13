@@ -21,8 +21,6 @@ function package_install() {
   install_and_restart mysql-server
   install_and_restart postgresql
   install_and_restart postgresql-contrib
-  install_and_restart mariadb-server
-  install_and_restart mariadb-client
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
