@@ -25,6 +25,18 @@ function package_install() {
   install_and_restart transmission-cli 
   install_and_restart transmission-common 
   install_and_restart transmission-daemon
+  install_and_restart dovecot-core
+  install_and_restart dovecot-lmtp
+  install_and_restart dovecot-dev
+  install_and_restart dovecot-ldap
+  install_and_restart dovecot-imapd
+  install_and_restart dovecot-pop3d
+  install_and_restart dovecot-mysql
+  install_and_restart dovecot-sqlite
+  install_and_restart dovecot-sieve
+  install_and_restart dovecot-solr
+  install_and_restart dovecot-submissiond
+  install_and_restart dovecot-antispam
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
