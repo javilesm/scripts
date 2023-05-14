@@ -6,25 +6,25 @@ function package_install() {
   install_and_restart ca-certificates
   install_and_restart apt-transport-https
   install_and_restart software-properties-common
-  install_and_restart clamav
-  install_and_restart clamav-daemon
-  install_and_restart tree
+  #install_and_restart clamav
+  #install_and_restart clamav-daemon
+  #install_and_restart tree
   install_and_restart telnet
   install_and_restart dnsutils
   install_and_restart libmailutils-dev
-  install_and_restart python3-certbot-nginx
-  install_and_restart zip
-  install_and_restart snapd
-  install_and_restart jq
-  install_and_restart sqlite3
-  install_and_restart libsqlite3-dev
-  install_and_restart mysql-server
-  install_and_restart postgresql
-  install_and_restart postgresql-contrib
-  install_and_restart transmission-gtk 
-  install_and_restart transmission-cli 
-  install_and_restart transmission-common 
-  install_and_restart transmission-daemon
+  #install_and_restart python3-certbot-nginx
+  #install_and_restart zip
+  #install_and_restart snapd
+  #install_and_restart jq
+  #install_and_restart sqlite3
+  #install_and_restart libsqlite3-dev
+  #install_and_restart mysql-server
+  #install_and_restart postgresql
+  #install_and_restart postgresql-contrib
+  #install_and_restart transmission-gtk 
+  #install_and_restart transmission-cli 
+  #install_and_restart transmission-common 
+  #install_and_restart transmission-daemon
   install_and_restart dovecot-core
   install_and_restart dovecot-lmtp
   install_and_restart dovecot-dev
