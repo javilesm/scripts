@@ -11,7 +11,6 @@ function package_install() {
   install_and_restart tree
   install_and_restart telnet
   install_and_restart dnsutils
-  install_and_restart mailutils
   install_and_restart libmailutils-dev
   install_and_restart python3-certbot-nginx
   install_and_restart zip
