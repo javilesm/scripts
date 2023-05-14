@@ -51,6 +51,7 @@ function create_index() {
   echo "Todos los archivos de índice han sido generados."
   postmap "$VMAILBOX_PATH"
 }
+
 # Función para reiniciar el servicio de Postfix
 function restart_postfix() {
     # reiniciar el servicio de Postfix
