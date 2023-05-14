@@ -280,9 +280,9 @@ function config_postfix() {
     fi
     #18mydestination
     if grep -q "#mydestination" "$POSTFIX_MAIN"; then
-            sudo sed -i "s/^#mydestination =./mydestination = localhost.localdomain, localhost/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
+            sudo sed -i "s/^#mydestination =./mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
         else
-            echo "mydestination = localhost.localdomain, localhost" >> "$POSTFIX_MAIN" && echo "mydestination = localhost.localdomain, localhost" >> "$CURRENT_DIR/test.txt"
+            echo "mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost" >> "$POSTFIX_MAIN" && echo "mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost" >> "$CURRENT_DIR/test.txt"
     fi
     #20compatibility_level
     if grep -q "#compatibility_level" "$POSTFIX_MAIN"; then
