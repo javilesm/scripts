@@ -46,7 +46,8 @@ function edit_auth_config() {
 # Función para editar la dirección IP de la interfaz
 function listen_interface() {
     # Buscar la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP
-    sudo sed -i "/listen = /c\listen = $INTERFACE_IP," $CONFIG_PATH
+    sudo sed -i "/protocols = /c\protocols = imap pop3" $CONFIG_PATH
+    sudo sed -i "/listen = /c\listen = *" $CONFIG_PATH
 }
 
 # Función para editar la ubicacion de las bandejas de correo
