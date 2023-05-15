@@ -58,9 +58,9 @@ function configure_authentication() {
     echo "Configurando la autenticación..."
     # Buscar la línea que contiene la cadena "!include auth-system.conf.ext" y eliminar el carácter '#'
     if grep -q "#!include auth-system.conf.ext" "$CONFIG_PATH"; then
-        sudo sed -i "s~^#!include auth-system.conf.ext =.*/!include auth-system.conf.ext/" "$CONFIG_PATH"
+        sudo sed -i "s~^#!include auth-system.conf.ext =.*/!include /etc/dovecot/conf.d/auth-system.conf.ext" "$CONFIG_PATH"
     else
-         echo "!include auth-system.conf.ext" >> "$CONFIG_PATH"
+         echo "!include /etc/dovecot/conf.d/auth-system.conf.ext" >> "$CONFIG_PATH"
     fi
 }
 
