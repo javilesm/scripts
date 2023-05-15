@@ -11,8 +11,11 @@ POSTFIX_USER="postfix"
 POSTFIX_GROUP="postfix"
 CERTIFICADO="ssl-cert-snakeoil.pem" # default self-signed certificate that comes with Ubuntu
 CLAVE_PRIVADA="ssl-cert-snakeoil.key"
+auth_config_file="$DOVECOT_PATH/conf.d/10-auth.conf"
+mailbox_location_file="$DOVECOT_PATH/conf.d/10-mail.conf"
 # Función para crear una copia de seguridad del archivo de configuración
 function backup_conf() {
+    echo "Creando una copia de seguridad del archivo de configuración..."
     # Verificar si el archivo de configuración existe antes de hacer una copia de seguridad
     if [ -f "$CONFIG_PATH" ]; then
         echo "Creando copia de seguridad del archivo '$CONFIG_FILE' ..."
@@ -21,55 +24,99 @@ function backup_conf() {
     else
         echo "ERROR: El archivo de configuración '$CONFIG_FILE' no existe. No se puede crear una copia de seguridad."
     fi
+
+    if [ -f "$auth_config_file" ]; then
+        echo "Creando copia de seguridad del archivo '$auth_config_file' ..."
+        sudo cp "$auth_config_file" "$auth_config_file".bak 
+        echo "Copia de seguridad creada en '$auth_config_file.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$auth_config_file' no existe. No se puede crear una copia de seguridad."
+    fi
+
+    if [ -f "$mailbox_location_file" ]; then
+        echo "Creando copia de seguridad del archivo '$mailbox_location_file' ..."
+        sudo cp "$mailbox_location_file" "$mailbox_location_file".bak 
+        echo "Copia de seguridad creada en '$mailbox_location_file.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$mailbox_location_file' no existe. No se puede crear una copia de seguridad."
+    fi
 }
 
 # Función para habilitar los protocolos
 function enable_protocols() {
     # Buscar la línea que contiene la cadena "!include_try /usr/share/dovecot/protocols.d/*.protocol" y eliminar el carácter '#'
-    sudo sed -i "/!include_try \/usr\/share\/dovecot\/protocols.d\/\*\.protocol/s/^#//g" $CONFIG_PATH
+    if grep -q "#!include_try /usr/share/dovecot/protocols.d/*.protocol" "$CONFIG_PATH"; then
+        sudo sed -i "s~^#!include_try /usr/share/dovecot/protocols.d/*.protocol~#!include_try /usr/share/dovecot/protocols.d/*.protocol~g" "$CONFIG_PATH"
+    else
+         echo "!include_try /usr/share/dovecot/protocols.d/*.protocol" >> "$CONFIG_PATH"
+    fi
 }
 
 # Función para configurar la autenticación
 function configure_authentication() {
     # Buscar la línea que contiene la cadena "!include auth-system.conf.ext" y eliminar el carácter '#'
-    sudo sed -i "/!include auth-system.conf.ext/s/^#//g" $CONFIG_PATH
+    if grep -q "#!include auth-system.conf.ext" "$CONFIG_PATH"; then
+        sudo sed -i "s~^#!include auth-system.conf.ext =.*/!include auth-system.conf.ext/" "$CONFIG_PATH"
+    else
+         echo "!include auth-system.conf.ext" >> "$CONFIG_PATH"
+    fi
 }
 
-# Función para editar la configuración de autenticación
+# Función para editar la configuración de disable_plaintext_auth 
 function edit_auth_config() {
-    local edit_auth_config_file="/etc/dovecot/conf.d/10-auth.conf"
     # Editar los valores de disable_plaintext_auth y auth_mechanisms
-    sudo sed -i "/disable_plaintext_auth/c\disable_plaintext_auth = no" $edit_auth_config_file
-    sudo sed -i "/auth_mechanisms/c\auth_mechanisms = plain login" $edit_auth_config_file
+    if grep -q "disable_plaintext_auth" "$auth_config_file"; then
+        sudo sed -i "s/^disable_plaintext_auth =.*/disable_plaintext_auth = no/" "$auth_config_file"
+    else
+         echo "disable_plaintext_auth = no" >> "$auth_config_file"
+    fi
+
+}
+
+# Función para editar la configuración de auth_mechanisms
+function edit_auth_mechanisms() {
+    # Editar los valores de disable_plaintext_auth y auth_mechanisms
+    if grep -q "#auth_mechanisms" "$auth_config_file"; then
+        sudo sed -i "s/^auth_mechanisms =.*/auth_mechanisms = plain login/" "$auth_config_file"
+    else
+         echo "auth_mechanisms = plain login" >> "$auth_config_file"
+    fi
 }
 
 # Función para editar la dirección IP de la interfaz
 function listen_interface() {
     # Buscar la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP
-    sudo sed -i "/protocols = /c\protocols = imap pop3 imaps pop3s" $CONFIG_PATH
-    sudo sed -i "/listen = /c\listen = *" $CONFIG_PATH
+    if grep -q "#protocols" "$CONFIG_PATH"; then
+        sudo sed -i "s/^#protocols =./protocols = imap pop3 imaps pop3s" "$CONFIG_PATH"
+    else
+         echo "protocols =./protocols = imap pop3 imaps pop3s" >> "$CONFIG_PATH"
+    fi
+
+    if grep -q "#listen" "$CONFIG_PATH"; then
+        sudo sed -i "s/^#listen =./listen = *" "$CONFIG_PATH"
+    else
+         echo "listen = *" >> "$CONFIG_PATH"
+    fi
 }
 
 # Función para editar la ubicacion de las bandejas de correo
 function configure_mailbox_location() {
-    local configure_mailbox_location_file="/etc/dovecot/conf.d/10-mail.conf"
     # Editar el valor de mail_location
-    sudo sed -i "/mail_location/c\mail_location = maildir:$MAILBOX_PATH/Maildir" $configure_mailbox_location_file
+    if grep -q "#mail_location" "$mailbox_location_file"; then
+        sudo sed -i "s/^#mail_location =./mail_location = maildir:$MAILBOX_PATH/Maildir" "$mailbox_location_file"
+    else
+         echo "mail_location = maildir:$MAILBOX_PATH/Maildir" >> "$mailbox_location_file"
+    fi
 }
-# Función para establecer el usuario y el grupo en la sección unix_listener 
-function setup_user() {
-    local setup_user_file="/etc/dovecot/conf.d/10-master.conf"
-    # Establecer el usuario y el grupo en la sección unix_listener en el archivo 10-master.conf
-    sudo sed -i "/unix_listener \/var\/spool\/postfix\/private\/auth {/,+2 s/user = .*/user = $POSTFIX_USER/" $setup_user_file
-    sudo sed -i "/unix_listener \/var\/spool\/postfix\/private\/auth {/,+2 s/group = .*/group = $POSTFIX_GROUP/" $setup_user_file
-}
+
 # Función para habilitar encriptacion SSL
 function enable_ssl() {
     local enable_ssl_file="/etc/dovecot/conf.d/10-ssl.conf"
     sudo sed -i "/^ssl =/c\ssl = yes" $enable_ssl_file
-    sudo sed -i "/^ssl_cert =/c\ssl_cert = <\/etc\/ssl\/certs\/$CERTIFICADO" $enable_ssl_file
-    sudo sed -i "/^ssl_key =/c\ssl_key = <\/etc\/ssl\/private\/$CLAVE_PRIVADA" $enable_ssl_file
+    sudo sed -i "/^ssl_cert =/c\ssl_cert = \/etc\/ssl\/certs\/$CERTIFICADO" $enable_ssl_file
+    sudo sed -i "/^ssl_key =/c\ssl_key = \/etc\/ssl\/private\/$CLAVE_PRIVADA" $enable_ssl_file
 }
+
 # Función para inciar y habilitar el servicio de Dovecot
 function start_and_enable() {
     sudo service dovecot start
@@ -90,9 +137,10 @@ function dovecot_config() {
     backup_conf
     enable_protocols
     configure_authentication
+    edit_auth_config
+    edit_auth_mechanisms
     listen_interface
     configure_mailbox_location
-    setup_user
     enable_ssl
     start_and_enable
     echo "***************ALL DONE***************"
