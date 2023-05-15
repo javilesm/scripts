@@ -275,14 +275,18 @@ function config_postfix() {
     #17myhostname
     if grep -q "#myhostname" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^#myhostname =./myhostname = mail.avilesworks.com/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': myhostname"; exit 1; }
+    elif grep -q "myhostname" "$POSTFIX_MAIN"; then
+        sudo sed -i "s/^myhostname =./myhostname = mail.avilesworks.com/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': myhostname"; exit 1; }
     else
         echo "myhostname = mail.avilesworks.com" >> "$POSTFIX_MAIN" && echo "myhostname = mail.avilesworks.com" >> "$CURRENT_DIR/test.txt"
     fi
     #18mydestination
     if grep -q "#mydestination" "$POSTFIX_MAIN"; then
-            sudo sed -i "s/^#mydestination =./mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
-        else
-            echo "mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost" >> "$POSTFIX_MAIN" && echo "mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost" >> "$CURRENT_DIR/test.txt"
+        sudo sed -i "s/^#mydestination =./mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
+    elif grep -q "mydestination" "$POSTFIX_MAIN"; then
+        sudo sed -i "s/^mydestination =./mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
+    else
+        echo "mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost" >> "$POSTFIX_MAIN" && echo "mydestination = $virtual_mailbox_domains, localhost.localdomain, localhost" >> "$CURRENT_DIR/test.txt"
     fi
     #20compatibility_level
     if grep -q "#compatibility_level" "$POSTFIX_MAIN"; then
