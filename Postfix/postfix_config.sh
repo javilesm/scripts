@@ -290,9 +290,11 @@ function config_postfix() {
     fi
     #20compatibility_level
     if grep -q "#compatibility_level" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#compatibility_level =./compatibility_level = 3/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': compatibility_level"; exit 1; }
+        sudo sed -i "s/^#compatibility_level =./compatibility_level = 3.6/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': compatibility_level"; exit 1; }
+    elif grep -q "compatibility_level" "$POSTFIX_MAIN"; then
+        sudo sed -i "s/^compatibility_level =./compatibility_level = 3.6" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': compatibility_level"; exit 1; }
     else
-        echo "compatibility_level = 3" >> "$POSTFIX_MAIN" && echo "compatibility_level = 3" >> "$CURRENT_DIR/test.txt"
+        echo "compatibility_level = 3.6" >> "$POSTFIX_MAIN" && echo "compatibility_level = 3.6" >> "$CURRENT_DIR/test.txt"
     fi
     #21smtpd_tls_loglevel
     if grep -q "#smtpd_tls_loglevel" "$POSTFIX_MAIN"; then
@@ -321,6 +323,8 @@ function config_postfix() {
     #25mynetworks
     if grep -q "#mynetworks" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^#mynetworks =./mynetworks = 0.0.0.0/0" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': mynetworks"; exit 1; }
+    elif grep -q "mynetworks" "$POSTFIX_MAIN"; then
+        sudo sed -i "s/^mynetworks =./mynetworks = 0.0.0.0/0" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un provlema al configurar el archivo '$POSTFIX_MAIN': mynetworks"; exit 1; }
     else
         echo "mynetworks = 0.0.0.0/0" >> "$POSTFIX_MAIN" && echo "mynetworks = 0.0.0.0/0" >> "$CURRENT_DIR/test.txt"
     fi
