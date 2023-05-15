@@ -48,6 +48,8 @@ function enable_protocols() {
     # Buscar la línea que contiene la cadena "!include_try /usr/share/dovecot/protocols.d/*.protocol" y eliminar el carácter '#'
     if grep -q "#!include_try /usr/share/dovecot/protocols.d/*.protocol" "$CONFIG_PATH"; then
         sudo sed -i "s~^#!include_try /usr/share/dovecot/protocols.d/*.protocol~#!include_try /usr/share/dovecot/protocols.d/*.protocol~g" "$CONFIG_PATH"
+    elif grep -q "!include_try /usr/share/dovecot/protocols.d/*.protocol" "$CONFIG_PATH"; then
+         sudo sed -i "s~^!include_try /usr/share/dovecot/protocols.d/*.protocol~!include_try /usr/share/dovecot/protocols.d/*.protocol~g" "$CONFIG_PATH"
     else
          echo "!include_try /usr/share/dovecot/protocols.d/*.protocol" >> "$CONFIG_PATH"
     fi
@@ -59,6 +61,8 @@ function configure_authentication() {
     # Buscar la línea que contiene la cadena "!include auth-system.conf.ext" y eliminar el carácter '#'
     if grep -q "#!include auth-system.conf.ext" "$CONFIG_PATH"; then
         sudo sed -i "s~^#!include auth-system.conf.ext =.*/!include /etc/dovecot/conf.d/auth-system.conf.ext" "$CONFIG_PATH"
+    elif grep -q "!include auth-system.conf.ext" "$CONFIG_PATH"; then
+        sudo sed -i "s~^!include auth-system.conf.ext =.*/!include /etc/dovecot/conf.d/auth-system.conf.ext" "$CONFIG_PATH"
     else
          echo "!include /etc/dovecot/conf.d/auth-system.conf.ext" >> "$CONFIG_PATH"
     fi
@@ -70,6 +74,8 @@ function edit_auth_config() {
     # Editar los valores de disable_plaintext_auth
     if grep -q "#disable_plaintext_auth" "$auth_config_file"; then
         sudo sed -i "s/^#disable_plaintext_auth =.*/disable_plaintext_auth = no/" "$auth_config_file"
+    elif grep -q "disable_plaintext_auth" "$auth_config_file"; then
+        sudo sed -i "s/^disable_plaintext_auth =.*/disable_plaintext_auth = no/" "$auth_config_file"
     else
          echo "disable_plaintext_auth = no" >> "$auth_config_file"
     fi
@@ -82,6 +88,8 @@ function edit_auth_mechanisms() {
     # Editar los valores de auth_mechanisms
     if grep -q "#auth_mechanisms" "$auth_config_file"; then
         sudo sed -i "s/^#auth_mechanisms =.*/auth_mechanisms = plain login/" "$auth_config_file"
+    elif grep -q "auth_mechanisms" "$auth_config_file"; then
+        sudo sed -i  "s/^auth_mechanisms =.*/auth_mechanisms = plain login/" "$auth_config_file"
     else
          echo "auth_mechanisms = plain login" >> "$auth_config_file"
     fi
@@ -93,6 +101,8 @@ function listen_interface() {
     echo "Buscando la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP..."
     if grep -q "#protocols" "$CONFIG_PATH"; then
         sudo sed -i "s/^#protocols =./protocols = imap pop3 imaps pop3s" "$CONFIG_PATH"
+    elif grep -q "protocols" "$CONFIG_PATH"; then
+        sudo sed -i "s/^protocols =./protocols = imap pop3 imaps pop3s" "$CONFIG_PATH"
     else
          echo "protocols = imap pop3 imaps pop3s" >> "$CONFIG_PATH"
     fi
@@ -100,6 +110,8 @@ function listen_interface() {
     echo "Editando la dirección IP de la interfaz..."
     if grep -q "#listen" "$CONFIG_PATH"; then
         sudo sed -i "s/^#listen =./listen = */" "$CONFIG_PATH"
+    elif grep -q "listen" "$CONFIG_PATH"; then
+        sudo sed -i "s/^listen =./listen = */" "$CONFIG_PATH"
     else
          echo "listen = *" >> "$CONFIG_PATH"
     fi
@@ -111,6 +123,8 @@ function configure_mailbox_location() {
     echo "Editando la ubicacion de las bandejas de correo..."
     if grep -q "#mail_location" "$mailbox_location_file"; then
         sudo sed -i "s/^#mail_location =./mail_location = maildir:$MAILBOX_PATH/Maildir" "$mailbox_location_file"
+    elif grep -q "mail_location" "$mailbox_location_file"; then
+        sudo sed -i "s/^mail_location =./mail_location = maildir:$MAILBOX_PATH/Maildir" "$mailbox_location_file"
     else
          echo "mail_location = maildir:$MAILBOX_PATH/Maildir" >> "$mailbox_location_file"
     fi
