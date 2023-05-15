@@ -51,14 +51,18 @@ function create_index() {
   echo "Todos los archivos de índice han sido generados."
   postmap "$VMAILBOX_PATH"
 }
-
-# Función para reiniciar el servicio de Postfix
+# Función para reiniciar el servicio de Postfix y el servicio de Dovecot
 function restart_postfix() {
     # reiniciar el servicio de Postfix
     echo "Restarting Postfix service..."
     sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
     echo "Postfix service restarted successfully."
     sudo service postfix status || { echo "Error: Failed to check Postfix status."; return 1; }
+    # reiniciar el servicio de Dovecot
+    echo "Restarting Dovecot service..."
+    sudo service dovecot restart || { echo "Error: Failed to restart Dovecot service."; return 1; }
+    echo "Dovecot service restarted successfully."
+    sudo service dovecot status || { echo "Error: Failed to check Dovecot status."; return 1; }
 }
 # Función principal
 function postfix_vmailbox() {
