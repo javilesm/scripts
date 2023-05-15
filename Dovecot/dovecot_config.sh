@@ -94,7 +94,7 @@ function listen_interface() {
     if grep -q "#protocols" "$CONFIG_PATH"; then
         sudo sed -i "s/^#protocols =./protocols = imap pop3 imaps pop3s" "$CONFIG_PATH"
     else
-         echo "protocols =./protocols = imap pop3 imaps pop3s" >> "$CONFIG_PATH"
+         echo "protocols = imap pop3 imaps pop3s" >> "$CONFIG_PATH"
     fi
     # editar la dirección IP de la interfaz
     echo "Editando la dirección IP de la interfaz..."
@@ -150,7 +150,7 @@ function dovecot_config() {
     edit_auth_config
     edit_auth_mechanisms
     listen_interface
-    configure_mailbox_location
+    #configure_mailbox_location #se deja la config defaul por problemas
     enable_ssl
     start_and_enable
     echo "***************ALL DONE***************"
