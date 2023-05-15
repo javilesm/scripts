@@ -29,16 +29,27 @@ function read_accounts() {
     # leer la lista de direcciones de correo
     echo "Leyendo la lista de dominios '$ACCOUNTS_PATH'..."
     while IFS="," read -r username nombre apellido email alias password; do
-        echo "Usario: $username"
-        echo "Correo principal: $email"
-        echo "Correo secundario: $alias"
-        echo "Contraseña: ${password:0:3}*********"
-        # Escribiendo datos 
-        echo "${alias} ${username}" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
-        echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
-        echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "Usario: $username"
+      echo "Dirección: $alias"
+      echo "Contraseña: ${password:0:3}*********"
+      # Obtener el dominio del correo electrónico (todo lo que está después del símbolo @)
+      local domain="${alias#*@}"
+      echo "Dominio: $domain"
+      # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
+      echo "\"$username@$domain\" \"$domain/$username/\""
+       # Escribiendo datos 
+      echo "$username@$domain $domain/$username/" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
+      echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
+      echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
     echo "Todas las cuentas de correo han sido copiadas."
+}
+# Función para mapear  las direcciones y destinos
+function create_index() {
+  # mapear  las direcciones y destinos
+  echo "Mapeando las direcciones y destinos..."
+  postmap "$POSTFIX_PATH/virtual" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual'"; return 1; }
+  echo "Las direcciones y destinos han sido mapeadas."
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
 function restart_postfix() {
@@ -59,6 +70,7 @@ function postfix_accounts() {
   validate_accounts_file
   validate_virtual_file
   read_accounts
+  create_index
   restart_postfix
   echo "***************ALL DONE***************"
 }
