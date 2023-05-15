@@ -1,6 +1,7 @@
 #!/bin/bash
 # dovecot_config.sh
 # Variables
+CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="dovecot.conf"
 DOVECOT_PATH="/etc/dovecot"
 CONFIG_PATH="$DOVECOT_PATH/$CONFIG_FILE"
@@ -13,6 +14,8 @@ CERTIFICADO="ssl-cert-snakeoil.pem" # default self-signed certificate that comes
 CLAVE_PRIVADA="ssl-cert-snakeoil.key"
 auth_config_file="$DOVECOT_PATH/conf.d/10-auth.conf"
 mailbox_location_file="$DOVECOT_PATH/conf.d/10-mail.conf"
+master_file_original="$DOVECOT_PATH/conf.d/10-master.conf"
+master_file_fake="$CURRENT_DIR/10-master.conf"
 # Función para crear una copia de seguridad del archivo de configuración
 function backup_conf() {
     echo "Creando una copia de seguridad del archivo de configuración..."
@@ -40,8 +43,30 @@ function backup_conf() {
     else
         echo "ERROR: El archivo de configuración '$mailbox_location_file' no existe. No se puede crear una copia de seguridad."
     fi
+    
+    if [ -f "$master_file_original" ]; then
+        echo "Creando copia de seguridad del archivo '$master_file_original' ..."
+        sudo cp "$master_file_original" "$master_file_original".bak 
+        echo "Copia de seguridad creada en '$master_file_original.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$master_file_original' no existe. No se puede crear una copia de seguridad."
+    fi
 }
-
+# Función para reemplazar el archivo 10-master.conf
+function change_master() {
+    if [ -f "$master_file_original" ]; then
+        # cambiar la proiedad del archivo 10-master.conf
+        echo "Cambiando la propiedad del archivo '$master_file_original' ..."
+        sudo chown $USER:$USER "$master_file_original"
+        echo "La propiedad del archivo '$master_file_original' fue cambiada."
+        # reemplazar el archivo 10-master.conf
+        echo "Reemplazando el archivo '$master_file_original' ..."
+        sudo cp "$master_file_fake" "$master_file_original"
+        echo "El archivo '$master_file_original' fue reemplazado por '$master_file_fake'"
+    else
+        echo "ERROR: El archivo de configuración '$master_file_original' no existe. No se puede reemplazar."
+    fi
+}
 # Función para habilitar los protocolos
 function enable_protocols() {
     echo "Habilitando los protocolos..."
@@ -97,7 +122,7 @@ function edit_auth_mechanisms() {
 
 # Función para editar la dirección IP de la interfaz
 function listen_interface() {
-    # Buscar la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP
+    # 
     echo "Buscando la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP..."
     if grep -q "#protocols" "$CONFIG_PATH"; then
         sudo sed -i "s/^#protocols =./protocols = imap pop3 imaps pop3s" "$CONFIG_PATH"
@@ -106,14 +131,14 @@ function listen_interface() {
     else
          echo "protocols = imap pop3 imaps pop3s" >> "$CONFIG_PATH"
     fi
-    # editar la dirección IP de la interfaz
+    # Buscar la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP
     echo "Editando la dirección IP de la interfaz..."
-    if grep -q "#listen" "$CONFIG_PATH"; then
-        sudo sed -i "s/^#listen =./listen = */" "$CONFIG_PATH"
-    elif grep -q "listen" "$CONFIG_PATH"; then
-        sudo sed -i "s/^listen =./listen = */" "$CONFIG_PATH"
+    if grep -q "#listen =" "$CONFIG_PATH"; then
+        sudo sed -i "s/^#listen =./listen = *, ::" "$CONFIG_PATH"
+    elif grep -q "listen =" "$CONFIG_PATH"; then
+        sudo sed -i "s/^listen =./listen = *, ::" "$CONFIG_PATH"
     else
-         echo "listen = *" >> "$CONFIG_PATH"
+         echo "listen = *, ::" >> "$CONFIG_PATH"
     fi
 }
 
@@ -159,6 +184,7 @@ function start_and_enable() {
 function dovecot_config() {
     echo "***************DOVECOT CONFIGURATOR***************"
     backup_conf
+    change_master
     enable_protocols
     configure_authentication
     edit_auth_config
