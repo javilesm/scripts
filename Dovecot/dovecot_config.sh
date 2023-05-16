@@ -69,89 +69,73 @@ function change_master() {
 }
 # Función para habilitar los protocolos
 function enable_protocols() {
-    echo "Habilitando los protocolos..."
-    # Buscar la línea que contiene la cadena "!include_try /usr/share/dovecot/protocols.d/*.protocol" y eliminar el carácter '#'
+    #include_try
     if grep -q "#!include_try /usr/share/dovecot/protocols.d/*.protocol" "$CONFIG_PATH"; then
-        sudo sed -i "s~^#!include_try /usr/share/dovecot/protocols.d/*.protocol~#!include_try /usr/share/dovecot/protocols.d/*.protocol~g" "$CONFIG_PATH"
-    elif grep -q "!include_try /usr/share/dovecot/protocols.d/*.protocol" "$CONFIG_PATH"; then
-         sudo sed -i "s~^!include_try /usr/share/dovecot/protocols.d/*.protocol~!include_try /usr/share/dovecot/protocols.d/*.protocol~g" "$CONFIG_PATH"
+        sudo sed -i "s|^#!include_try /usr/share/dovecot/protocols.d/*.protocol|!include_try /usr/share/dovecot/protocols.d/*.protocol|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': !include_try"; exit 1; }
     else
          echo "!include_try /usr/share/dovecot/protocols.d/*.protocol" >> "$CONFIG_PATH"
     fi
-}
-
-# Función para configurar la autenticación
-function configure_authentication() {
-    echo "Configurando la autenticación..."
-    # Buscar la línea que contiene la cadena "!include auth-system.conf.ext" y eliminar el carácter '#'
+    #!include auth-system.conf.ext
     if grep -q "#!include auth-system.conf.ext" "$CONFIG_PATH"; then
-        sudo sed -i "s~^#!include auth-system.conf.ext =.*/!include /etc/dovecot/conf.d/auth-system.conf.ext" "$CONFIG_PATH"
+        sudo sed -i "s|^#!include auth-system.conf.ext =.*|!include /etc/dovecot/conf.d/auth-system.conf.ext|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #!include auth-system.conf.ext"; exit 1; }
     elif grep -q "!include auth-system.conf.ext" "$CONFIG_PATH"; then
-        sudo sed -i "s~^!include auth-system.conf.ext =.*/!include /etc/dovecot/conf.d/auth-system.conf.ext" "$CONFIG_PATH"
+        sudo sed -i "s|^!include auth-system.conf.ext =.*|!include /etc/dovecot/conf.d/auth-system.conf.ext|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': !include auth-system.conf.ext"; exit 1; }
     else
          echo "!include /etc/dovecot/conf.d/auth-system.conf.ext" >> "$CONFIG_PATH"
     fi
-}
-
-# Función para editar la configuración de disable_plaintext_auth 
-function edit_auth_config() {
-    echo "Editando la configuración de disable_plaintext_auth..."
-    # Editar los valores de disable_plaintext_auth
-    if grep -q "#disable_plaintext_auth" "$auth_config_file"; then
-        sudo sed -i "s/^#disable_plaintext_auth =.*/disable_plaintext_auth = no/" "$auth_config_file"
-    elif grep -q "disable_plaintext_auth" "$auth_config_file"; then
-        sudo sed -i "s/^disable_plaintext_auth =.*/disable_plaintext_auth = no/" "$auth_config_file"
-    else
-         echo "disable_plaintext_auth = no" >> "$auth_config_file"
-    fi
-
-}
-
-# Función para editar la configuración de auth_mechanisms
-function edit_auth_mechanisms() {
-    echo "Editando la configuración de auth_mechanisms..."
-    # Editar los valores de auth_mechanisms
-    if grep -q "#auth_mechanisms" "$auth_config_file"; then
-        sudo sed -i "s/^#auth_mechanisms =.*/auth_mechanisms = plain login/" "$auth_config_file"
-    elif grep -q "auth_mechanisms" "$auth_config_file"; then
-        sudo sed -i  "s/^auth_mechanisms =.*/auth_mechanisms = plain login/" "$auth_config_file"
-    else
-         echo "auth_mechanisms = plain login" >> "$auth_config_file"
-    fi
-}
-
-# Función para editar la dirección IP de la interfaz
-function listen_interface() {
-    # 
-    echo "Buscando la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP..."
+    #protocols
     if grep -q "#protocols" "$CONFIG_PATH"; then
-        sudo sed -i "s/^#protocols =./protocols = imap pop3 imaps pop3s" "$CONFIG_PATH"
+        sudo sed -i "s|^#protocols =.*|protocols = imap pop3 imaps pop3s|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #protocols"; exit 1; }
     elif grep -q "protocols" "$CONFIG_PATH"; then
-        sudo sed -i "s/^protocols =./protocols = imap pop3 imaps pop3s" "$CONFIG_PATH"
+        sudo sed -i "s|^protocols =.*|protocols = imap pop3 imaps pop3s|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocols"; exit 1; }
     else
          echo "protocols = imap pop3 imaps pop3s" >> "$CONFIG_PATH"
     fi
-    # Buscar la línea que contiene la cadena "listen =" y reemplazar la dirección IP existente con la nueva dirección IP
-    echo "Editando la dirección IP de la interfaz..."
+    #listen
     if grep -q "#listen =" "$CONFIG_PATH"; then
-        sudo sed -i "s/^#listen =./listen = *, ::" "$CONFIG_PATH"
+        sudo sed -i "s|^#listen =.*|listen = *, ::|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #listen"; exit 1; }
     elif grep -q "listen =" "$CONFIG_PATH"; then
-        sudo sed -i "s/^listen =./listen = *, ::" "$CONFIG_PATH"
+        sudo sed -i "s|^listen =.*|listen = *, ::|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': listen"; exit 1; }
     else
          echo "listen = *, ::" >> "$CONFIG_PATH"
     fi
 }
-
+# Función para editar la configuración de disable_plaintext_auth 
+function edit_auth_config() {
+    #disable_plaintext_auth
+    if grep -q "#disable_plaintext_auth" "$auth_config_file"; then
+        sudo sed -i "s|^#disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #disable_plaintext_auth"; exit 1; }
+    elif grep -q "disable_plaintext_auth" "$auth_config_file"; then
+        sudo sed -i "s|^disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': disable_plaintext_auth"; exit 1; }
+    else
+         echo "disable_plaintext_auth = no" >> "$auth_config_file"
+    fi
+    #auth_mechanisms
+    if grep -q "#auth_mechanisms" "$auth_config_file"; then
+        sudo sed -i "s|^#auth_mechanisms =.*|auth_mechanisms = plain login|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #auth_mechanisms"; exit 1; }
+    elif grep -q "auth_mechanisms" "$auth_config_file"; then
+        sudo sed -i  "s|^auth_mechanisms =.*|auth_mechanisms = plain login|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': auth_mechanisms"; exit 1; }
+    else
+         echo "auth_mechanisms = plain login" >> "$auth_config_file"
+    fi
+}
 # Función para editar la ubicacion de las bandejas de correo
 function configure_mailbox_location() {
-    # Editar el valor de mail_location
-    echo "Editando la ubicacion de las bandejas de correo..."
+    #mail_location
     if grep -q "#mail_location" "$mailbox_location_file"; then
-        sudo sed -i "s/^#mail_location =./mail_location = maildir:$MAILBOX_PATH/Maildir" "$mailbox_location_file"
+        sudo sed -i "s|^#mail_location =.*|mail_location = mbox:~/mail:INBOX=/var/mail/%u|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_location"; exit 1; }
     elif grep -q "mail_location" "$mailbox_location_file"; then
-        sudo sed -i "s/^mail_location =./mail_location = maildir:$MAILBOX_PATH/Maildir" "$mailbox_location_file"
+        sudo sed -i "s|^mail_location =.*|mail_location = mbox:~/mail:INBOX=/var/mail/%u|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': mail_location"; exit 1; }
     else
          echo "mail_location = maildir:$MAILBOX_PATH/Maildir" >> "$mailbox_location_file"
+    fi
+    #mail_privileged_group
+    if grep -q "#mail_privileged_group" "$mailbox_location_file"; then
+        sudo sed -i "s|^#mail_privileged_group =.*|mail_privileged_group = mail|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_privileged_group"; exit 1; }
+    elif grep -q "mail_privileged_group" "$mailbox_location_file"; then
+        sudo sed -i "s|^mail_privileged_group =.*|mail_privileged_group = mail|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': mail_privileged_group"; exit 1; }
+    else
+         echo "mail_privileged_group = mail" >> "$mailbox_location_file"
     fi
 }
 
@@ -186,11 +170,8 @@ function dovecot_config() {
     backup_conf
     change_master
     enable_protocols
-    configure_authentication
     edit_auth_config
-    edit_auth_mechanisms
-    listen_interface
-    #configure_mailbox_location #se deja la config defaul por problemas
+    configure_mailbox_location
     enable_ssl
     start_and_enable
     echo "***************ALL DONE***************"
