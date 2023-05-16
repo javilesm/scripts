@@ -289,11 +289,11 @@ function config_postfix() {
     fi
     #smtpd_sasl_path
     if grep -q "#smtpd_sasl_path" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#smtpd_sasl_path =.*|smtpd_sasl_path = private/auth|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_sasl_path"; exit 1; }
+        sudo sed -i "s|^#smtpd_sasl_path =.*|smtpd_sasl_path = /var/spool/postfix/private/auth|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_sasl_path"; exit 1; }
     elif grep -q "smtpd_sasl_path" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^smtpd_sasl_path =.*|smtpd_sasl_path = private/auth|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_path"; exit 1; }
+        sudo sed -i "s|^smtpd_sasl_path =.*|smtpd_sasl_path = /var/spool/postfix/private/auth|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_path"; exit 1; }
     else
-        echo "smtpd_sasl_path = private/auth" >> "$POSTFIX_MAIN" && echo "smtpd_sasl_path = private/auth" >> "$CURRENT_DIR/test.txt"
+        echo "smtpd_sasl_path = /var/spool/postfix/private/auth" >> "$POSTFIX_MAIN" && echo "smtpd_sasl_path = /var/spool/postfix/private/auth" >> "$CURRENT_DIR/test.txt"
     fi
     #smtpd_sasl_local_domain
     if grep -q "#smtpd_sasl_local_domain" "$POSTFIX_MAIN"; then
