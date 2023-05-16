@@ -178,7 +178,7 @@ function config_postfix() {
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     #virtual_mailbox_domains
     if grep -q "#virtual_mailbox_domains" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#virtual_mailbox_domains =.*/virtual_mailbox_domains = ${virtual_mailbox_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_domains"; exit 1; }
+        sudo sed -i "s/^#virtual_mailbox_domains =.*/virtual_mailbox_domains = ${virtual_mailbox_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_domains"; exit 1; }
     elif grep -q "virtual_mailbox_domains" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^virtual_mailbox_domains =.*/virtual_mailbox_domains = ${virtual_mailbox_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_domains"; exit 1; }
     else
@@ -186,7 +186,7 @@ function config_postfix() {
     fi
     #virtual_mailbox_maps
     if grep -q "#virtual_mailbox_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_mailbox_maps =.*|virtual_mailbox_maps = hash:/etc/postfix/vmailbox|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_maps"; exit 1; }
+        sudo sed -i "s|^#virtual_mailbox_maps =.*|virtual_mailbox_maps = hash:/etc/postfix/vmailbox|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_maps"; exit 1; }
     elif grep -q "virtual_mailbox_maps" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^virtual_mailbox_maps =.*|virtual_mailbox_maps = hash:/etc/postfix/vmailbox|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_maps"; exit 1; }
     else
@@ -194,7 +194,7 @@ function config_postfix() {
     fi
     #virtual_alias_maps
     if grep -q "#virtual_alias_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_alias_maps =.*|virtual_alias_maps = ${virtual_alias_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_maps"; exit 1; }
+        sudo sed -i "s|^#virtual_alias_maps =.*|virtual_alias_maps = ${virtual_alias_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_alias_maps"; exit 1; }
     elif grep -q "virtual_alias_maps" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^virtual_alias_maps =.*|virtual_alias_maps = ${virtual_alias_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_maps"; exit 1; }
     else
@@ -202,7 +202,7 @@ function config_postfix() {
     fi
     #virtual_transport
     if grep -q "#virtual_transport" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_transport =.*|virtual_transport = lmtp:unix:private/dovecot-lmtp|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_transport"; exit 1; }
+        sudo sed -i "s|^#virtual_transport =.*|virtual_transport = lmtp:unix:private/dovecot-lmtp|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_transport"; exit 1; }
     elif grep -q "virtual_transport" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^virtual_transport =.*|virtual_transport = lmtp:unix:private/dovecot-lmtp|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_transport"; exit 1; }
     else
@@ -210,7 +210,7 @@ function config_postfix() {
     fi
     #virtual_alias_domains
     if grep -q "#virtual_alias_domains" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#virtual_alias_domains =.*/virtual_alias_domains = ${virtual_alias_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_domains"; exit 1; }
+        sudo sed -i "s/^#virtual_alias_domains =.*/virtual_alias_domains = ${virtual_alias_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_alias_domains"; exit 1; }
     elif grep -q "virtual_alias_domains" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^virtual_alias_domains =.*/virtual_alias_domains = ${virtual_alias_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_domains"; exit 1; }
     else
@@ -218,7 +218,7 @@ function config_postfix() {
     fi
     #smtpd_tls_cert_file
     if grep -q "#smtpd_tls_cert_file" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#smtpd_tls_cert_file =.*|smtpd_tls_cert_file = /etc/ssl/certs/$CERT_FILE|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_cert_file"; exit 1; }
+        sudo sed -i "s|^#smtpd_tls_cert_file =.*|smtpd_tls_cert_file = /etc/ssl/certs/$CERT_FILE|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_cert_file"; exit 1; }
     elif grep -q "smtpd_tls_cert_file" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^smtpd_tls_cert_file =.*|smtpd_tls_cert_file = /etc/ssl/certs/$CERT_FILE|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_cert_file"; exit 1; }
     else
@@ -226,7 +226,7 @@ function config_postfix() {
     fi
     #smtpd_tls_key_file
     if grep -q "#smtpd_tls_key_file" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#smtpd_tls_key_file =.*|smtpd_tls_key_file = /etc/ssl/private/$KEY_FILE|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_key_file"; exit 1; }
+        sudo sed -i "s|^#smtpd_tls_key_file =.*|smtpd_tls_key_file = /etc/ssl/private/$KEY_FILE|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_key_file"; exit 1; }
     elif grep -q "smtpd_tls_key_file" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^smtpd_tls_key_file =.*|smtpd_tls_key_file = /etc/ssl/private/$KEY_FILE|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_key_file"; exit 1; }
     else
@@ -234,7 +234,7 @@ function config_postfix() {
     fi
     #smtpd_tls_security_level
     if grep -q "#smtpd_tls_security_level" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtpd_tls_security_level =.*/smtpd_tls_security_level = may/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_security_level"; exit 1; }
+        sudo sed -i "s/^#smtpd_tls_security_level =.*/smtpd_tls_security_level = may/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_security_level"; exit 1; }
     elif grep -q "smtpd_tls_security_level" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^smtpd_tls_security_level =.*/smtpd_tls_security_level = may/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_security_level"; exit 1; }
     else
@@ -242,7 +242,7 @@ function config_postfix() {
     fi
     #smtpd_use_tls
     if grep -q "#smtpd_use_tls" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtpd_use_tls =.*/smtpd_use_tls = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_use_tls"; exit 1; }
+        sudo sed -i "s/^#smtpd_use_tls =.*/smtpd_use_tls = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_use_tls"; exit 1; }
     elif grep -q "smtpd_use_tls" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^smtpd_use_tls =.*/smtpd_use_tls = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_use_tls"; exit 1; }
     else
@@ -250,7 +250,7 @@ function config_postfix() {
     fi
     #smtpd_sasl_auth_enable
     if grep -q "#smtpd_sasl_auth_enable" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtpd_sasl_auth_enable =.*/smtpd_sasl_auth_enable = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_auth_enable"; exit 1; }
+        sudo sed -i "s/^#smtpd_sasl_auth_enable =.*/smtpd_sasl_auth_enable = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_sasl_auth_enable"; exit 1; }
     elif grep -q "smtpd_sasl_auth_enable" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^smtpd_sasl_auth_enable =.*/smtpd_sasl_auth_enable = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_auth_enable"; exit 1; }
     else
@@ -258,7 +258,7 @@ function config_postfix() {
     fi
     #smtpd_sasl_type
     if grep -q "#smtpd_sasl_type" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtpd_sasl_type =.*/smtpd_sasl_type = dovecot/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_type"; exit 1; }
+        sudo sed -i "s/^#smtpd_sasl_type =.*/smtpd_sasl_type = dovecot/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_sasl_type"; exit 1; }
     elif grep -q "smtpd_sasl_type" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^smtpd_sasl_type =.*/smtpd_sasl_type = dovecot/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_type"; exit 1; }
     else
@@ -266,7 +266,7 @@ function config_postfix() {
     fi
     #smtpd_sasl_path
     if grep -q "#smtpd_sasl_path" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#smtpd_sasl_path =.*|smtpd_sasl_path = private/auth|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_path"; exit 1; }
+        sudo sed -i "s|^#smtpd_sasl_path =.*|smtpd_sasl_path = private/auth|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_sasl_path"; exit 1; }
     elif grep -q "smtpd_sasl_path" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^smtpd_sasl_path =.*|smtpd_sasl_path = private/auth|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_path"; exit 1; }
     else
@@ -274,7 +274,7 @@ function config_postfix() {
     fi
     #smtpd_sasl_local_domain
     if grep -q "#smtpd_sasl_local_domain" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#smtpd_sasl_local_domain =.*|smtpd_sasl_local_domain = /etc/postfix/$MY_DOMAIN|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_local_domain"; exit 1; }
+        sudo sed -i "s|^#smtpd_sasl_local_domain =.*|smtpd_sasl_local_domain = /etc/postfix/$MY_DOMAIN|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_sasl_local_domain"; exit 1; }
     elif grep -q "smtpd_sasl_local_domain" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^smtpd_sasl_local_domain =.*|smtpd_sasl_local_domain = /etc/postfix/$MY_DOMAIN|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_local_domain"; exit 1; }
     else
@@ -282,7 +282,7 @@ function config_postfix() {
     fi
     #smtpd_sasl_security_options
     if grep -q "#smtpd_sasl_security_options" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtpd_sasl_security_options =.*/smtpd_sasl_security_options = noanonymous/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_security_options"; exit 1; }
+        sudo sed -i "s/^#smtpd_sasl_security_options =.*/smtpd_sasl_security_options = noanonymous/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_sasl_security_options"; exit 1; }
     elif grep -q "smtpd_sasl_security_options" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^smtpd_sasl_security_options =.*/smtpd_sasl_security_options = noanonymous/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_sasl_security_options"; exit 1; }
     else
@@ -290,7 +290,7 @@ function config_postfix() {
     fi
     #broken_sasl_auth_clients
     if grep -q "#broken_sasl_auth_clients" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#broken_sasl_auth_clients =.*/broken_sasl_auth_clients = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': broken_sasl_auth_clients"; exit 1; }
+        sudo sed -i "s/^#broken_sasl_auth_clients =.*/broken_sasl_auth_clients = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #broken_sasl_auth_clients"; exit 1; }
     elif grep -q "broken_sasl_auth_clients" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^broken_sasl_auth_clients =.*/broken_sasl_auth_clients = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': broken_sasl_auth_clients"; exit 1; }
     else
@@ -298,7 +298,7 @@ function config_postfix() {
     fi
     #mydomain
     if grep -q "#mydomain" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#mydomain =.*/mydomain = $MY_DOMAIN/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': mydomain"; exit 1; }
+        sudo sed -i "s/^#mydomain =.*/mydomain = $MY_DOMAIN/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #mydomain"; exit 1; }
     elif grep -q "mydomain" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^mydomain =.*/mydomain = $MY_DOMAIN/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': mydomain"; exit 1; }
     else
@@ -306,7 +306,7 @@ function config_postfix() {
     fi
     #myhostname
     if grep -q "#myhostname" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#myhostname =.*/myhostname = mail.$MY_DOMAIN/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': myhostname"; exit 1; }
+        sudo sed -i "s/^#myhostname =.*/myhostname = mail.$MY_DOMAIN/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #myhostname"; exit 1; }
     elif grep -q "myhostname" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^myhostname =.*/myhostname = mail.$MY_DOMAIN/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': myhostname"; exit 1; }
     else
@@ -314,7 +314,7 @@ function config_postfix() {
     fi
     #mydestination
     if grep -q "#mydestination" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#mydestination =.*/mydestination = localhost.localdomain, localhost/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
+        sudo sed -i "s/^#mydestination =.*/mydestination = localhost.localdomain, localhost/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #mydestination"; exit 1; }
     elif grep -q "mydestination" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^mydestination =.*/mydestination = localhost.localdomain, localhost/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': mydestination"; exit 1; }
     else
@@ -322,7 +322,7 @@ function config_postfix() {
     fi
     #compatibility_level
     if grep -q "#compatibility_level" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#compatibility_level =.*/compatibility_level = 3/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': compatibility_level"; exit 1; }
+        sudo sed -i "s/^#compatibility_level =.*/compatibility_level = 3/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #compatibility_level"; exit 1; }
     elif grep -q "compatibility_level" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^compatibility_level =.*/compatibility_level = 3/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': compatibility_level"; exit 1; }
     else
@@ -330,7 +330,7 @@ function config_postfix() {
     fi
     #smtpd_tls_loglevel
     if grep -q "#smtpd_tls_loglevel" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtpd_tls_loglevel =.*/smtpd_tls_loglevel = 1/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_loglevel"; exit 1; }
+        sudo sed -i "s/^#smtpd_tls_loglevel =.*/smtpd_tls_loglevel = 1/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_loglevel"; exit 1; }
     elif grep -q "smtpd_tls_loglevel" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^smtpd_tls_loglevel =.*/smtpd_tls_loglevel = 1/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_loglevel"; exit 1; }
     else
@@ -338,7 +338,7 @@ function config_postfix() {
     fi
     #smtpd_tls_received_header
     if grep -q "#smtpd_tls_received_header" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtpd_tls_received_header =.*/smtpd_tls_received_header = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_received_header"; exit 1; }
+        sudo sed -i "s/^#smtpd_tls_received_header =.*/smtpd_tls_received_header = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_received_header"; exit 1; }
     elif grep -q "smtpd_tls_received_header" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^smtpd_tls_received_header =.*/smtpd_tls_received_header = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_received_header"; exit 1; }
     else
@@ -346,7 +346,7 @@ function config_postfix() {
     fi
     #smtpd_tls_session_cache_timeout
     if grep -q "#smtpd_tls_session_cache_timeout" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtpd_tls_session_cache_timeout =.*/smtpd_tls_session_cache_timeout = 3600s/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_session_cache_timeout"; exit 1; }
+        sudo sed -i "s/^#smtpd_tls_session_cache_timeout =.*/smtpd_tls_session_cache_timeout = 3600s/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_session_cache_timeout"; exit 1; }
     elif grep -q "smtpd_tls_session_cache_timeout" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^smtpd_tls_session_cache_timeout =.*/smtpd_tls_session_cache_timeout = 3600s/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_session_cache_timeout"; exit 1; }
     else
@@ -354,7 +354,7 @@ function config_postfix() {
     fi
     #tls_random_source
     if grep -q "#tls_random_source" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#tls_random_source =.*|tls_random_source = dev:/dev/urandom|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': tls_random_source"; exit 1; }
+        sudo sed -i "s|^#tls_random_source =.*|tls_random_source = dev:/dev/urandom|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #tls_random_source"; exit 1; }
     elif grep -q "tls_random_source" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^tls_random_source =.*|tls_random_source = dev:/dev/urandom|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': tls_random_source"; exit 1; }
     else
@@ -362,11 +362,43 @@ function config_postfix() {
     fi
     #mynetworks
     if grep -q "#mynetworks" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#mynetworks =.*|mynetworks = 0.0.0.0/0|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': mynetworks"; exit 1; }
+        sudo sed -i "s|^#mynetworks =.*|mynetworks = 0.0.0.0/0|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #mynetworks"; exit 1; }
     elif grep -q "mynetworks" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^mynetworks =.*|mynetworks = 0.0.0.0/0|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': mynetworks"; exit 1; }
     else
         echo "mynetworks = 0.0.0.0/0" >> "$POSTFIX_MAIN" && echo "mynetworks = 0.0.0.0/0" >> "$CURRENT_DIR/test.txt"
+    fi
+    #virtual_mailbox_base
+    if grep -q "#virtual_mailbox_base" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^#virtual_mailbox_base =.*|virtual_mailbox_base = /var/mail/vhosts|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_base"; exit 1; }
+    elif grep -q "virtual_mailbox_base" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^virtual_mailbox_base =.*|virtual_mailbox_base = /var/mail/vhosts|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_base"; exit 1; }
+    else
+        echo "virtual_mailbox_base = /var/mail/vhosts" >> "$POSTFIX_MAIN" && echo "virtual_mailbox_base = /var/mail/vhosts" >> "$CURRENT_DIR/test.txt"
+    fi
+    #virtual_minimum_uid
+    if grep -q "#virtual_minimum_uid" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = 1000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_minimum_uid"; exit 1; }
+    elif grep -q "virtual_minimum_uid" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = 1000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_minimum_uid"; exit 1; }
+    else
+        echo "virtual_minimum_uid= 1000" >> "$POSTFIX_MAIN" && echo "virtual_minimum_uid = 1000" >> "$CURRENT_DIR/test.txt"
+    fi
+    #vvirtual_uid_maps
+    if grep -q "#virtual_uid_maps" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^#virtual_uid_maps =.*|virtual_uid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_uid_maps"; exit 1; }
+    elif grep -q "mynetworks" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^virtual_uid_maps =.*|virtual_uid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_uid_maps"; exit 1; }
+    else
+        echo "virtual_uid_maps = static:5000" >> "$POSTFIX_MAIN" && echo "virtual_uid_maps = static:5000" >> "$CURRENT_DIR/test.txt"
+    fi
+    #virtual_gid_maps
+    if grep -q "#virtual_gid_maps" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^#virtual_gid_maps =.*|virtual_gid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_gid_maps"; exit 1; }
+    elif grep -q "mynetworks" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^virtual_gid_maps =.*|virtual_gid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_gid_maps"; exit 1; }
+    else
+        echo "virtual_gid_maps = static:5000" >> "$POSTFIX_MAIN" && echo "virtual_gid_maps = static:5000" >> "$CURRENT_DIR/test.txt"
     fi
 }
 # Función para comprobar la configuracion de Postfix
