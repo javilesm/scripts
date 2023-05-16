@@ -32,8 +32,8 @@ function read_accounts() {
       # Obtener el dominio del correo electrónico (todo lo que está después del símbolo @)
       local domain="${alias#*@}"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
-      echo "\"$username@$domain\" \"$domain/$username/\""
-      echo "$username@$domain $domain/$username/" >> "$VMAILBOX_PATH"
+      echo "$username@$domain $domain/$username"
+      echo "$username@$domain $domain/$username" >> "$VMAILBOX_PATH"
       echo "Los datos del usuario '$username' han sido registrados en '$VMAILBOX_PATH'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   done < <(grep -v '^$' "$ACCOUNTS_PATH")
