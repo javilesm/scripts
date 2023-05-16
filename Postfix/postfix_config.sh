@@ -216,11 +216,11 @@ function config_postfix() {
     fi
     #virtual_alias_maps
     if grep -q "#virtual_alias_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_alias_maps =.*|virtual_alias_maps = hash:/etc/postfix/virtual, ${virtual_alias_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_alias_maps"; exit 1; }
+        sudo sed -i "s|^#virtual_alias_maps =.*|virtual_alias_maps = ${virtual_alias_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_alias_maps"; exit 1; }
     elif grep -q "virtual_alias_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_alias_maps =.*|virtual_alias_maps = hash:/etc/postfix/virtual, ${virtual_alias_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_maps"; exit 1; }
+        sudo sed -i "s|^virtual_alias_maps =.*|virtual_alias_maps = ${virtual_alias_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_maps"; exit 1; }
     else
-        echo "virtual_alias_maps = hash:/etc/postfix/virtual, ${virtual_alias_maps::-1}" >> "$POSTFIX_MAIN" && echo "virtual_alias_maps = hash:/etc/postfix/virtual, ${virtual_alias_maps::-1}" >> "$CURRENT_DIR/test.txt"
+        echo "virtual_alias_maps = ${virtual_alias_maps::-1}" >> "$POSTFIX_MAIN" && echo "virtual_alias_maps = ${virtual_alias_maps::-1}" >> "$CURRENT_DIR/test.txt"
     fi
     #virtual_transport
     if grep -q "#virtual_transport" "$POSTFIX_MAIN"; then
