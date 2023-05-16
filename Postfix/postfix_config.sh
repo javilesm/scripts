@@ -432,7 +432,7 @@ function postfix_config() {
   backup_config_files
   validate_domains_file
   config_virtual_files
-  mkdirs
+  #mkdirs
   config_postfix
   postfix_check
   restart_services
