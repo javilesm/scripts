@@ -179,8 +179,12 @@ function mkdirs() {
         # crear directorios
         echo "Creando directorio '/var/mail/vhosts/$domain'..."
         sudo mkdir -p "/var/mail/vhosts/$domain"
+        # generar los archivos de índice para el archivo de alias virtual
+        echo "Generando los archivos de índice para el alias virtual: $domain"
+        sudo postmap "/var/mail/vhosts/$domain"
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     echo "Todos los directorios han sido creados."
+    echo "Todos los archivos de índice han sido generados."
     ls "/var/mail/vhosts"
 }
 
@@ -428,7 +432,7 @@ function postfix_check() {
     else
         echo "Falla al configurar '$POSTFIX_MAIN'"
     fi
-    postmap $VIRTUAL_ALIAS
+    sudo postmap "$VIRTUAL_ALIAS"
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
 function restart_services() {
