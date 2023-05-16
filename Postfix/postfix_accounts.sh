@@ -75,7 +75,7 @@ function read_domains() {
     while read -r domains; do
       # mapear  las direcciones y destinos
       echo "Mapeando las direcciones y destinos del dominio '$domains'..."
-      sudo postmap "$POSTFIX_PATH/virtual/$domains" || { echo "Error: Failure while executing postmap on: '$DOMAINS_PATH'"; return 1; }
+      sudo postmap "$POSTFIX_PATH/virtual/$domains" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual/$domains'"; return 1; }
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas las direcciones y destinos han sido mapeados."
 }
