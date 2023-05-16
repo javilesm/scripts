@@ -197,6 +197,7 @@ function config_postfix() {
         virtual_alias_domains+="$domain, "
         virtual_mailbox_domains+="$domain, "
         virtual_alias_maps+="hash:/etc/postfix/virtual/$domain, "
+        virtual_mailbox_maps+="hash:/etc/postfix/vmailbox/$domain, "
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     #virtual_mailbox_domains
     if grep -q "#virtual_mailbox_domains" "$POSTFIX_MAIN"; then
@@ -208,11 +209,11 @@ function config_postfix() {
     fi
     #virtual_mailbox_maps
     if grep -q "#virtual_mailbox_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_mailbox_maps =.*|virtual_mailbox_maps = hash:/etc/postfix/vmailbox|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_maps"; exit 1; }
+        sudo sed -i "s|^#virtual_mailbox_maps =.*|virtual_mailbox_maps = ${virtual_mailbox_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_maps"; exit 1; }
     elif grep -q "virtual_mailbox_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_mailbox_maps =.*|virtual_mailbox_maps = hash:/etc/postfix/vmailbox|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_maps"; exit 1; }
+        sudo sed -i "s|^virtual_mailbox_maps =.*|virtual_mailbox_maps = ${virtual_mailbox_maps::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_maps"; exit 1; }
     else
-        echo "virtual_mailbox_maps = hash:/etc/postfix/vmailbox" >> "$POSTFIX_MAIN" && echo "virtual_mailbox_maps = hash:/etc/postfix/vmailbox" >> "$CURRENT_DIR/test.txt"
+        echo "virtual_mailbox_maps = ${virtual_mailbox_maps::-1}" >> "$POSTFIX_MAIN" && echo "virtual_mailbox_maps = ${virtual_mailbox_maps::-1}" >> "$CURRENT_DIR/test.txt"
     fi
     #virtual_alias_maps
     if grep -q "#virtual_alias_maps" "$POSTFIX_MAIN"; then
