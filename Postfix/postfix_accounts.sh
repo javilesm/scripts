@@ -39,7 +39,7 @@ function read_accounts() {
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "\"$username@$domain\" \"$domain/$username/\""
        # Escribiendo datos 
-      echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
+      echo "$username@$domain $domain/$username/" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
       echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
@@ -53,7 +53,7 @@ function create_index() {
   echo "Las direcciones y destinos han sido mapeadas."
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
-function restart_postfix() {
+function restart_services() {
     # reiniciar el servicio de Postfix
     echo "Restarting Postfix service..."
     sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
@@ -72,7 +72,7 @@ function postfix_accounts() {
   validate_virtual_file
   read_accounts
   create_index
-  restart_postfix
+  restart_services
   echo "***************ALL DONE***************"
 }
 # Llamar a la función principal
