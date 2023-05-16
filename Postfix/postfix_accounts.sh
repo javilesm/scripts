@@ -4,6 +4,8 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 ACCOUNTS_FILE="mail_users.csv"
 ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_FILE"
+DOMAINS_FILE="domains.txt"
+DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
 # Función para verificar si el archivo de dominios existe
 function validate_accounts_file() {
@@ -39,7 +41,7 @@ function validate_users_file() {
 # Función para leer la lista de direcciones de correo
 function read_accounts() {
     # leer la lista de direcciones de correo
-    echo "Leyendo la lista de dominios '$ACCOUNTS_PATH'..."
+    echo "Leyendo la lista de usuarios: '$ACCOUNTS_PATH'..."
     while IFS="," read -r username nombre apellido email alias password; do
       echo "Usario: $username"
       echo "Dirección: $alias"
@@ -54,9 +56,6 @@ function read_accounts() {
        # Escribiendo datos 
       echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual/$domain"
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual/$domain'"
-      # mapear  las direcciones y destinos
-      echo "Mapeando las direcciones y destinos..."
-      sudo postmap "$POSTFIX_PATH/virtual/$domain" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual/$domain'"; return 1; }
       # crear directorios para cada usuario dentro de /var/mail/vhosts/
       sudo mkdir "/var/mail/vhosts/$domain/$alias"
       sudo chown postfix:mail "/var/mail/vhosts/$domain/$alias"
@@ -68,6 +67,16 @@ function read_accounts() {
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
     echo "Todas las cuentas de correo han sido copiadas."
+}
+# Función para leer la lista de direcciones de dominios y mapear  las direcciones y destinos
+function read_domains() {
+    # leer la lista de direcciones de correo
+    echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
+    while read -r domains; do
+      # mapear  las direcciones y destinos
+      echo "Mapeando las direcciones y destinos del dominio '$domains'..."
+      sudo postmap "$POSTFIX_PATH/virtual/$domains" || { echo "Error: Failure while executing postmap on: '$DOMAINS_PATH'"; return 1; }
+    done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas las direcciones y destinos han sido mapeados."
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
@@ -90,6 +99,7 @@ function postfix_accounts() {
   validate_virtual_path
   validate_users_file
   read_accounts
+  read_domains
   restart_services
   echo "***************ALL DONE***************"
 }
