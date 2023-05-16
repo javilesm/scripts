@@ -25,6 +25,16 @@ function validate_virtual_file() {
   fi
   echo "El archivo virtual existe."
 }
+# Función para verificar si el archivo /etc/dovecot/users existe
+function validate_users_file() {
+  echo "Verificando si el archivo de usuarios existe..."
+  if [ ! -f "/etc/dovecot/users" ]; then
+    echo "Creando archivo '/etc/dovecot/users'..."
+    cd "/etc/dovecot"
+    sudo touch "users"
+  fi
+  echo "El archivo '/etc/dovecot/users' ha sido creado."
+}
 # Función para leer la lista de direcciones de correo
 function read_accounts() {
     # leer la lista de direcciones de correo
@@ -37,15 +47,19 @@ function read_accounts() {
       local domain="${alias#*@}"
       echo "Dominio: $domain"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
-      echo "\"$username@$domain\" \"$domain/$username/\""
+      echo "\"$username@$domain $domain/$username"
        # Escribiendo datos 
-      echo "$username@$domain $domain/$username/" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
+      echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
       echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
-      echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       # crear directorios para cada usuario dentro de /var/mail/vhosts/
       sudo mkdir "/var/mail/vhosts/$domain/$alias"
       sudo chown postfix:mail "/var/mail/vhosts/$domain/$alias"
       sudo chmod 770 "/var/mail/vhosts/$domain/$alias"
+      # agregar las cuentas de correo junto con sus contraseñas
+      echo "Agregando las cuentas de correo junto con sus contraseñas..."
+      echo "$alias:{PLAIN}$password" | grep -v '^$' >> "/etc/dovecot/users"
+      echo "Los datos del usuario '$username' han sido registrados en '/etc/dovecot/users'"
+      echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
     echo "Todas las cuentas de correo han sido copiadas."
 }
@@ -74,6 +88,7 @@ function postfix_accounts() {
   echo "***************POSTFIX ACCOUNTS***************"
   validate_accounts_file
   validate_virtual_file
+  validate_users_file
   read_accounts
   create_index
   restart_services
