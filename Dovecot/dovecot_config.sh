@@ -16,6 +16,10 @@ auth_config_file="$DOVECOT_PATH/conf.d/10-auth.conf"
 mailbox_location_file="$DOVECOT_PATH/conf.d/10-mail.conf"
 master_file_original="$DOVECOT_PATH/conf.d/10-master.conf"
 master_file_fake="$CURRENT_DIR/10-master.conf"
+imap_file_original="$DOVECOT_PATH/conf.d/20-imap.conf"
+imap_file_fake="$CURRENT_DIR/20-imap.conf"
+pop3_file_original="$DOVECOT_PATH/conf.d/20-pop3.conf"
+pop3_file_fake="$CURRENT_DIR/20-pop3.conf"
 # Función para crear una copia de seguridad del archivo de configuración
 function backup_conf() {
     echo "Creando una copia de seguridad del archivo de configuración..."
@@ -44,12 +48,28 @@ function backup_conf() {
         echo "ERROR: El archivo de configuración '$mailbox_location_file' no existe. No se puede crear una copia de seguridad."
     fi
     
+    if [ -f "$imap_file_original" ]; then
+        echo "Creando copia de seguridad del archivo '$imap_file_original' ..."
+        sudo cp "$imap_file_original" "$imap_file_original".bak 
+        echo "Copia de seguridad creada en '$imap_file_original.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$imap_file_original' no existe. No se puede crear una copia de seguridad."
+    fi
+    
     if [ -f "$master_file_original" ]; then
         echo "Creando copia de seguridad del archivo '$master_file_original' ..."
         sudo cp "$master_file_original" "$master_file_original".bak 
         echo "Copia de seguridad creada en '$master_file_original.bak'..."
     else
         echo "ERROR: El archivo de configuración '$master_file_original' no existe. No se puede crear una copia de seguridad."
+    fi
+    
+    if [ -f "$pop3_file_original" ]; then
+        echo "Creando copia de seguridad del archivo '$pop3_file_original' ..."
+        sudo cp "$pop3_file_original" "$pop3_file_original".bak 
+        echo "Copia de seguridad creada en '$pop3_file_original.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$pop3_file_original' no existe. No se puede crear una copia de seguridad."
     fi
 }
 # Función para reemplazar el archivo 10-master.conf
@@ -65,6 +85,36 @@ function change_master() {
         echo "El archivo '$master_file_original' fue reemplazado por '$master_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$master_file_original' no existe. No se puede reemplazar."
+    fi
+}
+# Función para reemplazar el archivo 20-imap.conf
+function change_imap() {
+    if [ -f "$imap_file_original" ]; then
+        # cambiar la proiedad del archivo 10-master.conf
+        echo "Cambiando la propiedad del archivo '$imap_file_original' ..."
+        sudo chown $USER:$USER "$imap_file_original"
+        echo "La propiedad del archivo '$imap_file_original' fue cambiada."
+        # reemplazar el archivo 10-master.conf
+        echo "Reemplazando el archivo '$imap_file_original' ..."
+        sudo cp "$imap_file_fake" "$imap_file_original"
+        echo "El archivo '$imap_file_original' fue reemplazado por '$imap_file_fake'"
+    else
+        echo "ERROR: El archivo de configuración '$imap_file_original' no existe. No se puede reemplazar."
+    fi
+}
+# Función para reemplazar el archivo 20-pop3.conf
+function change_pop3() {
+    if [ -f "$pop3_file_original" ]; then
+        # cambiar la proiedad del archivo 10-master.conf
+        echo "Cambiando la propiedad del archivo '$pop3_file_original' ..."
+        sudo chown $USER:$USER "$pop3_file_original"
+        echo "La propiedad del archivo '$pop3_file_original' fue cambiada."
+        # reemplazar el archivo 10-master.conf
+        echo "Reemplazando el archivo '$pop3_file_original' ..."
+        sudo cp "$pop3_file_fake" "$pop3_file_original"
+        echo "El archivo '$pop3_file_original' fue reemplazado por '$pop3_file_fake'"
+    else
+        echo "ERROR: El archivo de configuración '$pop3_file_original' no existe. No se puede reemplazar."
     fi
 }
 # Función para habilitar los protocolos
@@ -169,6 +219,8 @@ function dovecot_config() {
     echo "***************DOVECOT CONFIGURATOR***************"
     backup_conf
     change_master
+    change_imap
+    change_pop3
     enable_protocols
     edit_auth_config
     configure_mailbox_location
