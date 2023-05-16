@@ -39,7 +39,7 @@ function read_accounts() {
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "\"$username@$domain\" \"$domain/$username/\""
        # Escribiendo datos 
-      echo "$username@$domain $domain/$username/" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
+      echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
       echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
