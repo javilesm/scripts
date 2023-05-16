@@ -20,7 +20,8 @@ function validate_virtual_file() {
   echo "Verificando si el archivo virtual existe..."
   if [ ! -f "$POSTFIX_PATH/virtual" ]; then
     echo "Creando archivo virtual en '$POSTFIX_PATH/virtual'..."
-    sudo touch "$POSTFIX_PATH/virtual"
+    cd "$POSTFIX_PATH"
+    sudo touch "virtual"
   fi
   echo "El archivo virtual existe."
 }
