@@ -42,6 +42,10 @@ function read_accounts() {
       echo "$username@$domain $domain/$username/" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
       echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      # crear directorios para cada usuario dentro de /var/mail/vhosts/
+      sudo mkdir "/var/mail/vhosts/$domain/$alias"
+      sudo chown postfix:mail "/var/mail/vhosts/$domain/$alias"
+      sudo chmod 770 "/var/mail/vhosts/$domain/$alias"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
     echo "Todas las cuentas de correo han sido copiadas."
 }
