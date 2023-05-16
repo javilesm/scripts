@@ -38,23 +38,12 @@ function read_accounts() {
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   done < <(grep -v '^$' "$ACCOUNTS_PATH")
   echo "Todas las cuentas de correo han sido copiadas."
-}
-# Función para leer la lista de dominios y generar los archivos de índice para los archivos de alias virtual y buzones virtuales. 
-function create_index() {
-  # leer la lista de dominios
-  echo "Leyendo la lista de dominios..."
-  while read -r domain; do
-    # generar los archivos de índice para el archivo de alias virtual
-    echo "Generando los archivos de índice para el alias virtual: $domain"
-    sudo postmap "$VIRTUAL_ALIAS/$domain"
-  done < <(sed -e '$a\' "$DOMAINS_PATH")
-  echo "Todos los archivos de índice han sido generados."
   sudo postmap "$VMAILBOX_PATH"
-  sudo postmap "$VIRTUAL_ALIAS"
-
+  echo "Todas las cuentas de correo han sido mapeadas."
 }
+
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
-function restart_postfix() {
+function restart_services() {
     # reiniciar el servicio de Postfix
     echo "Restarting Postfix service..."
     sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
@@ -71,8 +60,7 @@ function postfix_vmailbox() {
   echo "***************POSTFIX ACCOUNTS***************"
   validate_accounts_file
   read_accounts
-  create_index
-  restart_postfix
+  restart_services
   echo "***************ALL DONE***************"
 }
 # Llamar a la función principal
