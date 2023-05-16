@@ -46,10 +46,12 @@ function create_index() {
   while read -r domain; do
     # generar los archivos de índice para el archivo de alias virtual
     echo "Generando los archivos de índice para el alias virtual: $domain"
-    postmap "$VIRTUAL_ALIAS/$domain"
+    sudo postmap "$VIRTUAL_ALIAS/$domain"
   done < <(sed -e '$a\' "$DOMAINS_PATH")
   echo "Todos los archivos de índice han sido generados."
-  postmap "$VMAILBOX_PATH"
+  sudo postmap "$VMAILBOX_PATH"
+  sudo postmap "$VIRTUAL_ALIAS""
+
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
 function restart_postfix() {
