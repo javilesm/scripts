@@ -50,7 +50,7 @@ function create_index() {
   done < <(sed -e '$a\' "$DOMAINS_PATH")
   echo "Todos los archivos de índice han sido generados."
   sudo postmap "$VMAILBOX_PATH"
-  sudo postmap "$VIRTUAL_ALIAS""
+  sudo postmap "$VIRTUAL_ALIAS"
 
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
