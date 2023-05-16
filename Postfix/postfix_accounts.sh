@@ -15,16 +15,17 @@ function validate_accounts_file() {
   fi
   echo "El archivo de dominios '$ACCOUNTS_FILE' existe."
 }
-# Función para verificar si el archivo virtual existe
-function validate_virtual_file() {
-  echo "Verificando si el archivo virtual existe..."
-  if [ ! -f "$POSTFIX_PATH/virtual" ]; then
-    echo "Creando archivo virtual en '$POSTFIX_PATH/virtual'..."
-    cd "$POSTFIX_PATH"
-    sudo touch "virtual"
+# Función para verificar si la ruta virtual existe
+function validate_virtual_path() {
+  echo "Verificando si la ruta virtual existe..."
+  if [ ! -d "$POSTFIX_PATH/virtual" ]; then
+    echo "Creando la ruta: '$POSTFIX_PATH/virtual'..."
+    sudo mkdir -p "$POSTFIX_PATH/virtual"
+  else
+    echo "La ruta virtual ya existe."
   fi
-  echo "El archivo virtual existe."
 }
+
 # Función para verificar si el archivo /etc/dovecot/users existe
 function validate_users_file() {
   echo "Verificando si el archivo de usuarios existe..."
@@ -47,10 +48,15 @@ function read_accounts() {
       local domain="${alias#*@}"
       echo "Dominio: $domain"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
-      echo "\"$username@$domain $domain/$username"
+      echo "$username@$domain $domain/$username"
+      # Creando archivos para virtual_alias
+      sudo touch "$POSTFIX_PATH/virtual/$domain"
        # Escribiendo datos 
-      echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual"
-      echo "Los datos del usuario '$username' han sido registrados en '$POSTFIX_PATH/virtual'"
+      echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual/$domain"
+      echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual/$domain'"
+      # mapear  las direcciones y destinos
+      echo "Mapeando las direcciones y destinos..."
+      sudo postmap "$POSTFIX_PATH/virtual/$domain" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual/$domain'"; return 1; }
       # crear directorios para cada usuario dentro de /var/mail/vhosts/
       sudo mkdir "/var/mail/vhosts/$domain/$alias"
       sudo chown postfix:mail "/var/mail/vhosts/$domain/$alias"
@@ -58,17 +64,11 @@ function read_accounts() {
       # agregar las cuentas de correo junto con sus contraseñas
       echo "Agregando las cuentas de correo junto con sus contraseñas..."
       echo "$alias:{PLAIN}$password" | grep -v '^$' >> "/etc/dovecot/users"
-      echo "Los datos del usuario '$username' han sido registrados en '/etc/dovecot/users'"
+      echo "Los datos del usuario '$username' han sido registrados en: '/etc/dovecot/users'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
     echo "Todas las cuentas de correo han sido copiadas."
-}
-# Función para mapear  las direcciones y destinos
-function create_index() {
-  # mapear  las direcciones y destinos
-  echo "Mapeando las direcciones y destinos..."
-  postmap "$POSTFIX_PATH/virtual" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual'"; return 1; }
-  echo "Las direcciones y destinos han sido mapeadas."
+    echo "Todas las direcciones y destinos han sido mapeados."
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
 function restart_services() {
@@ -87,10 +87,9 @@ function restart_services() {
 function postfix_accounts() {
   echo "***************POSTFIX ACCOUNTS***************"
   validate_accounts_file
-  validate_virtual_file
+  validate_virtual_path
   validate_users_file
   read_accounts
-  create_index
   restart_services
   echo "***************ALL DONE***************"
 }
