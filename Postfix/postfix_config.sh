@@ -154,18 +154,36 @@ function config_virtual_files() {
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     echo "Todos los archivos han sido configurados."
 }
+# Función para crear el directorio especificado en virtual_mailbox_base
+function mkdir_virtual_mailbox_base() {
+    # Verificar si el directorio ya existe
+    if [[ -d "/var/mail/vhosts" ]]; then
+        echo "Advertencia: El directorio especificado en virtual_mailbox_base ya existe."
+        return
+    fi
+
+    # Crear el directorio especificado en virtual_mailbox_base
+    echo "Creando el directorio especificado en virtual_mailbox_base..."
+    if ! sudo mkdir "/var/mail/vhosts"; then
+        echo "Error: No se pudo crear el directorio especificado en virtual_mailbox_base."
+        return 1
+    fi
+
+    echo "El directorio especificado en virtual_mailbox_base ha sido creado."
+}
 # Función para leer la lista de dominios y crear directorios
 function mkdirs() {
     # leer la lista de dominio
     echo "Leyendo la lista de dominios..."
     while read -r domain; do
         # crear directorios
-        echo "Creando directorio '$POSTFIX_PATH/virtual/$domain'..."
-        sudo mkdir -p "$POSTFIX_PATH/virtual/$domain"
+        echo "Creando directorio '/var/mail/vhosts/$domain'..."
+        sudo mkdir -p "/var/mail/vhosts/$domain"
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     echo "Todos los directorios han sido creados."
-    ls "$POSTFIX_PATH/virtual"
+    ls "/var/mail/vhosts"
 }
+
 # Función para leer la lista de dominios y configurar el archivo main.cf
 function config_postfix() {
     virtual_alias_domains=""
@@ -432,7 +450,8 @@ function postfix_config() {
   backup_config_files
   validate_domains_file
   config_virtual_files
-  #mkdirs
+  mkdir_virtual_mailbox_base
+  mkdirs
   config_postfix
   postfix_check
   restart_services
