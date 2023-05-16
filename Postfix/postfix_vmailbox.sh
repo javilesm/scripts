@@ -84,7 +84,7 @@ function read_accounts() {
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$alias $domain2/$username"
       echo "$alias $domain2/$username" | grep -v '^$' >> "$VMAILBOX_PATH/$domain2"
-      echo "La cuenta '$alias' ha sido registrada en el archivo de buzones de correo virtual: '$VMAILBOX_PATH/$domain'"
+      echo "La cuenta '$alias' ha sido registrada en el archivo de buzones de correo virtual: '$VMAILBOX_PATH/$domain2'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   done < <(grep -v '^$' "$ACCOUNTS_PATH")
   echo "Todas las cuentas de correo han sido copiadas."
@@ -114,7 +114,7 @@ function restart_services() {
 }
 # Función principal
 function postfix_vmailbox() {
-  echo "***************POSTFIX ACCOUNTS***************"
+  echo "***************POSTFIX MAILBOX CONFIG***************"
   validate_accounts_file
   validate_domains_file
   validate_vmailbox_path
