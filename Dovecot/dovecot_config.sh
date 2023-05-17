@@ -171,12 +171,12 @@ function enable_protocols() {
          echo "!include /etc/dovecot/conf.d/auth-system.conf.ext" >> "$CONFIG_PATH"
     fi
     #protocols
-    if grep -q "#protocols" "$CONFIG_PATH"; then
-        sudo sed -i "s|^#protocols =.*|protocols = imap pop3 imaps pop3s|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #protocols"; exit 1; }
-    elif grep -q "protocols" "$CONFIG_PATH"; then
-        sudo sed -i "s|^protocols =.*|protocols = imap pop3 imaps pop3s|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocols"; exit 1; }
+    if grep -q "#protocols =" "$CONFIG_PATH"; then
+        sudo sed -i "s|^#protocols =.*|protocols = imap pop3 imaps pop3s lmtp|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #protocols"; exit 1; }
+    elif grep -q "protocols =" "$CONFIG_PATH"; then
+        sudo sed -i "s|^protocols =.*|protocols = imap pop3 imaps pop3s lmtp|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocols"; exit 1; }
     else
-         echo "protocols = imap pop3 imaps pop3s" >> "$CONFIG_PATH"
+         echo "protocols = imap pop3 imaps pop3s lmtp" >> "$CONFIG_PATH"
     fi
     #listen
     if grep -q "#listen =" "$CONFIG_PATH"; then
@@ -192,17 +192,17 @@ function edit_auth_config() {
     # editar la configuración de disable_plaintext_auth
     echo "Editando la configuración de disable_plaintext_auth..."
     #disable_plaintext_auth
-    if grep -q "#disable_plaintext_auth" "$auth_config_file"; then
+    if grep -q "#disable_plaintext_auth =" "$auth_config_file"; then
         sudo sed -i "s|^#disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #disable_plaintext_auth"; exit 1; }
-    elif grep -q "disable_plaintext_auth" "$auth_config_file"; then
+    elif grep -q "disable_plaintext_auth =" "$auth_config_file"; then
         sudo sed -i "s|^disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': disable_plaintext_auth"; exit 1; }
     else
          echo "disable_plaintext_auth = no" >> "$auth_config_file"
     fi
     #auth_mechanisms
-    if grep -q "#auth_mechanisms" "$auth_config_file"; then
+    if grep -q "#auth_mechanisms =" "$auth_config_file"; then
         sudo sed -i "s|^#auth_mechanisms =.*|auth_mechanisms = plain login|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #auth_mechanisms"; exit 1; }
-    elif grep -q "auth_mechanisms" "$auth_config_file"; then
+    elif grep -q "auth_mechanisms =" "$auth_config_file"; then
         sudo sed -i  "s|^auth_mechanisms =.*|auth_mechanisms = plain login|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': auth_mechanisms"; exit 1; }
     else
          echo "auth_mechanisms = plain login" >> "$auth_config_file"
@@ -212,17 +212,17 @@ function edit_auth_config() {
 function configure_mailbox_location() {
     # editar la ubicacion de las bandejas de correo
     echo "Editando la ubicacion de las bandejas de correo..."
-    if grep -q "#mail_location" "$mailbox_location_file"; then
+    if grep -q "#mail_location =" "$mailbox_location_file"; then
         sudo sed -i "s|^#mail_location =.*|mail_location = maildir:/var/mail/vhosts/%d/%n|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_location"; exit 1; }
-    elif grep -q "mail_location" "$mailbox_location_file"; then
+    elif grep -q "mail_location =" "$mailbox_location_file"; then
         sudo sed -i "s|^mail_location =.*|mail_location = maildir:/var/mail/vhosts/%d/%n|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': mail_location"; exit 1; }
     else
          echo "mail_location = maildir:/var/mail/vhosts/%d/%n" >> "$mailbox_location_file"
     fi
     #mail_privileged_group
-    if grep -q "#mail_privileged_group" "$mailbox_location_file"; then
+    if grep -q "#mail_privileged_group =" "$mailbox_location_file"; then
         sudo sed -i "s|^#mail_privileged_group =.*|mail_privileged_group = mail|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_privileged_group"; exit 1; }
-    elif grep -q "mail_privileged_group" "$mailbox_location_file"; then
+    elif grep -q "mail_privileged_group =" "$mailbox_location_file"; then
         sudo sed -i "s|^mail_privileged_group =.*|mail_privileged_group = mail|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': mail_privileged_group"; exit 1; }
     else
          echo "mail_privileged_group = mail" >> "$mailbox_location_file"
