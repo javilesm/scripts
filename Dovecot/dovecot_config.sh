@@ -20,6 +20,8 @@ imap_file_original="$DOVECOT_PATH/conf.d/20-imap.conf"
 imap_file_fake="$CURRENT_DIR/20-imap.conf"
 pop3_file_original="$DOVECOT_PATH/conf.d/20-pop3.conf"
 pop3_file_fake="$CURRENT_DIR/20-pop3.conf"
+auth_file_original="$DOVECOT_PATH/conf.d/10-auth.conf"
+auth_file_fake="$CURRENT_DIR/10-auth.conf"
 # Función para crear una copia de seguridad del archivo de configuración
 function backup_conf() {
     echo "Creando una copia de seguridad del archivo de configuración..."
@@ -71,6 +73,14 @@ function backup_conf() {
     else
         echo "ERROR: El archivo de configuración '$pop3_file_original' no existe. No se puede crear una copia de seguridad."
     fi
+    
+        if [ -f "$auth_file_original" ]; then
+        echo "Creando copia de seguridad del archivo '$auth_file_original' ..."
+        sudo cp "$auth_file_original" "$auth_file_original".bak 
+        echo "Copia de seguridad creada en '$auth_file_original.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$auth_file_original' no existe. No se puede crear una copia de seguridad."
+    fi
 }
 # Función para reemplazar el archivo 10-master.conf
 function change_master() {
@@ -115,6 +125,21 @@ function change_pop3() {
         echo "El archivo '$pop3_file_original' fue reemplazado por '$pop3_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$pop3_file_original' no existe. No se puede reemplazar."
+    fi
+}
+# Función para reemplazar el archivo 20-pop3.conf
+function change_auth() {
+    if [ -f "$auth_file_original" ]; then
+        # cambiar la proiedad del archivo 10-master.conf
+        echo "Cambiando la propiedad del archivo '$auth_file_original' ..."
+        sudo chown $USER:$USER "$auth_file_original"
+        echo "La propiedad del archivo '$auth_file_original' fue cambiada."
+        # reemplazar el archivo 10-master.conf
+        echo "Reemplazando el archivo '$auth_file_original' ..."
+        sudo cp "$auth_file_fake" "$auth_file_original"
+        echo "El archivo '$auth_file_original' fue reemplazado por '$auth_file_fake'"
+    else
+        echo "ERROR: El archivo de configuración '$auth_file_original' no existe. No se puede reemplazar."
     fi
 }
 # Función para habilitar los protocolos
@@ -221,6 +246,7 @@ function dovecot_config() {
     change_master
     change_imap
     change_pop3
+    change_auth
     enable_protocols
     edit_auth_config
     configure_mailbox_location
