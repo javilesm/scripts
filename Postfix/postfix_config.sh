@@ -123,8 +123,8 @@ function config_virtual_files() {
         echo "Configurando dominio: $domain"
         # Configurar el archivo virtual_domains.cf
         echo "Configurando el archivo '$VIRTUAL_DOMAINS'..."
-        if ! sudo echo "DBNAME=$POSTFIX_PATH/virtual_mailbox_$domain.db" >> "$VIRTUAL_DOMAINS"; then
-            echo "ERROR: Error al escribir 'DBNAME=$POSTFIX_PATH/virtual_mailbox_$domain.db' en el archivo '$VIRTUAL_DOMAINS'."
+        if ! sudo echo "DBNAME=/var/mail/vhosts/$domain.db" >> "$VIRTUAL_DOMAINS"; then
+            echo "ERROR: Error al escribir 'DBNAME=/var/mail/vhosts/$domain.db' en el archivo '$VIRTUAL_DOMAINS'."
             exit 1
         fi
         if ! sudo echo "QUERY=SELECT domain FROM domain WHERE domain='$domain' AND active = '1'" >> "$VIRTUAL_DOMAINS"; then
@@ -133,8 +133,8 @@ function config_virtual_files() {
         fi
         # Configurar el archivo virtual_mailbox.cf
          echo "Configurando el archivo '$VIRTUAL_MAILBOX'..."
-        if ! sudo echo "DBNAME=$POSTFIX_PATH/virtual_mailbox_$domain.db" >> "$VIRTUAL_MAILBOX"; then
-            echo "ERROR: Error al escribir 'DBNAME=$POSTFIX_PATH/virtual_mailbox_$domain.db' en el archivo '$VIRTUAL_MAILBOX'."
+        if ! sudo echo "DBNAME=/var/mail/vhosts/$domain.db" >> "$VIRTUAL_MAILBOX"; then
+            echo "ERROR: Error al escribir 'DBNAME=/var/mail/vhosts/$domain.db' en el archivo '$VIRTUAL_MAILBOX'."
             exit 1
         fi
         if ! sudo echo "QUERY=SELECT email FROM mailbox WHERE username='%u@$domain' AND active = '1'" >> "$VIRTUAL_MAILBOX"; then
@@ -143,8 +143,8 @@ function config_virtual_files() {
         fi
         # Configurar el archivo virtual_alias.cf
         echo "Configurando el archivo '$VIRTUAL_ALIAS_CF'..."
-        if ! sudo echo "DBNAME=$POSTFIX_PATH/virtual_mailbox_$domain.db" >> "$VIRTUAL_ALIAS_CF"; then
-            echo "ERROR: Error al escribir 'DBNAME=$POSTFIX_PATH/virtual_mailbox_$domain.db' en el archivo '$VIRTUAL_ALIAS_CF'."
+        if ! sudo echo "DBNAME=/var/mail/vhosts/$domain.db" >> "$VIRTUAL_ALIAS_CF"; then
+            echo "ERROR: Error al escribir 'DBNAME=/var/mail/vhosts/$domain.db' en el archivo '$VIRTUAL_ALIAS_CF'."
             exit 1
         fi
         if ! sudo echo "QUERY=SELECT email FROM alias WHERE source='%s@$domain' AND active = '1'" >> "$VIRTUAL_ALIAS_CF"; then
