@@ -441,12 +441,12 @@ function restart_services() {
     echo "Restarting Postfix service..."
     sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
     echo "Postfix service restarted successfully."
-    sudo service postfix status || { echo "Error: Failed to check Postfix status."; return 1; }
+    
     # reiniciar el servicio de Dovecot
     echo "Restarting Dovecot service..."
     sudo service dovecot restart || { echo "Error: Failed to restart Dovecot service."; return 1; }
     echo "Dovecot service restarted successfully."
-    sudo service dovecot status || { echo "Error: Failed to check Dovecot status."; return 1; }
+    
 }
 # Función principal
 function postfix_config() {
