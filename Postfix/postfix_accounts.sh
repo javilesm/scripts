@@ -38,6 +38,16 @@ function validate_users_file() {
   fi
   echo "El archivo '/etc/dovecot/users' ha sido creado."
 }
+# Función para leer la lista de direcciones de dominios y crear los archivos de direcciones de correo
+function create_files() {
+    # leer la lista de dominios
+    echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
+    while read -r host; do
+      # Creando archivos para virtual_alias
+      sudo touch "$POSTFIX_PATH/virtual/$host"
+    done < <(grep -v '^$' "$DOMAINS_PATH")
+    echo "Todos los archivos de direcciones de correo han sido creados."
+}
 # Función para leer la lista de direcciones de correo
 function read_accounts() {
     # leer la lista de direcciones de correo
@@ -51,9 +61,7 @@ function read_accounts() {
       echo "Dominio: $domain"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$username@$domain $domain/$username"
-      # Creando archivos para virtual_alias
-      sudo touch "$POSTFIX_PATH/virtual/$domain"
-       # Escribiendo datos 
+      # Escribiendo datos 
       echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual/$domain"
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual/$domain'"
       # crear directorios para cada usuario dentro de /var/mail/vhosts/
@@ -70,7 +78,7 @@ function read_accounts() {
 }
 # Función para leer la lista de direcciones de dominios y mapear  las direcciones y destinos
 function read_domains() {
-    # leer la lista de direcciones de correo
+    # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
     while read -r domains; do
       # mapear  las direcciones y destinos
@@ -85,12 +93,11 @@ function restart_services() {
     echo "Restarting Postfix service..."
     sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
     echo "Postfix service restarted successfully."
-    sudo service postfix status || { echo "Error: Failed to check Postfix status."; return 1; }
     # reiniciar el servicio de Dovecot
     echo "Restarting Dovecot service..."
     sudo service dovecot restart || { echo "Error: Failed to restart Dovecot service."; return 1; }
     echo "Dovecot service restarted successfully."
-    sudo service dovecot status || { echo "Error: Failed to check Dovecot status."; return 1; }
+    
 }
 # Función principal
 function postfix_accounts() {
@@ -98,6 +105,7 @@ function postfix_accounts() {
   validate_accounts_file
   validate_virtual_path
   validate_users_file
+  create_files
   read_accounts
   read_domains
   restart_services
