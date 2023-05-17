@@ -22,6 +22,8 @@ pop3_file_original="$DOVECOT_PATH/conf.d/20-pop3.conf"
 pop3_file_fake="$CURRENT_DIR/20-pop3.conf"
 auth_file_original="$DOVECOT_PATH/conf.d/10-auth.conf"
 auth_file_fake="$CURRENT_DIR/10-auth.conf"
+ssl_file_original="$DOVECOT_PATH/conf.d/10-ssl.conf"
+ssl_file_fake="$CURRENT_DIR/10-ssl.conf"
 # Función para crear una copia de seguridad del archivo de configuración
 function backup_conf() {
     echo "Creando una copia de seguridad del archivo de configuración..."
@@ -74,22 +76,27 @@ function backup_conf() {
         echo "ERROR: El archivo de configuración '$pop3_file_original' no existe. No se puede crear una copia de seguridad."
     fi
     
-        if [ -f "$auth_file_original" ]; then
+    if [ -f "$auth_file_original" ]; then
         echo "Creando copia de seguridad del archivo '$auth_file_original' ..."
         sudo cp "$auth_file_original" "$auth_file_original".bak 
         echo "Copia de seguridad creada en '$auth_file_original.bak'..."
     else
         echo "ERROR: El archivo de configuración '$auth_file_original' no existe. No se puede crear una copia de seguridad."
     fi
+    
+     if [ -f "$ssl_file_original" ]; then
+        echo "Creando copia de seguridad del archivo '$ssl_file_original' ..."
+        sudo cp "$ssl_file_original" "$ssl_file_original".bak 
+        echo "Copia de seguridad creada en '$ssl_file_original.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$ssl_file_original' no existe. No se puede crear una copia de seguridad."
+    fi
 }
 # Función para reemplazar el archivo 10-master.conf
 function change_master() {
+    # reemplazar el archivo 10-master.conf
+    echo "Reemplazar el archivo 10-master.conf..."
     if [ -f "$master_file_original" ]; then
-        # cambiar la proiedad del archivo 10-master.conf
-        echo "Cambiando la propiedad del archivo '$master_file_original' ..."
-        sudo chown $USER:$USER "$master_file_original"
-        echo "La propiedad del archivo '$master_file_original' fue cambiada."
-        # reemplazar el archivo 10-master.conf
         echo "Reemplazando el archivo '$master_file_original' ..."
         sudo cp "$master_file_fake" "$master_file_original"
         echo "El archivo '$master_file_original' fue reemplazado por '$master_file_fake'"
@@ -99,12 +106,9 @@ function change_master() {
 }
 # Función para reemplazar el archivo 20-imap.conf
 function change_imap() {
+    # reemplazar el archivo 20-imap.conf
+    echo "Reemplazar el archivo 20-imap.conf..."
     if [ -f "$imap_file_original" ]; then
-        # cambiar la proiedad del archivo 10-master.conf
-        echo "Cambiando la propiedad del archivo '$imap_file_original' ..."
-        sudo chown $USER:$USER "$imap_file_original"
-        echo "La propiedad del archivo '$imap_file_original' fue cambiada."
-        # reemplazar el archivo 10-master.conf
         echo "Reemplazando el archivo '$imap_file_original' ..."
         sudo cp "$imap_file_fake" "$imap_file_original"
         echo "El archivo '$imap_file_original' fue reemplazado por '$imap_file_fake'"
@@ -114,12 +118,9 @@ function change_imap() {
 }
 # Función para reemplazar el archivo 20-pop3.conf
 function change_pop3() {
+    # reemplazar el archivo 20-pop3.conf
+    echo "Reemplazando el archivo 20-pop3.conf..."
     if [ -f "$pop3_file_original" ]; then
-        # cambiar la proiedad del archivo 10-master.conf
-        echo "Cambiando la propiedad del archivo '$pop3_file_original' ..."
-        sudo chown $USER:$USER "$pop3_file_original"
-        echo "La propiedad del archivo '$pop3_file_original' fue cambiada."
-        # reemplazar el archivo 10-master.conf
         echo "Reemplazando el archivo '$pop3_file_original' ..."
         sudo cp "$pop3_file_fake" "$pop3_file_original"
         echo "El archivo '$pop3_file_original' fue reemplazado por '$pop3_file_fake'"
@@ -127,14 +128,11 @@ function change_pop3() {
         echo "ERROR: El archivo de configuración '$pop3_file_original' no existe. No se puede reemplazar."
     fi
 }
-# Función para reemplazar el archivo 20-pop3.conf
+# Función para reemplazar el archivo 10-auth.conf
 function change_auth() {
+    # reemplazar el archivo 10-auth.conf
+    echo "Reemplazando el archivo 10-auth.conf..."
     if [ -f "$auth_file_original" ]; then
-        # cambiar la proiedad del archivo 10-master.conf
-        echo "Cambiando la propiedad del archivo '$auth_file_original' ..."
-        sudo chown $USER:$USER "$auth_file_original"
-        echo "La propiedad del archivo '$auth_file_original' fue cambiada."
-        # reemplazar el archivo 10-master.conf
         echo "Reemplazando el archivo '$auth_file_original' ..."
         sudo cp "$auth_file_fake" "$auth_file_original"
         echo "El archivo '$auth_file_original' fue reemplazado por '$auth_file_fake'"
@@ -142,8 +140,22 @@ function change_auth() {
         echo "ERROR: El archivo de configuración '$auth_file_original' no existe. No se puede reemplazar."
     fi
 }
+# Función para reemplazar el archivo 10-ssl.conf
+function change_ssl() {
+    # reemplazar el archivo 10-ssl.conf
+    echo "Reemplazando el archivo 10-ssl.conf..."
+    if [ -f "$ssl_file_original" ]; then
+        echo "Reemplazando el archivo '$ssl_file_original' ..."
+        sudo cp "$ssl_file_fake" "$ssl_file_original"
+        echo "El archivo '$ssl_file_original' fue reemplazado por '$ssl_file_fake'"
+    else
+        echo "ERROR: El archivo de configuración '$ssl_file_original' no existe. No se puede reemplazar."
+    fi
+}
 # Función para habilitar los protocolos
 function enable_protocols() {
+    # habilitar los protocolos
+    echo "Habilitando los protocolos..."
     #include_try
     if grep -q "#!include_try /usr/share/dovecot/protocols.d/*.protocol" "$CONFIG_PATH"; then
         sudo sed -i "s|^#!include_try /usr/share/dovecot/protocols.d/*.protocol|!include_try /usr/share/dovecot/protocols.d/*.protocol|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': !include_try"; exit 1; }
@@ -177,6 +189,8 @@ function enable_protocols() {
 }
 # Función para editar la configuración de disable_plaintext_auth 
 function edit_auth_config() {
+    # editar la configuración de disable_plaintext_auth
+    echo "Editando la configuración de disable_plaintext_auth..."
     #disable_plaintext_auth
     if grep -q "#disable_plaintext_auth" "$auth_config_file"; then
         sudo sed -i "s|^#disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #disable_plaintext_auth"; exit 1; }
@@ -196,7 +210,8 @@ function edit_auth_config() {
 }
 # Función para editar la ubicacion de las bandejas de correo
 function configure_mailbox_location() {
-    #mail_location
+    # editar la ubicacion de las bandejas de correo
+    echo "Editando la ubicacion de las bandejas de correo..."
     if grep -q "#mail_location" "$mailbox_location_file"; then
         sudo sed -i "s|^#mail_location =.*|mail_location = maildir:/var/mail/vhosts/%d/%n|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_location"; exit 1; }
     elif grep -q "mail_location" "$mailbox_location_file"; then
@@ -247,6 +262,7 @@ function dovecot_config() {
     change_imap
     change_pop3
     change_auth
+    change_ssl
     enable_protocols
     edit_auth_config
     configure_mailbox_location
