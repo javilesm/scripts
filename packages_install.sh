@@ -30,6 +30,7 @@ function package_install() {
   #install_and_restart transmission-daemon
   install_and_restart dovecot-core
   install_and_restart dovecot-lmtp
+  install_and_restart dovecot-lmtpd
   install_and_restart dovecot-dev
   install_and_restart dovecot-ldap
   install_and_restart dovecot-imapd
