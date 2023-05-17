@@ -173,11 +173,11 @@ function edit_auth_config() {
 function configure_mailbox_location() {
     #mail_location
     if grep -q "#mail_location" "$mailbox_location_file"; then
-        sudo sed -i "s|^#mail_location =.*|mail_location = mbox:~/mail:INBOX=/var/mail/%u|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_location"; exit 1; }
+        sudo sed -i "s|^#mail_location =.*|mail_location = maildir:/var/mail/vhosts/%d/%n|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_location"; exit 1; }
     elif grep -q "mail_location" "$mailbox_location_file"; then
-        sudo sed -i "s|^mail_location =.*|mail_location = mbox:~/mail:INBOX=/var/mail/%u|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': mail_location"; exit 1; }
+        sudo sed -i "s|^mail_location =.*|mail_location = maildir:/var/mail/vhosts/%d/%n|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': mail_location"; exit 1; }
     else
-         echo "mail_location = maildir:$MAILBOX_PATH/Maildir" >> "$mailbox_location_file"
+         echo "mail_location = maildir:/var/mail/vhosts/%d/%n" >> "$mailbox_location_file"
     fi
     #mail_privileged_group
     if grep -q "#mail_privileged_group" "$mailbox_location_file"; then
