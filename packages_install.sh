@@ -8,11 +8,13 @@ function package_install() {
   install_and_restart software-properties-common
   #install_and_restart clamav
   #install_and_restart clamav-daemon
-  #install_and_restart tree
+  install_and_restart tree
   install_and_restart telnet
   install_and_restart sasl2-bin
   install_and_restart dnsutils
   install_and_restart libmailutils-dev
+  #install_and_restart slapd
+  #install_and_restart ldap-utils
   #install_and_restart python3-certbot-nginx
   #install_and_restart zip
   #install_and_restart snapd
