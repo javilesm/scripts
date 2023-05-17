@@ -423,6 +423,14 @@ function config_postfix() {
     else
         echo "virtual_gid_maps = static:5000" >> "$POSTFIX_MAIN" && echo "virtual_gid_maps = static:5000" >> "$CURRENT_DIR/test.txt"
     fi
+    #inet_protocols
+    if grep -q "#inet_protocols" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^#inet_protocols =.*|inet_protocols = ipv4|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #inet_protocols"; exit 1; }
+    elif grep -q "inet_protocols" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^inet_protocols =.*|inet_protocols = ipv4|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': inet_protocols"; exit 1; }
+    else
+        echo "inet_protocols = ipv4" >> "$POSTFIX_MAIN" && echo "inet_protocols = ipv4" >> "$CURRENT_DIR/test.txt"
+    fi
 }
 # Función para comprobar la configuracion de Postfix
 function postfix_check() {
