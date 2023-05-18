@@ -13,7 +13,8 @@ POSTFIX_GROUP="postfix"
 CERTIFICADO="ssl-cert-snakeoil.pem" # default self-signed certificate that comes with Ubuntu
 CLAVE_PRIVADA="ssl-cert-snakeoil.key"
 auth_config_file="$DOVECOT_PATH/conf.d/10-auth.conf"
-mailbox_location_file="$DOVECOT_PATH/conf.d/10-mail.conf"
+mailbox_file_original="$DOVECOT_PATH/conf.d/10-mail.conf"
+mailbox_file_fake="$CURRENT_DIR/10-mail.conf"
 master_file_original="$DOVECOT_PATH/conf.d/10-master.conf"
 master_file_fake="$CURRENT_DIR/10-master.conf"
 imap_file_original="$DOVECOT_PATH/conf.d/20-imap.conf"
@@ -44,12 +45,12 @@ function backup_conf() {
         echo "ERROR: El archivo de configuración '$auth_config_file' no existe. No se puede crear una copia de seguridad."
     fi
 
-    if [ -f "$mailbox_location_file" ]; then
-        echo "Creando copia de seguridad del archivo '$mailbox_location_file' ..."
-        sudo cp "$mailbox_location_file" "$mailbox_location_file".bak 
-        echo "Copia de seguridad creada en '$mailbox_location_file.bak'..."
+    if [ -f "$mailbox_file_original" ]; then
+        echo "Creando copia de seguridad del archivo '$mailbox_file_original' ..."
+        sudo cp "$mailbox_file_original" "$mailbox_file_original".bak 
+        echo "Copia de seguridad creada en '$mailbox_file_original.bak'..."
     else
-        echo "ERROR: El archivo de configuración '$mailbox_location_file' no existe. No se puede crear una copia de seguridad."
+        echo "ERROR: El archivo de configuración '$mailbox_file_original' no existe. No se puede crear una copia de seguridad."
     fi
     
     if [ -f "$imap_file_original" ]; then
@@ -93,11 +94,10 @@ function backup_conf() {
     fi
 }
 # Función para reemplazar el archivo 10-master.conf
-function change_master() {
+function change_master_file() {
     # reemplazar el archivo 10-master.conf
-    echo "Reemplazar el archivo 10-master.conf..."
+    echo "Reemplazando el archivo '$master_file_original' ..."
     if [ -f "$master_file_original" ]; then
-        echo "Reemplazando el archivo '$master_file_original' ..."
         sudo cp "$master_file_fake" "$master_file_original"
         echo "El archivo '$master_file_original' fue reemplazado por '$master_file_fake'"
     else
@@ -105,11 +105,10 @@ function change_master() {
     fi
 }
 # Función para reemplazar el archivo 20-imap.conf
-function change_imap() {
+function change_imap_file() {
     # reemplazar el archivo 20-imap.conf
-    echo "Reemplazar el archivo 20-imap.conf..."
+    echo "Reemplazando el archivo '$imap_file_original' ..."
     if [ -f "$imap_file_original" ]; then
-        echo "Reemplazando el archivo '$imap_file_original' ..."
         sudo cp "$imap_file_fake" "$imap_file_original"
         echo "El archivo '$imap_file_original' fue reemplazado por '$imap_file_fake'"
     else
@@ -117,11 +116,10 @@ function change_imap() {
     fi
 }
 # Función para reemplazar el archivo 20-pop3.conf
-function change_pop3() {
+function change_pop3_file() {
     # reemplazar el archivo 20-pop3.conf
-    echo "Reemplazando el archivo 20-pop3.conf..."
+    echo "Reemplazando el archivo '$pop3_file_original' ..."
     if [ -f "$pop3_file_original" ]; then
-        echo "Reemplazando el archivo '$pop3_file_original' ..."
         sudo cp "$pop3_file_fake" "$pop3_file_original"
         echo "El archivo '$pop3_file_original' fue reemplazado por '$pop3_file_fake'"
     else
@@ -129,11 +127,10 @@ function change_pop3() {
     fi
 }
 # Función para reemplazar el archivo 10-auth.conf
-function change_auth() {
+function change_auth_file() {
     # reemplazar el archivo 10-auth.conf
-    echo "Reemplazando el archivo 10-auth.conf..."
+    echo "Reemplazando el archivo '$auth_file_original' ..."
     if [ -f "$auth_file_original" ]; then
-        echo "Reemplazando el archivo '$auth_file_original' ..."
         sudo cp "$auth_file_fake" "$auth_file_original"
         echo "El archivo '$auth_file_original' fue reemplazado por '$auth_file_fake'"
     else
@@ -141,15 +138,25 @@ function change_auth() {
     fi
 }
 # Función para reemplazar el archivo 10-ssl.conf
-function change_ssl() {
+function change_ssl_file() {
     # reemplazar el archivo 10-ssl.conf
-    echo "Reemplazando el archivo 10-ssl.conf..."
+    echo "Reemplazando el archivo '$ssl_file_original' ..."
     if [ -f "$ssl_file_original" ]; then
-        echo "Reemplazando el archivo '$ssl_file_original' ..."
         sudo cp "$ssl_file_fake" "$ssl_file_original"
         echo "El archivo '$ssl_file_original' fue reemplazado por '$ssl_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$ssl_file_original' no existe. No se puede reemplazar."
+    fi
+}
+# Función para reemplazar el archivo 10-mail.conf
+function change_mail_file() {
+    # reemplazar el archivo 10-mail.conf
+    echo "Reemplazando el archivo '$mailbox_file_original' ..."
+    if [ -f "$mailbox_file_original" ]; then
+        sudo cp "$mailbox_file_fake" "$mailbox_file_original"
+        echo "El archivo '$mailbox_file_original' fue reemplazado por '$mailbox_file_fake'"
+    else
+        echo "ERROR: El archivo de configuración '$mailbox_file_original' no existe. No se puede reemplazar."
     fi
 }
 # Función para habilitar los protocolos
@@ -171,12 +178,12 @@ function enable_protocols() {
          echo "!include /etc/dovecot/conf.d/auth-system.conf.ext" >> "$CONFIG_PATH"
     fi
     #protocols
-    if grep -q "#protocols =" "$CONFIG_PATH"; then
-        sudo sed -i "s|^#protocols =.*|protocols = imap pop3 imaps pop3s lmtp|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #protocols"; exit 1; }
-    elif grep -q "protocols =" "$CONFIG_PATH"; then
-        sudo sed -i "s|^protocols =.*|protocols = imap pop3 imaps pop3s lmtp|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocols"; exit 1; }
+    if grep -q "#protocols" "$CONFIG_PATH"; then
+        sudo sed -i "s|^#protocols =.*|protocols = imap pop3 imaps pop3s|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #protocols"; exit 1; }
+    elif grep -q "protocols" "$CONFIG_PATH"; then
+        sudo sed -i "s|^protocols =.*|protocols = imap pop3 imaps pop3s|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocols"; exit 1; }
     else
-         echo "protocols = imap pop3 imaps pop3s lmtp" >> "$CONFIG_PATH"
+         echo "protocols = imap pop3 imaps pop3s" >> "$CONFIG_PATH"
     fi
     #listen
     if grep -q "#listen =" "$CONFIG_PATH"; then
@@ -192,40 +199,20 @@ function edit_auth_config() {
     # editar la configuración de disable_plaintext_auth
     echo "Editando la configuración de disable_plaintext_auth..."
     #disable_plaintext_auth
-    if grep -q "#disable_plaintext_auth =" "$auth_config_file"; then
+    if grep -q "#disable_plaintext_auth" "$auth_config_file"; then
         sudo sed -i "s|^#disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #disable_plaintext_auth"; exit 1; }
-    elif grep -q "disable_plaintext_auth =" "$auth_config_file"; then
+    elif grep -q "disable_plaintext_auth" "$auth_config_file"; then
         sudo sed -i "s|^disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': disable_plaintext_auth"; exit 1; }
     else
          echo "disable_plaintext_auth = no" >> "$auth_config_file"
     fi
     #auth_mechanisms
-    if grep -q "#auth_mechanisms =" "$auth_config_file"; then
+    if grep -q "#auth_mechanisms" "$auth_config_file"; then
         sudo sed -i "s|^#auth_mechanisms =.*|auth_mechanisms = plain login|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #auth_mechanisms"; exit 1; }
-    elif grep -q "auth_mechanisms =" "$auth_config_file"; then
+    elif grep -q "auth_mechanisms" "$auth_config_file"; then
         sudo sed -i  "s|^auth_mechanisms =.*|auth_mechanisms = plain login|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': auth_mechanisms"; exit 1; }
     else
          echo "auth_mechanisms = plain login" >> "$auth_config_file"
-    fi
-}
-# Función para editar la ubicacion de las bandejas de correo
-function configure_mailbox_location() {
-    # editar la ubicacion de las bandejas de correo
-    echo "Editando la ubicacion de las bandejas de correo..."
-    if grep -q "#mail_location =" "$mailbox_location_file"; then
-        sudo sed -i "s|^#mail_location =.*|mail_location = maildir:/var/mail/vhosts/%d/%n|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_location"; exit 1; }
-    elif grep -q "mail_location =" "$mailbox_location_file"; then
-        sudo sed -i "s|^mail_location =.*|mail_location = maildir:/var/mail/vhosts/%d/%n|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': mail_location"; exit 1; }
-    else
-         echo "mail_location = maildir:/var/mail/vhosts/%d/%n" >> "$mailbox_location_file"
-    fi
-    #mail_privileged_group
-    if grep -q "#mail_privileged_group =" "$mailbox_location_file"; then
-        sudo sed -i "s|^#mail_privileged_group =.*|mail_privileged_group = mail|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': #mail_privileged_group"; exit 1; }
-    elif grep -q "mail_privileged_group =" "$mailbox_location_file"; then
-        sudo sed -i "s|^mail_privileged_group =.*|mail_privileged_group = mail|" "$mailbox_location_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$mailbox_location_file': mail_privileged_group"; exit 1; }
-    else
-         echo "mail_privileged_group = mail" >> "$mailbox_location_file"
     fi
 }
 
@@ -254,34 +241,21 @@ function start_and_enable() {
         echo "ERROR: No se pudo iniciar el servicio de Dovecot."
     fi
 }
-# Función para reiniciar el servicio de Postfix y el servicio de Dovecot
-function restart_services() {
-    # reiniciar el servicio de Postfix
-    echo "Restarting Postfix service..."
-    sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
-    echo "Postfix service restarted successfully."
-    
-    # reiniciar el servicio de Dovecot
-    echo "Restarting Dovecot service..."
-    sudo service dovecot restart || { echo "Error: Failed to restart Dovecot service."; return 1; }
-    echo "Dovecot service restarted successfully."
-    
-}
 # Función principal
 function dovecot_config() {
     echo "***************DOVECOT CONFIGURATOR***************"
     backup_conf
-    change_master
-    change_imap
-    change_pop3
-    change_auth
-    change_ssl
+    change_master_file
+    change_imap_file
+    change_pop3_file
+    change_auth_file
+    change_ssl_file
+    change_mail_file
     enable_protocols
     edit_auth_config
     configure_mailbox_location
     enable_ssl
     start_and_enable
-    restart_services
     echo "***************ALL DONE***************"
 }
 # Llamar a la funcion principal
