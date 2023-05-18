@@ -11,7 +11,9 @@ function package_install() {
   install_and_restart tree
   install_and_restart telnet
   install_and_restart sasl2-bin
+  install_and_restart openssl
   install_and_restart dnsutils
+  install_and_restart mailutils
   install_and_restart libmailutils-dev
   #install_and_restart slapd
   #install_and_restart ldap-utils
