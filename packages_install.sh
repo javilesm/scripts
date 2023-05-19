@@ -1,49 +1,45 @@
 #! /bin/bash
 # packages_install.sh
-# Función para instalar paquetes si no están instalados
-function package_install() {
-  install_and_restart lsb-release
-  install_and_restart ca-certificates
-  install_and_restart apt-transport-https
-  install_and_restart software-properties-common
-  #install_and_restart clamav
-  #install_and_restart clamav-daemon
-  install_and_restart tree
-  install_and_restart telnet
-  install_and_restart net-tools
-  install_and_restart sasl2-bin
-  install_and_restart openssl
-  install_and_restart dnsutils
-  install_and_restart mailutils
-  install_and_restart libmailutils-dev
-  #install_and_restart slapd
-  #install_and_restart ldap-utils
-  #install_and_restart python3-certbot-nginx
-  #install_and_restart zip
-  #install_and_restart snapd
-  #install_and_restart jq
-  #install_and_restart sqlite3
-  #install_and_restart libsqlite3-dev
-  #install_and_restart mysql-server
-  #install_and_restart postgresql
-  #install_and_restart postgresql-contrib
-  #install_and_restart transmission-gtk 
-  #install_and_restart transmission-cli 
-  #install_and_restart transmission-common 
-  #install_and_restart transmission-daemon
-  install_and_restart dovecot-core
-  install_and_restart dovecot-lmtp
-  install_and_restart dovecot-lmtpd
-  install_and_restart dovecot-dev
-  install_and_restart dovecot-ldap
-  install_and_restart dovecot-imapd
-  install_and_restart dovecot-pop3d
-  install_and_restart dovecot-mysql
-  install_and_restart dovecot-sqlite
-  install_and_restart dovecot-sieve
-  install_and_restart dovecot-solr
-  install_and_restart dovecot-submissiond
-  install_and_restart dovecot-antispam
+CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+PACKAGES_FILE="packages.txt"
+PACKAGES_PATH="$CURRENT_DIR/$PACKAGES_FILE"
+SUCCESS_PACKAGES=()
+FAILED_PACKAGES=()
+# Función para verificar si el archivo de dominios existe
+function validate_packages_file() {
+    # verificar si el archivo de dominios existe
+  echo "Verificando si el archivo de dominios existe..."
+  if [ ! -f "$PACKAGES_PATH" ]; then
+    echo "ERROR: El archivo de dominios '$PACKAGES_PATH' no se puede encontrar en la ruta '$PACKAGES_PATH'."
+    exit 1
+  fi
+  echo "El archivo de dominios '$PACKAGES_FILE' existe."
+}
+# Función para leer la lista de paquetes e intentar instalar el paquete
+function read_packages_file() {
+  echo "Leyendo la lista de paquetes: '$PACKAGES_PATH'..."
+  while read -r package_item; do
+    attempt=1
+    success=false
+    
+    while [ $attempt -le 3 ]; do
+      echo "Intentando instalar el paquete '$package_item' (Intento $attempt)..."
+      if install_and_restart "$package_item"; then
+        success=true
+        SUCCESS_PACKAGES+=("$package_item")
+        break
+      fi
+      
+      attempt=$((attempt + 1))
+      sleep 5
+    done
+    
+    if ! $success; then
+      FAILED_PACKAGES+=("$package_item")
+    fi
+  done < <(grep -v '^$' "$PACKAGES_PATH")
+  
+  echo "Todos los paquetes han sido leídos."
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
@@ -55,19 +51,28 @@ function install_and_restart() {
     return 0
   fi
 
-  # Instalar el paquete
-  echo "Instalando $package..."
-  if ! sudo apt-get install "$package" -y; then
-    echo "Error: no se pudo instalar el paquete '$package'."
-    return 1
-  fi
+  # Intentar instalar el paquete hasta tres veces
+  for ((attempt=1; attempt<=3; attempt++)); do
+    echo "Instalando $package (Intento $attempt)..."
+    if sudo apt-get install "$package" -y; then
+      echo "El paquete '$package' se ha instalado correctamente en el intento $attempt."
+      break
+    else
+      echo "Error al instalar el paquete '$package' en el intento $attempt."
+      if [ $attempt -eq 3 ]; then
+        echo "Se han realizado 3 intentos de instalación del paquete '$package'."
+        return 1
+      fi
+      sleep 5
+    fi
+  done
   
-   # Verificar si el paquete se instaló correctamente
-   echo "Verificando si el paquete se instaló correctamente..."
-  if [ $? -eq 0 ]; then
-    echo "$package se ha instalado correctamente."
+  # Verificar si el paquete se instaló correctamente
+  echo "Verificando si el paquete se instaló correctamente..."
+  if dpkg -s "$package" >/dev/null 2>&1; then
+    echo "El paquete '$package' se ha instalado correctamente."
   else
-    echo "Error al instalar $package."
+    echo "Error al instalar el paquete '$package' después de 3 intentos."
     return 1
   fi
   
@@ -89,11 +94,17 @@ function install_and_restart() {
 
   echo "El paquete '$package' se instaló correctamente."
   return 0
+  sleep 30
 }
 # Función para instalar Certbot
 function install_certbot() {
   curl -o- https://raw.githubusercontent.com/vinyll/certbot-install/master/install.sh | bash
 }
+# Función principal
+function packages_install() {
+  validate_packages_file
+  read_packages_file
+  install_certbot
+}
 # Llamar a la funcion princial
-package_install
-install_certbot
+packages_install
