@@ -57,12 +57,21 @@ function generate_certificate() {
         return 1
     fi
 }
+# Función para cambiar permisos
+function change_mod() {
+    # cambiar permisos
+    echo "Cambiando permisos..."
+    sudo chmod 400 "$KEY_PATH.key"
+    sudo chmod 444 "$CRT_PATH.crt"
+    echo "Los permisos fueron cambiados."
+}
 # Función principal
 function generate_certs() {
     echo "******************GENERATE CERTS******************"
     create_cert_directory
     generate_key
     generate_certificate
+    change_mod
     echo "******************ALL DONE******************"
 }
 # Llama a la función princial
