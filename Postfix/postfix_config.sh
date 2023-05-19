@@ -13,6 +13,13 @@ VIRTUAL_ALIAS_CF="$POSTFIX_PATH/virtual_alias.cf"
 VIRTUAL_ALIAS="$POSTFIX_PATH/virtual"
 CERT_FILE="ssl-cert-snakeoil.pem" # default self-signed certificate that comes with Ubuntu
 KEY_FILE="ssl-cert-snakeoil.key"
+# Función para crear al usuario vmail:5000
+function create_vamil_user() {
+    # crear al usuario vmail:5000
+    echo "Creando al usuario vmail:5000..."
+    sudo groupadd -g 5000 vmail
+    sudo useradd -u 5000 -g vmail -s /usr/bin/nologin -d /var/spool/mail -m vmail
+}
 # Función para crear archivos de configuración de la base de datos virtual
 function verify_config_files() {
     # Verificar si los archivos de configuración ya existen
@@ -157,19 +164,19 @@ function config_virtual_files() {
 # Función para crear el directorio especificado en virtual_mailbox_base
 function mkdir_virtual_mailbox_base() {
     # Verificar si el directorio ya existe
-    if [[ -d "/var/mail/vhosts" ]]; then
-        echo "Advertencia: El directorio especificado en virtual_mailbox_base ya existe."
+    if [[ -d "/var/spool/mail" ]]; then
+        echo "Advertencia: El directorio especificado en virtual_mailbox_base '/var/spool/mail' ya existe."
         return
     fi
 
     # Crear el directorio especificado en virtual_mailbox_base
     echo "Creando el directorio especificado en virtual_mailbox_base..."
-    if ! sudo mkdir "/var/mail/vhosts"; then
-        echo "Error: No se pudo crear el directorio especificado en virtual_mailbox_base."
+    if ! sudo mkdir "/var/spool/mail"; then
+        echo "Error: No se pudo crear el directorio especificado en virtual_mailbox_base '/var/spool/mail' ."
         return 1
     fi
 
-    echo "El directorio especificado en virtual_mailbox_base ha sido creado."
+    echo "El directorio especificado en virtual_mailbox_base '/var/spool/mail'  ha sido creado."
 }
 # Función para leer la lista de dominios y crear directorios
 function mkdirs() {
@@ -197,7 +204,7 @@ function config_postfix() {
         virtual_alias_domains+="$domain, "
         virtual_mailbox_domains+="$domain, "
         virtual_alias_maps+="hash:/etc/postfix/virtual/$domain, "
-        virtual_mailbox_maps+="hash:/etc/postfix/vmailbox/$domain, "
+        virtual_mailbox_maps+="hash:/etc/postfix/virtual/$domain, "
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     #virtual_mailbox_domains
     if grep -q "#virtual_mailbox_domains" "$POSTFIX_MAIN"; then
@@ -417,22 +424,22 @@ function config_postfix() {
     echo "mynetworks = 0.0.0.0/0" >> "$CURRENT_DIR/test.txt"
     #virtual_mailbox_base
     if grep -q "#virtual_mailbox_base" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_mailbox_base =.*|virtual_mailbox_base = /var/mail/vhosts|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_base"; exit 1; }
+        sudo sed -i "s|^#virtual_mailbox_base =.*|virtual_mailbox_base = /var/spool/mail|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_base"; exit 1; }
     elif grep -q "virtual_mailbox_base" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_mailbox_base =.*|virtual_mailbox_base = /var/mail/vhosts|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_base"; exit 1; }
+        sudo sed -i "s|^virtual_mailbox_base =.*|virtual_mailbox_base = /var/spool/mail|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_base"; exit 1; }
     else
-        echo "virtual_mailbox_base = /var/mail/vhosts" >> "$POSTFIX_MAIN"
+        echo "virtual_mailbox_base = /var/spool/mail" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_mailbox_base = /var/mail/vhosts" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_mailbox_base = /var/spool/mail" >> "$CURRENT_DIR/test.txt"
     #virtual_minimum_uid
     if grep -q "#virtual_minimum_uid" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = 1000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_minimum_uid"; exit 1; }
+        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = 5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_minimum_uid"; exit 1; }
     elif grep -q "virtual_minimum_uid" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = 1000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_minimum_uid"; exit 1; }
+        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = 5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_minimum_uid"; exit 1; }
     else
-        echo "virtual_minimum_uid= 1000" >> "$POSTFIX_MAIN"
+        echo "virtual_minimum_uid= 5000" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_minimum_uid = 1000" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_minimum_uid = 5000" >> "$CURRENT_DIR/test.txt"
     #vvirtual_uid_maps
     if grep -q "#virtual_uid_maps" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#virtual_uid_maps =.*|virtual_uid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_uid_maps"; exit 1; }
@@ -551,6 +558,7 @@ function restart_services() {
 # Función principal
 function postfix_config() {
   echo "***************POSTFIX CONFIG***************"
+  create_vamil_user
   verify_config_files
   backup_config_files
   validate_domains_file
