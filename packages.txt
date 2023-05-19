@@ -10,11 +10,9 @@ net-tools
 sasl2-bin
 openssl
 dnsutils
-mailutils
 libmailutils-dev
 slapd
 ldap-utils
-python3-certbot-nginx
 zip
 snapd
 jq
@@ -40,3 +38,5 @@ dovecot-sieve
 dovecot-solr
 dovecot-submissiond
 dovecot-antispam
+#mailutils
+#python3-certbot-nginx
