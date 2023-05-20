@@ -7,9 +7,8 @@ ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_FILE"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
-VMAILBOX_DIR="vmailbox" # archivo de buzones virtuales
+VMAILBOX_DIR="virtual" # archivo de buzones virtuales
 VMAILBOX_PATH="$POSTFIX_PATH/$VMAILBOX_DIR"
-VIRTUAL_ALIAS="$POSTFIX_PATH/virtual"
 # Función para verificar si el archivo de cuentas de usuario existe
 function validate_accounts_file() {
     # verificar si el archivo de cuentas de usuario existe
@@ -65,6 +64,7 @@ function read_domains() {
                 continue
             fi
             echo "El archivo de buzones de correo virtual '$VMAILBOX_PATH/$domain' del dominio '$domain' ha sido creado."
+            sudo mkdir -p "$VMAILBOX_PATH/$domain"
         fi
     done < <(grep -v '^$' "$DOMAINS_PATH")
 
@@ -84,6 +84,7 @@ function read_accounts() {
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$alias $domain2/$username"
       echo "$alias $domain2/$username" | grep -v '^$' >> "$VMAILBOX_PATH/$domain2"
+      echo "$alias $domain2/$username" | grep -v '^$' >> "$VMAILBOX_PATH/aliases"
       echo "La cuenta '$alias' ha sido registrada en el archivo de buzones de correo virtual: '$VMAILBOX_PATH/$domain2'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   done < <(grep -v '^$' "$ACCOUNTS_PATH")
@@ -96,7 +97,10 @@ function map_domains() {
     # mapear los buzones de correo
     echo "Mapeando los buzones de correo del dominio: '$domain3'..."
     sudo postmap "$VMAILBOX_PATH/$domain3" || { echo "Error: Failure while executing postmap on: '$VMAILBOX_PATH/$domain3'"; return 1; }
+  
   done < <(grep -v '^$' "$DOMAINS_PATH")
+  sudo postmap "/etc/aliases" || { echo "Error: Failure while executing postmap on: '/etc/aliases'"; return 1; }
+  sudo postmap "$VMAILBOX_PATH/aliases" || { echo "Error: Failure while executing postmap on: '$VMAILBOX_PATH/aliases'"; return 1; }
   echo "Todos los buzones de correo han sido mapeados."
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
