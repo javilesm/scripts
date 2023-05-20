@@ -1,0 +1,74 @@
+# See /usr/share/postfix/main.cf.dist for a commented, more complete version
+
+
+# Debian specific:  Specifying a file name will cause the first
+# line of that file to be used as the name.  The Debian default
+# is /etc/mailname.
+#myorigin = /etc/mailname
+
+smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+biff = no
+
+# appending .domain is the MUA's job.
+append_dot_mydomain = no
+
+# Uncomment the next line to generate "delayed mail" warnings
+#delay_warning_time = 4h
+
+readme_directory = no
+
+# See http://www.postfix.org/COMPATIBILITY_README.html -- default to 3.6 on
+# fresh installs.
+compatibility_level = 3.6
+
+
+
+# TLS parameters
+smtpd_tls_cert_file=/etc/dovecot/certs/samava.crt
+smtpd_tls_key_file=/etc/dovecot/certs/samava.key
+smtpd_tls_security_level=may
+
+smtp_tls_CApath=/etc/ssl/certs
+smtp_tls_security_level=may
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+
+
+smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
+myhostname = mail.avilesworks.com
+alias_maps = hash:/etc/postfix/virtual/tecnotools.shop, hash:/etc/postfix/virtual/creativeering.com, hash:/etc/postfix/virtual/aplika-t.com, hash:/etc/postfix/virtual/avilesworks.com, hash:/etc/postfix/virtual/avilesweb.com,
+alias_database = hash:/etc/postfix/virtual/tecnotools.shop, hash:/etc/postfix/virtual/creativeering.com, hash:/etc/postfix/virtual/aplika-t.com, hash:/etc/postfix/virtual/avilesworks.com, hash:/etc/postfix/virtual/avilesweb.com,
+myorigin = /etc/mailname
+mydestination = localhost.localdomain, localhost
+relayhost = 
+mynetworks = 0.0.0.0/0
+mailbox_size_limit = 0
+recipient_delimiter = +
+inet_interfaces = all
+inet_protocols = ipv4
+virtual_mailbox_domains = tecnotools.shop, creativeering.com, aplika-t.com, avilesworks.com, avilesweb.com,
+virtual_mailbox_maps = hash:/etc/postfix/virtual/tecnotools.shop, hash:/etc/postfix/virtual/creativeering.com, hash:/etc/postfix/virtual/aplika-t.com, hash:/etc/postfix/virtual/avilesworks.com, hash:/etc/postfix/virtual/avilesweb.com,
+virtual_alias_maps = hash:/etc/postfix/virtual/tecnotools.shop, hash:/etc/postfix/virtual/creativeering.com, hash:/etc/postfix/virtual/aplika-t.com, hash:/etc/postfix/virtual/avilesworks.com, hash:/etc/postfix/virtual/avilesweb.com,
+virtual_transport = lmtp:unix:private/dovecot-lmtp
+virtual_alias_domains = tecnotools.shop, creativeering.com, aplika-t.com, avilesworks.com, avilesweb.com,
+smtpd_use_tls = yes
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_local_domain = /etc/postfix/avilesworks.com
+smtpd_sasl_security_options = noanonymous
+broken_sasl_auth_clients = yes
+smtpd_tls_loglevel = 1
+smtpd_tls_received_header = yes
+smtpd_tls_session_cache_timeout = 3600s
+tls_random_source = dev:/dev/urandom
+virtual_mailbox_base = /var/spool/mail
+virtual_minimum_uid= 5000
+virtual_uid_maps = static:5000
+virtual_gid_maps = static:5000
+sasl_password_maps = hash:/etc/dovecot/users
+smtputf8_enable = no
+disable_dns_lookups = no
+smtp_host_lookup = dns
+smtpd_tls_protocols = !SSLv2,!SSLv3
+smtpd_tls_mandatory_protocols = !SSLv2,!SSLv3
+smtp_enforce_tls = yes
