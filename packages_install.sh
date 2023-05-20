@@ -44,11 +44,19 @@ function read_packages_file() {
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
   local package="$1"
-  # Verificar si el paquete ya está instalado
+    # Verificar si el paquete ya está instalado
   echo "Verificando si el paquete '$package' ya está instalado..."
   if dpkg -s "$package" >/dev/null 2>&1; then
     echo "El paquete '$package' ya está instalado."
     return 0
+  fi
+
+  # Verificar si hay problemas pendientes de configuración de dpkg
+  echo "Verificando si hay problemas pendientes de configuración de dpkg..."
+  if sudo dpkg --configure -a >/dev/null 2>&1; then
+    echo "Se encontraron problemas pendientes de configuración de dpkg. Ejecutando 'sudo dpkg --configure -a'..."
+    sudo dpkg --configure -a
+    echo "Se ha corregido el problema pendiente de configuración de dpkg."
   fi
 
   # Intentar instalar el paquete hasta tres veces
