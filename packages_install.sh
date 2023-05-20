@@ -3,6 +3,10 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PACKAGES_FILE="packages.txt"
 PACKAGES_PATH="$CURRENT_DIR/$PACKAGES_FILE"
+
+# Exportar la variable DEBIAN_FRONTEND para evitar problemas con debconf
+export DEBIAN_FRONTEND=noninteractive
+
 # Función para verificar si el archivo de dominios existe
 function validate_packages_file() {
     # verificar si el archivo de dominios existe
