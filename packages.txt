@@ -18,10 +18,10 @@ libsqlite3-dev
 mysql-server
 postgresql
 postgresql-contrib
-transmission-gtk 
-transmission-cli 
-transmission-common 
-transmission-daemon
+#transmission-gtk 
+#transmission-cli 
+#transmission-common 
+#transmission-daemon
 dovecot-core
 dovecot-lmtp
 dovecot-lmtpd
