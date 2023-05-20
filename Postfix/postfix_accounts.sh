@@ -102,11 +102,15 @@ function read_domains() {
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
     while read -r domains; do
+      # cambiar permisos del directorio
+      echo "Cambiando los permisos del directorio '/var/mail/vhosts/$domains'..."
+      sudo chmod 2775 "/var/mail/vhosts/$domains"
+      # cambiar la propiedad del directorio
+      echo "Cambiando la propiedad del directorio '/var/mail/vhosts/$domains'..."
+      sudo chown 120:128 "/var/mail/vhosts/$domains"
       # mapear  las direcciones y destinos
       echo "Mapeando las direcciones y destinos del dominio '$domains'..."
       sudo postmap "$POSTFIX_PATH/virtual/$domains" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual/$domains'"; return 1; }
-      sudo chmod 2775 "/var/mail/vhosts/$domains"
-      sudo chown 117:125 "/var/mail/vhosts/$domains"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas las direcciones y destinos han sido mapeados."
 }
