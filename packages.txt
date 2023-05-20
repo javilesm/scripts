@@ -18,10 +18,6 @@ libsqlite3-dev
 mysql-server
 postgresql
 postgresql-contrib
-#transmission-gtk 
-#transmission-cli 
-#transmission-common 
-#transmission-daemon
 dovecot-core
 dovecot-lmtp
 dovecot-lmtpd
@@ -40,3 +36,7 @@ dovecot-antispam
 #python3-certbot-nginx
 #slapd
 #ldap-utils
+#transmission-gtk 
+#transmission-cli 
+#transmission-common 
+#transmission-daemon
