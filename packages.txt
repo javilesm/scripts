@@ -19,7 +19,6 @@ mysql-server
 postgresql
 postgresql-contrib
 dovecot-core
-dovecot-lmtp
 dovecot-lmtpd
 dovecot-dev
 dovecot-ldap
