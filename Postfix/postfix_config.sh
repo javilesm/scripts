@@ -253,13 +253,13 @@ function config_postfix() {
     echo "virtual_alias_domains = ${virtual_alias_domains::-1}" >> "$CURRENT_DIR/test.txt"
     #smtpd_tls_cert_file
     if grep -q "#smtpd_tls_cert_file" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#smtpd_tls_cert_file=.*|smtpd_tls_cert_file=/etc/dovecot/certs/samava.crt|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_cert_file"; exit 1; }
+        sudo sed -i "s|^#smtpd_tls_cert_file=.*|smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_cert_file"; exit 1; }
     elif grep -q "smtpd_tls_cert_file" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^smtpd_tls_cert_file=.*|smtpd_tls_cert_file=/etc/dovecot/certs/samava.crt|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_cert_file"; exit 1; }
+        sudo sed -i "s|^smtpd_tls_cert_file=.*|smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_cert_file"; exit 1; }
     else
-        echo "smtpd_tls_cert_file= /etc/dovecot/certs/samava.crt" >> "$POSTFIX_MAIN"
+        echo "smtpd_tls_cert_file= /etc/dovecot/certs/samava.pem" >> "$POSTFIX_MAIN"
     fi
-    echo "smtpd_tls_cert_file=/etc/dovecot/certs/samava.crt" >> "$CURRENT_DIR/test.txt"
+    echo "smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem" >> "$CURRENT_DIR/test.txt"
     #smtpd_tls_key_file
     if grep -q "#smtpd_tls_key_file" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#smtpd_tls_key_file=.*|smtpd_tls_key_file=/etc/dovecot/certs/samava.key|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_key_file"; exit 1; }
