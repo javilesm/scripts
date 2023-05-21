@@ -530,6 +530,15 @@ function config_postfix() {
         echo "smtp_enforce_tls = yes" >> "$POSTFIX_MAIN"
     fi
     echo "smtp_enforce_tls = yes" >> "$CURRENT_DIR/test.txt"
+     #mailbox_command
+    if grep -q "#mailbox_command" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^#mailbox_command =.*|mailbox_command = /usr/lib/dovecot/deliver|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #mailbox_command"; exit 1; }
+    elif grep -q "mailbox_command" "$POSTFIX_MAIN"; then
+        sudo sed -i "s|^mailbox_command =.*|mailbox_command = /usr/lib/dovecot/deliver|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': mailbox_command"; exit 1; }
+    else
+        echo "mailbox_command = /usr/lib/dovecot/deliver" >> "$POSTFIX_MAIN"
+    fi
+    echo "mailbox_command = /usr/lib/dovecot/deliver" >> "$CURRENT_DIR/test.txt"
 }
 # Función para comprobar la configuracion de Postfix
 function postfix_check() {
