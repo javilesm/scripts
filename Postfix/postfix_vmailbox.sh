@@ -84,7 +84,7 @@ function read_accounts() {
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$alias $domain2/$username"
       echo "$alias $domain2/$username" | grep -v '^$' >> "$VMAILBOX_PATH/$domain2"
-      echo "$alias $domain2/$username" | grep -v '^$' >> "$VMAILBOX_PATH/aliases"
+      echo "$alias $alias" | grep -v '^$' >> "$VMAILBOX_PATH/aliases"
       echo "La cuenta '$alias' ha sido registrada en el archivo de buzones de correo virtual: '$VMAILBOX_PATH/$domain2'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   done < <(grep -v '^$' "$ACCOUNTS_PATH")
