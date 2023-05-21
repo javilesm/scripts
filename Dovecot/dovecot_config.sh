@@ -98,7 +98,7 @@ function change_master_file() {
     # reemplazar el archivo 10-master.conf
     echo "Reemplazando el archivo '$master_file_original' ..."
     if [ -f "$master_file_original" ]; then
-        sudo cp "$master_file_fake" "$master_file_original"
+        sudo mv "$master_file_fake" "$master_file_original"
         echo "El archivo '$master_file_original' fue reemplazado por '$master_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$master_file_original' no existe. No se puede reemplazar."
@@ -109,7 +109,7 @@ function change_imap_file() {
     # reemplazar el archivo 20-imap.conf
     echo "Reemplazando el archivo '$imap_file_original' ..."
     if [ -f "$imap_file_original" ]; then
-        sudo cp "$imap_file_fake" "$imap_file_original"
+        sudo mv "$imap_file_fake" "$imap_file_original"
         echo "El archivo '$imap_file_original' fue reemplazado por '$imap_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$imap_file_original' no existe. No se puede reemplazar."
@@ -120,7 +120,7 @@ function change_pop3_file() {
     # reemplazar el archivo 20-pop3.conf
     echo "Reemplazando el archivo '$pop3_file_original' ..."
     if [ -f "$pop3_file_original" ]; then
-        sudo cp "$pop3_file_fake" "$pop3_file_original"
+        sudo mv "$pop3_file_fake" "$pop3_file_original"
         echo "El archivo '$pop3_file_original' fue reemplazado por '$pop3_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$pop3_file_original' no existe. No se puede reemplazar."
@@ -131,7 +131,7 @@ function change_auth_file() {
     # reemplazar el archivo 10-auth.conf
     echo "Reemplazando el archivo '$auth_file_original' ..."
     if [ -f "$auth_file_original" ]; then
-        sudo cp "$auth_file_fake" "$auth_file_original"
+        sudo mv "$auth_file_fake" "$auth_file_original"
         echo "El archivo '$auth_file_original' fue reemplazado por '$auth_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$auth_file_original' no existe. No se puede reemplazar."
@@ -142,7 +142,7 @@ function change_ssl_file() {
     # reemplazar el archivo 10-ssl.conf
     echo "Reemplazando el archivo '$ssl_file_original' ..."
     if [ -f "$ssl_file_original" ]; then
-        sudo cp "$ssl_file_fake" "$ssl_file_original"
+        sudo mv "$ssl_file_fake" "$ssl_file_original"
         echo "El archivo '$ssl_file_original' fue reemplazado por '$ssl_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$ssl_file_original' no existe. No se puede reemplazar."
@@ -153,7 +153,7 @@ function change_mail_file() {
     # reemplazar el archivo 10-mail.conf
     echo "Reemplazando el archivo '$mailbox_file_original' ..."
     if [ -f "$mailbox_file_original" ]; then
-        sudo cp "$mailbox_file_fake" "$mailbox_file_original"
+        sudo mv "$mailbox_file_fake" "$mailbox_file_original"
         echo "El archivo '$mailbox_file_original' fue reemplazado por '$mailbox_file_fake'"
     else
         echo "ERROR: El archivo de configuración '$mailbox_file_original' no existe. No se puede reemplazar."
@@ -216,15 +216,6 @@ function edit_auth_config() {
     fi
 }
 
-# Función para habilitar encriptacion SSL
-function enable_ssl() {
-    echo "Habilitando encriptacion SSL..."
-    local enable_ssl_file="/etc/dovecot/conf.d/10-ssl.conf"
-    sudo sed -i "/^ssl =/c\ssl = yes" $enable_ssl_file
-    sudo sed -i "/^ssl_cert =/c\ssl_cert = \/etc\/ssl\/certs\/$CERTIFICADO" $enable_ssl_file
-    sudo sed -i "/^ssl_key =/c\ssl_key = \/etc\/ssl\/private\/$CLAVE_PRIVADA" $enable_ssl_file
-}
-
 # Función para iniciar y habilitar el servicio de Dovecot
 function start_and_enable() {
     # iniciar y habilitar el servicio de Dovecot
@@ -254,7 +245,6 @@ function dovecot_config() {
     enable_protocols
     edit_auth_config
     configure_mailbox_location
-    enable_ssl
     start_and_enable
     echo "***************ALL DONE***************"
 }
