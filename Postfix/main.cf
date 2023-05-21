@@ -24,9 +24,9 @@ compatibility_level = 3.6
 
 
 # TLS parameters
-smtpd_tls_cert_file=/etc/dovecot/certs/samava.crt
+smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem
 smtpd_tls_key_file=/etc/dovecot/certs/samava.key
-smtpd_tls_security_level=may
+smtpd_tls_security_level=encrypt
 
 smtp_tls_CApath=/etc/ssl/certs
 smtp_tls_security_level=may
@@ -35,9 +35,9 @@ smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
 
 smtpd_relay_restrictions = permit_mynetworks permit_sasl_authenticated defer_unauth_destination
 myhostname = mail.avilesworks.com
-alias_maps = hash:/etc/postfix/virtual/tecnotools.shop, hash:/etc/postfix/virtual/creativeering.com, hash:/etc/postfix/virtual/aplika-t.com, hash:/etc/postfix/virtual/avilesworks.com, hash:/etc/postfix/virtual/avilesweb.com,
-alias_database = hash:/etc/postfix/virtual/tecnotools.shop, hash:/etc/postfix/virtual/creativeering.com, hash:/etc/postfix/virtual/aplika-t.com, hash:/etc/postfix/virtual/avilesworks.com, hash:/etc/postfix/virtual/avilesweb.com,
-myorigin = /etc/mailname
+alias_maps = hash:/etc/postfix/virtual/aliases
+alias_database = /etc/postfix/virtual/aliases
+#myorigin = /etc/mailname
 mydestination = localhost.localdomain, localhost
 relayhost = 
 mynetworks = 0.0.0.0/0
