@@ -194,6 +194,14 @@ function enable_protocols() {
     else
          echo "listen = *, ::" >> "$CONFIG_PATH"
     fi
+    #mail_location
+    if grep -q "#mail_location =" "$CONFIG_PATH"; then
+        sudo sed -i "s|^#mail_location =.*|mail_location = maildir:~/Maildir|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #mail_location"; exit 1; }
+    elif grep -q "mail_location =" "$CONFIG_PATH"; then
+        sudo sed -i "s|^mail_location =.*|mail_location = maildir:~/Maildir|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': mail_location"; exit 1; }
+    else
+         echo "mail_location = maildir:~/Maildir" >> "$CONFIG_PATH"
+    fi
 }
 # Función para editar la configuración de disable_plaintext_auth 
 function edit_auth_config() {
