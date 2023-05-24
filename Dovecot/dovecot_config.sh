@@ -219,9 +219,9 @@ function edit_dovecot-sql-conf_file() {
     fi
     # parámetros
     echo "Parametros.."
-    sudo sed -i "/connect = host=localhost dbname=postfix user=postfix_user password=postfix2023/G" "$dovecot_sql_conf_file"
-    sudo sed -i "/default_pass_scheme = SHA512-CRYPT/G" "$dovecot_sql_conf_file"
-    sudo sed -i "/password_query = SELECT username, password FROM users WHERE username = '%u';/G" "$dovecot_sql_conf_file"
+    echo "connect = host=localhost dbname=postfix user=postfix_user password=postfix2023" >> "$dovecot_sql_conf_file"
+    echo "default_pass_scheme = SHA512-CRYPT" >> "$dovecot_sql_conf_file"
+    echo "password_query = SELECT username, password FROM users WHERE username = '%u';" >> "$dovecot_sql_conf_file"
     echo "user_query = SELECT '/var/mail' || maildir AS home, 'maildir:/var/mail' || maildir AS mail, 1001 AS uid, 1001 AS gid FROM users WHERE username = '%u';" >> "$dovecot_sql_conf_file"
 }
 # Función para iniciar y habilitar el servicio de Dovecot
