@@ -240,6 +240,19 @@ function start_and_enable() {
         echo "ERROR: No se pudo iniciar el servicio de Dovecot."
     fi
 }
+# Función para reiniciar el servicio de Postfix y el servicio de Dovecot
+function restart_services() {
+    # reiniciar el servicio de Postfix
+    echo "Restarting Postfix service..."
+    sudo service postfix restart || { echo "Error: Failed to restart Postfix service."; return 1; }
+    echo "Postfix service restarted successfully."
+    
+    # reiniciar el servicio de Dovecot
+    echo "Restarting Dovecot service..."
+    sudo service dovecot restart || { echo "Error: Failed to restart Dovecot service."; return 1; }
+    echo "Dovecot service restarted successfully."
+    
+}
 # Función principal
 function dovecot_config() {
     echo "***************DOVECOT CONFIGURATOR***************"
@@ -253,6 +266,7 @@ function dovecot_config() {
     enable_protocols
     edit_dovecot-sql-conf_file
     start_and_enable
+    restart_services
     echo "***************ALL DONE***************"
 }
 # Llamar a la funcion principal
