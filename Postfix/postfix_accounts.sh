@@ -52,10 +52,10 @@ function read_domains() {
       sudo mkdir -p "$MAIL_PATH/$host"
       # cambiar permisos del subdirectorio
       echo "Cambiando los permisos del subdirectorio '$MAIL_PATH/$host'..."
-      sudo chmod 700 "$MAIL_PATH/$host"
+      sudo chmod +x "$MAIL_PATH/$host"
       # cambiar la propiedad del directorio
       echo "Cambiando la propiedad del directorio '$MAIL_PATH/$host'..."
-      sudo chown 120:128 "$MAIL_PATH/$host"
+      sudo chown 5000:5000 "$MAIL_PATH/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
