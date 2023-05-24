@@ -71,8 +71,15 @@ function read_accounts() {
       # Obtener el dominio del correo electrónico (todo lo que está después del símbolo @)
       local domain="${alias#*@}"
       echo "Dominio: $domain"
-      # crear subdirectorio de la cuenta
+      # crear subdirectorio del usuario
+      echo "Creando subdirectorio del usuario '$username' del dominio '$domain'..."
       sudo mkdir -p "$MAIL_PATH/$domain/$username"
+      # cambiar permisos al subdirectorio del usuario
+      echo "Cambiando permisos del subdirectorio del usuario '$username' del dominio '$domain'..."
+      sudo chmod +w "$MAIL_PATH/$domain/$username"
+      # cambiar propoiedad del subdirectorio del usuario
+      echo "Cambiando la propiedad del subdirectorio del usuario '$username' del dominio '$domain'..."
+      sudo chown 5000:5000 "$MAIL_PATH/$domain/$username"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$username@$domain $username.$domain"
       # Escribiendo datos 
