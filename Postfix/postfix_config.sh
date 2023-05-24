@@ -210,9 +210,9 @@ function config_postfix() {
     elif grep -q "virtual_alias_maps" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^virtual_alias_maps =.*|virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_maps"; exit 1; }
     else
-        echo "virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps|" >> "$POSTFIX_MAIN"
+        echo "virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps|" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps" >> "$CURRENT_DIR/test.txt"
     #virtual_transport
     if grep -q "#virtual_transport" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#virtual_transport =.*|virtual_transport = lmtp:unix:private/dovecot-lmtp|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_transport"; exit 1; }
@@ -228,9 +228,9 @@ function config_postfix() {
     elif grep -q "virtual_alias_domains" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^virtual_alias_domains =.*|virtual_alias_domains = hash:/etc/postfix/virtual_domains|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_domains"; exit 1; }
     else
-        echo "virtual_alias_domains = hash:/etc/postfix/virtual_domains|" >> "$POSTFIX_MAIN"
+        echo "virtual_alias_domains = hash:/etc/postfix/virtual_domains" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_alias_domains = hash:/etc/postfix/virtual_domains|" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_alias_domains = hash:/etc/postfix/virtual_domains" >> "$CURRENT_DIR/test.txt"
     #smtpd_tls_cert_file
     if grep -q "#smtpd_tls_cert_file" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#smtpd_tls_cert_file=.*|smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_cert_file"; exit 1; }
