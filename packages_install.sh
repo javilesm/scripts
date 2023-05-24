@@ -74,8 +74,7 @@ function install_and_restart() {
   echo "El paquete '$package' se instaló correctamente."
   return 0
   sleep 5
-  sudo bash "$CURRENT_DIR/clean_system.sh"
-  sleep 5
+ 
 }
 # Función para instalar Certbot
 function install_certbot() {
