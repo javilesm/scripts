@@ -176,7 +176,6 @@ function config_postfix() {
     virtual_mailbox_domains=""
     while read -r domain; do
         virtual_mailbox_domains+="$domain, "
-        virtual_mailbox_maps+="hash:/etc/postfix/virtual/$domain, "
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     #virtual_mailbox_domains
     if grep -q "#virtual_mailbox_domains" "$POSTFIX_MAIN"; then
@@ -522,7 +521,6 @@ function postfix_check() {
     else
         echo "Falla al configurar '$POSTFIX_MAIN'"
     fi
-    sudo postmap "$VIRTUAL_ALIAS"
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
 function restart_services() {
