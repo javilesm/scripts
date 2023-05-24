@@ -203,44 +203,26 @@ function enable_protocols() {
          echo "mail_location = maildir:~/Maildir" >> "$CONFIG_PATH"
     fi
 }
-# Función para editar la configuración de disable_plaintext_auth 
-function edit_auth_config() {
-    # editar la configuración de disable_plaintext_auth
-    echo "Editando la configuración de disable_plaintext_auth..."
-    #disable_plaintext_auth
-    if grep -q "#disable_plaintext_auth" "$auth_config_file"; then
-        sudo sed -i "s|^#disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #disable_plaintext_auth"; exit 1; }
-    elif grep -q "disable_plaintext_auth" "$auth_config_file"; then
-        sudo sed -i "s|^disable_plaintext_auth =.*|disable_plaintext_auth = no|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': disable_plaintext_auth"; exit 1; }
-    else
-         echo "disable_plaintext_auth = no" >> "$auth_config_file"
-    fi
-    #auth_mechanisms
-    if grep -q "#auth_mechanisms" "$auth_config_file"; then
-        sudo sed -i "s|^#auth_mechanisms =.*|auth_mechanisms = plain login|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #auth_mechanisms"; exit 1; }
-    elif grep -q "auth_mechanisms" "$auth_config_file"; then
-        sudo sed -i  "s|^auth_mechanisms =.*|auth_mechanisms = plain login|" "$auth_config_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': auth_mechanisms"; exit 1; }
-    else
-         echo "auth_mechanisms = plain login" >> "$auth_config_file"
-    fi
-}
+
 # Función para editar el archivo 'dovecot-sql-conf_file'
 function edit_dovecot-sql-conf_file() {
     # editar el archivo 'dovecot-sql-conf_file'
     echo "Editando el archivo '$dovecot_sql_conf_file'..."
     #driver
+    echo "Driver..."
     if grep -q "#driver" "$dovecot_sql_conf_file"; then
-        sudo sed -i "s|^#driver =.*|driver = pgsql|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': #driver"; exit 1; }
+        sudo sed -i "s|^#driver =.*|driver = pgsql|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$dovecot_sql_conf_file': #driver"; exit 1; }
     elif grep -q "driver" "$dovecot_sql_conf_file"; then
-        sudo sed -i  "s|^driver =.*|driver = pgsql|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': driver"; exit 1; }
+        sudo sed -i  "s|^driver =.*|driver = pgsql|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$dovecot_sql_conf_file': driver"; exit 1; }
     else
          echo "driver = pgsql" >> "$dovecot_sql_conf_file"
     fi
     # parámetros
-    sed -i "$a\connect = host=localhost dbname=postfix user=postfix_user password=postfix2023" "$dovecot_sql_conf_file"
-    sed -i "$a\default_pass_scheme = SHA512-CRYPT" "$dovecot_sql_conf_file"
-    sed -i "$a\password_query = SELECT username, password FROM users WHERE username = '%u';" "$dovecot_sql_conf_file"
-    sed -i "$a\user_query = SELECT '/home/' || maildir AS home, 'maildir:/home/' || maildir AS mail, 1001 AS uid, 1001 AS gid FROM users WHERE username = '%u';" "$dovecot_sql_conf_file"
+    echo "Parametros.."
+    sudo sed -i "/connect = host=localhost dbname=postfix user=postfix_user password=postfix2023/G" "$dovecot_sql_conf_file"
+    sudo sed -i "/default_pass_scheme = SHA512-CRYPT/G" "$dovecot_sql_conf_file"
+    sudo sed -i "/password_query = SELECT username, password FROM users WHERE username = '%u';/G" "$dovecot_sql_conf_file"
+    echo "user_query = SELECT '/var/mail' || maildir AS home, 'maildir:/var/mail' || maildir AS mail, 1001 AS uid, 1001 AS gid FROM users WHERE username = '%u';" >> "$dovecot_sql_conf_file"
 }
 # Función para iniciar y habilitar el servicio de Dovecot
 function start_and_enable() {
@@ -269,8 +251,6 @@ function dovecot_config() {
     change_ssl_file
     change_mail_file
     enable_protocols
-    edit_auth_config
-    configure_mailbox_location
     edit_dovecot-sql-conf_file
     start_and_enable
     echo "***************ALL DONE***************"
