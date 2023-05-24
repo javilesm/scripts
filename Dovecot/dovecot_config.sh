@@ -235,12 +235,12 @@ function edit_dovecot-sql-conf_file() {
         sudo sed -i  "s|^driver =.*|driver = pgsql|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_config_file': driver"; exit 1; }
     else
          echo "driver = pgsql" >> "$dovecot_sql_conf_file"
-    # parámetros 
-    
-    echo "connect = host=localhost dbname=postfix user=postfix_user password=postfix2023" >> "$dovecot_sql_conf_file"
-    echo "default_pass_scheme = SHA512-CRYPT" >> "$dovecot_sql_conf_file"
-    echo "password_query = SELECT username, password FROM users WHERE username = '%u';" >> "$dovecot_sql_conf_file"
-    echo "user_query = SELECT '/home/' || maildir AS home, 'maildir:/home/' || maildir AS mail, 1001 AS uid, 1001 AS gid FROM users WHERE username = '%u';" >> "$dovecot_sql_conf_file"
+    fi
+    # parámetros
+    sed -i "$a\connect = host=localhost dbname=postfix user=postfix_user password=postfix2023" "$dovecot_sql_conf_file"
+    sed -i "$a\default_pass_scheme = SHA512-CRYPT" "$dovecot_sql_conf_file"
+    sed -i "$a\password_query = SELECT username, password FROM users WHERE username = '%u';" "$dovecot_sql_conf_file"
+    sed -i "$a\user_query = SELECT '/home/' || maildir AS home, 'maildir:/home/' || maildir AS mail, 1001 AS uid, 1001 AS gid FROM users WHERE username = '%u';" "$dovecot_sql_conf_file"
 }
 # Función para iniciar y habilitar el servicio de Dovecot
 function start_and_enable() {
