@@ -7,7 +7,7 @@ ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_FILE"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
-MAIL_PATH="/var/spool/mail"
+MAIL_PATH="/var/mail"
 # Función para verificar si el archivo de dominios existe
 function validate_accounts_file() {
     # verificar si el archivo de dominios existe
@@ -52,22 +52,9 @@ function validate_users_file() {
   fi
   echo "El archivo '/etc/dovecot/users' ha sido creado."
 }
-# Función para leer la lista de direcciones de dominios y crear los archivos de direcciones de correo
-function create_files() {
-    # leer la lista de dominios
-    echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
-    while read -r host; do
-      # crear directorios
-      sudo mkdir -p "$MAIL_PATH/$host"
-      # cambiar permisos al directorio
-      sudo chmod 777 "$MAIL_PATH/$host"
-      # Creando archivos para virtual_alias
-      sudo touch "$POSTFIX_PATH/virtual/$host"
-    done < <(grep -v '^$' "$DOMAINS_PATH")
-    echo "Todos los archivos de direcciones de correo han sido creados."
-}
 # Función para leer la lista de direcciones de correo
 function read_accounts() {
+    sudo touch "$POSTFIX_PATH/virtual_alias_maps"
     # leer la lista de direcciones de correo
     echo "Leyendo la lista de usuarios: '$ACCOUNTS_PATH'..."
     while IFS="," read -r username nombre apellido email alias password; do
@@ -80,15 +67,8 @@ function read_accounts() {
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$username@$domain $domain/$username"
       # Escribiendo datos 
-      echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual/$domain"
-      echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual/$domain'"
-      # crear directorios para cada usuario dentro de /var/spool/mail/$domain
-      sudo mkdir -p "$MAIL_PATH/$domain/$username"
-      sudo chmod 777 "$MAIL_PATH/$domain/$username"
-      # crear directorios para cada usuario dentro de /var/mail/vhosts/$domain
-      sudo mkdir "/var/mail/vhosts/$domain/$alias"
-      sudo chown postfix:mail "/var/mail/vhosts/$domain/$alias"
-      sudo chmod 777 "/var/mail/vhosts/$domain/$alias"
+      echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual_alias_maps"
+      echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual_alias_maps'"
       # agregar las cuentas de correo junto con sus contraseñas
       echo "Agregando las cuentas de correo junto con sus contraseñas..."
       echo "$alias:{PLAIN}$password" | grep -v '^$' >> "/etc/dovecot/users"
@@ -96,23 +76,27 @@ function read_accounts() {
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
     echo "Todas las cuentas de correo han sido copiadas."
+    # mapear  las direcciones y destinos
+    echo "Mapeando las direcciones y usuarios..."
+    sudo postmap "$POSTFIX_PATH/virtual_alias_maps" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual_alias_maps'"; return 1; }
+
 }
 # Función para leer la lista de direcciones de dominios y mapear  las direcciones y destinos
 function read_domains() {
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
-    while read -r domains; do
-      # cambiar permisos del directorio
-      echo "Cambiando los permisos del directorio '/var/mail/vhosts/$domains'..."
-      sudo chmod 2775 "/var/mail/vhosts/$domains"
+    while read -r host; do
+      # cambiar permisos del directorio padre
+      echo "Cambiando los permisos del directorio padre '/var/mail'..."
+      sudo chmod 755 "/var/mail"
+      # cambiar permisos del subdirectorio
+      echo "Cambiando los permisos del subdirectorio '/var/mail/$host'..."
+      sudo chmod 700 "/var/mail/$host"
       # cambiar la propiedad del directorio
-      echo "Cambiando la propiedad del directorio '/var/mail/vhosts/$domains'..."
-      sudo chown 120:128 "/var/mail/vhosts/$domains"
-      # mapear  las direcciones y destinos
-      echo "Mapeando las direcciones y destinos del dominio '$domains'..."
-      sudo postmap "$POSTFIX_PATH/virtual/$domains" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual/$domains'"; return 1; }
+      echo "Cambiando la propiedad del directorio '/var/mail/$host'..."
+      sudo chown 120:128 "/var/mail/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
-    echo "Todas las direcciones y destinos han sido mapeados."
+    echo "Todas los permisos y propiedades han sido actualizados."
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
 function restart_services() {
@@ -133,7 +117,6 @@ function postfix_accounts() {
   validate_virtual_path
   validate_mail_path
   validate_users_file
-  create_files
   read_accounts
   read_domains
   restart_services
