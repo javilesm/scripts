@@ -2,8 +2,6 @@ lsb-release
 ca-certificates
 apt-transport-https
 software-properties-common
-clamav
-clamav-daemon
 tree
 telnet
 net-tools
@@ -13,9 +11,6 @@ dnsutils
 zip
 snapd
 jq
-sqlite3
-libsqlite3-dev
-mysql-server
 postgresql
 postgresql-contrib
 dovecot-core
@@ -30,6 +25,11 @@ dovecot-sieve
 dovecot-solr
 dovecot-submissiond
 dovecot-antispam
+#clamav
+#clamav-daemon
+#sqlite3
+#libsqlite3-dev
+#mysql-server
 #mailutils
 #libmailutils-dev
 #python3-certbot-nginx
