@@ -16,7 +16,7 @@ function create_vmail_user() {
     # crear al usuario vmail:5000
     echo "Creando al usuario vmail:5000..."
     sudo groupadd -g 5000 vmail
-    sudo useradd -u 5000 -g vmail -s /usr/bin/nologin -d /var/spool/mail -m vmail
+    sudo useradd -u 5000 -g vmail -s /usr/bin/nologin -d /var/mail -m vmail
 }
 # Función para crear archivos de configuración de la base de datos virtual
 function verify_config_files() {
@@ -123,10 +123,11 @@ function validate_domains_file() {
 # Función para crear un archivo base y copiar la lista de dominios en ese archivo
 function create_domains_path() {
     # crear archivo base
+    echo "Creando archivo base..."
     sudo touch "$POSTFIX_PATH/virtual_domains"
     # copiar la lista de dominios
-    echo "Copiando la lista de dominios '$DOMAINS_PATH'..."
-    sudo mv "$DOMAINS_PATH" "$POSTFIX_PATH/virtual_domains"
+    echo "Copiando la lista de dominios '$DOMAINS_PATH' al archivo base '$POSTFIX_PATH/virtual_domains'..."
+    sudo cp "$DOMAINS_PATH" "$POSTFIX_PATH/virtual_domains"
     # mapear
     echo "Mapeando '$POSTFIX_PATH/virtual_domains'..."
     sudo postmap "$POSTFIX_PATH/virtual_domains"
