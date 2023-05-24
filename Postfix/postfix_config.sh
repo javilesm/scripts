@@ -312,7 +312,7 @@ function config_postfix() {
     else
         echo "smtpd_sasl_security_options = noanonymous" >> "$POSTFIX_MAIN"
     fi
-    cho "smtpd_sasl_security_options = noanonymous" >> "$CURRENT_DIR/test.txt"
+    echo "smtpd_sasl_security_options = noanonymous" >> "$CURRENT_DIR/test.txt"
     #broken_sasl_auth_clients
     if grep -q "#broken_sasl_auth_clients" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^#broken_sasl_auth_clients =.*/broken_sasl_auth_clients = yes/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #broken_sasl_auth_clients"; exit 1; }
