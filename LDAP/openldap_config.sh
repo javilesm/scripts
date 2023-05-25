@@ -26,7 +26,7 @@ function configurar_interfaces_red() {
   echo "Configurando slapd para escuchar en todas las interfaces de red..."
 
   # Abrir el archivo de configuración slapd.conf
-  sudo sed -i "s|^SLAPD_SERVICES.*|SLAPD_SERVICES="ldap:/// ldapi:/// ldaps:///"|" "$SLAP_CONFIG"  || { echo "ERROR: Hubo un problema al configurar el archivo '$SLAP_CONFIG': SLAPD_SERVICES"; exit 1; }
+  sudo sed -i "s|^SLAPD_SERVICES.*|SLAPD_SERVICES="ldap:///"|" "$SLAP_CONFIG"  || { echo "ERROR: Hubo un problema al configurar el archivo '$SLAP_CONFIG': SLAPD_SERVICES"; exit 1; }
 }
 function restart_service() {
   # Reiniciar el servicio slapd
