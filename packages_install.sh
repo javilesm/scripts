@@ -1,32 +1,38 @@
 #! /bin/bash
 # packages_install.sh
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
-PACKAGES_FILES="packages1.txt"
-PACKAGES_PATH="$CURRENT_DIR/$PACKAGES_FILE"
+
+# Definimos las listas
+lista_paquetes=(
+  "packages1.txt" 
+  "packages2.txt" 
+  "packages3.txt"
+)
 
 # Exportar la variable DEBIAN_FRONTEND para evitar problemas con debconf
 export DEBIAN_FRONTEND=noninteractive
 
-# Función para verificar si el archivo de dominios existe
-function validate_packages_file() {
-    # verificar si el archivo de dominios existe
-  echo "Verificando si el archivo de dominios existe..."
-  if [ ! -f "$PACKAGES_PATH" ]; then
-    echo "ERROR: El archivo de dominios '$PACKAGES_PATH' no se puede encontrar en la ruta '$PACKAGES_PATH'."
-    exit 1
-  fi
-  echo "El archivo de dominios '$PACKAGES_FILE' existe."
+function packages_install() {
+  # Iteramos sobre la lista de paquetes
+  for ((i = 0; i < ${#lista_paquetes[@]}; i++))
+  do
+    # Obtenemos el paquet y la acción correspondiente
+    paquet="${lista_paquetes[$i]}"
+    PACKAGES_PATH="$CURRENT_DIR/$paquet"
+    read_packages_file
+  done
 }
 # Función para leer la lista de paquetes e intentar instalar el paquete
 function read_packages_file() {
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$PACKAGES_PATH'..."
     while read -r package_item; do
-      # intentar instalar el paquete
-      echo "Intentando instalar el paquete: '$package_item'..."
+      # Imprimimos el mensaje correspondiente al paquet
+      echo "Intentando instalar el paquete '$package_item' de la lista '$PACKAGES_PATH'."
+      # Intentar instalar el paquete
       install_and_restart $package_item
     done < <(grep -v '^$' "$PACKAGES_PATH")
-    echo "Todos los paquetes han sido leidos."
+    echo "Todos los paquetes de la lista '$PACKAGES_PATH' han sido leidos."
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
@@ -73,3 +79,5 @@ function install_and_restart() {
   return 0
   sleep 5
 }
+# Función principal
+packages_install
