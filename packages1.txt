@@ -1,0 +1,4 @@
+lsb-release
+ca-certificates
+apt-transport-https
+software-properties-common
