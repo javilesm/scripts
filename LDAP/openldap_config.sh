@@ -4,27 +4,29 @@
 COMPANY="samava"
 DOMAIN="avilesworks.com"
 ADMIN_PASSWORD="1234"
-SLAP_CONFIG="/etc/ldap/slapd.conf"
+SLAP_CONFIG="/etc/ldap/ldap.conf"
+export DEBIAN_FRONTEND=noninteractive
+export SLAPD_NO_CONFIGURATION=true
 
 function configurar_openldap() {
   # Configuración inicial de OpenLDAP
   echo "Configuración inicial de OpenLDAP..."
-  
+  # Iniciar configuración inicial
+  sudo dpkg-reconfigure slapd 
+
   # Establecer respuestas para evitar el mensaje de configuración inicial y la eliminación de la base de datos
   sudo debconf-set-selections <<EOF
-slapd slapd/password1 password "$ADMIN_PASSWORD"
-slapd slapd/password2 password "$ADMIN_PASSWORD"
-slapd slapd/no_configuration boolean false
+slapd slapd/no_configuration boolean true
 slapd slapd/purge_database boolean false
 slapd slapd/move_old_database boolean true
+slapd slapd/password1 password "$ADMIN_PASSWORD"
+slapd slapd/password2 password "$ADMIN_PASSWORD"
 slapd shared/organization string "$COMPANY"
 slapd slapd/domain string "$DOMAIN"
 EOF
 
-  # Iniciar configuración inicial
-  sudo dpkg-reconfigure -f noninteractive slapd
+  
 }
-
 function configurar_interfaces_red() {
   # Configurar slapd para escuchar en todas las interfaces de red
   echo "Configurando slapd para escuchar en todas las interfaces de red..."
@@ -35,12 +37,7 @@ function configurar_interfaces_red() {
 function restart_service() {
   # Reiniciar el servicio slapd
   echo "Reiniciando el servicio slapd..."
-  sudo systemctl restart slapd
-}
-function verificar_estado() {
-  # Verificar estado del servicio
-  echo "Verificando el estado del servicio..."
-  sudo systemctl status slapd
+  sudo service slapd restart 
 }
 
 # Funcion principal
@@ -48,7 +45,6 @@ function openldap_config() {
   configurar_openldap
   configurar_interfaces_red
   restart_service
-  verificar_estado
 }
 # Llamar a la funcion principal
 openldap_config
