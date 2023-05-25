@@ -4,6 +4,7 @@
 COMPANY="samava"
 DOMAIN="avilesworks.com"
 ADMIN_PASSWORD="Mexico2023-"
+SLAP_CONFIG="/etc/ldap/slapd.conf"
 function configurar_openldap() {
   # Configuración inicial de OpenLDAP
   echo "Configuración inicial de OpenLDAP..."
@@ -20,6 +21,13 @@ EOF
   # Iniciar configuración inicial
   sudo dpkg-reconfigure -f noninteractive slapd
 }
+function configurar_interfaces_red() {
+  # Configurar slapd para escuchar en todas las interfaces de red
+  echo "Configurando slapd para escuchar en todas las interfaces de red..."
+
+  # Abrir el archivo de configuración slapd.conf
+  sudo sed -i "s|^SLAPD_SERVICES.*|SLAPD_SERVICES="ldap:/// ldapi:/// ldaps:///"|" "$SLAP_CONFIG"  || { echo "ERROR: Hubo un problema al configurar el archivo '$SLAP_CONFIG': SLAPD_SERVICES"; exit 1; }
+}
 function restart_service() {
   # Reiniciar el servicio slapd
   echo "Reiniciando el servicio slapd..."
@@ -34,6 +42,7 @@ function verificar_estado() {
 # Funcion principal
 function openldap_config() {
   configurar_openldap
+  configurar_interfaces_red
   restart_service
   verificar_estado
 }
