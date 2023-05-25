@@ -29,6 +29,17 @@ function create_cert_directory() {
         return 1
     fi
 }
+# Función para generar la llave CA
+function generate_ca_key() {
+  # generar la llave privada
+  echo "Generando la llave privada..."
+  sudo openssl genrsa -out "$CERTS_PATH/CA.key" 8192 && sudo chmod 400 "$CERTS_PATH/CA.key"
+  echo "La llave privada '$CERTS_PATH/CA.key' hasido generada."
+  #  Genera una solicitud de certificado 
+  echo "Generando una solicitud de certificado..."
+  sudo openssl req -new -x509 -nodes -key "$CERTS_PATH/CA.key" -days 3650 -out "$CERTS_PATH/CA.pem"
+  echo "El certificado '$CERTS_PATH/CA.pem' ha sido generado."
+}
 # Función para generar la llave privada y el requerimiento
 function generate_key() {
     if [ -e "$KEY_PATH" ]; then
@@ -53,46 +64,31 @@ function generate_certificate() {
     fi
     # generar el certificado
     echo "Generando el certificado..."
-    if sudo openssl x509 -signkey "$KEY_PATH" -in "$CSR_PATH" -req -days 3650 -out "$CRT_PATH"; then
+    if sudo openssl x509 -req -in "$CSR_PATH" -CA "$CERTS_PATH/CA.pem" -CAkey "$CERTS_PATH/CA.key"  -CAcreateserial -out "$CRT_PATH" -days 365; then
         echo "Se ha creado el certificado: $CRT_PATH para el dominio: ${DOMAIN}"
     else
         echo "ERROR:Error al generar el certificado '$CRT_PATH'."
         return 1
     fi
 }
-# Función para convertir el certificado
-function convert_certificate() {
-    if [ -e "$PEM_PATH" ]; then
-        echo "El certificado '$PEM_PATH' ya existe."
-        return 0
-    fi
-    # convertir el certificado
-    echo "Convirtiendo el certificado..."
-    if sudo openssl x509 -in "$CRT_PATH" -out "$PEM_PATH" -outform PEM; then
-        echo "Se ha convertido el certificado '$CRT_PATH' en: '$PEM_PATH'"
-    else
-        echo "ERROR:Error al convertir el certificado '$CRT_PATH'."
-        return 1
-    fi
-}
+
 # Función para cambiar permisos
 function change_mod() {
     # cambiar permisos
-    echo "Cambiando permisos del archivo '$KEY_PATH'..."
-    sudo chmod 400 "$KEY_PATH"
+    sudo chown -R openldap:openldap "$CERTS_PATH"
+    sudo chmod 101 "$CERTS_PATH"
+    sudo chmod 400 "$CERTS_PATH/*"
     echo "Cambiando permisos del archivo '$CRT_PATH'..."
-    sudo chmod 444 "$CRT_PATH"
-    echo "Cambiando permisos del archivo '$PEM_PATH'..."
-    sudo chmod 444 "$PEM_PATH"
+    sudo chmod 404 "$CERTS_PATH/CA.pem"
     echo "Los permisos fueron cambiados."
 }
 # Función principal
 function generate_certs() {
     echo "******************GENERATE CERTS******************"
     create_cert_directory
+    generate_ca_key
     generate_key
     generate_certificate
-    convert_certificate
     change_mod
     echo "******************ALL DONE******************"
 }
