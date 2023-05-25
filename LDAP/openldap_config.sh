@@ -3,17 +3,20 @@
 # Variables
 COMPANY="samava"
 DOMAIN="avilesworks.com"
-ADMIN_PASSWORD="Mexico2023-"
+ADMIN_PASSWORD="1234"
 SLAP_CONFIG="/etc/ldap/slapd.conf"
+
 function configurar_openldap() {
   # Configuración inicial de OpenLDAP
   echo "Configuración inicial de OpenLDAP..."
-  sudo dpkg-reconfigure slapd
-
-  # Respuestas a las preguntas del asistente de configuración
+  
+  # Establecer respuestas para evitar el mensaje de configuración inicial y la eliminación de la base de datos
   sudo debconf-set-selections <<EOF
 slapd slapd/password1 password "$ADMIN_PASSWORD"
 slapd slapd/password2 password "$ADMIN_PASSWORD"
+slapd slapd/no_configuration boolean false
+slapd slapd/purge_database boolean false
+slapd slapd/move_old_database boolean true
 slapd shared/organization string "$COMPANY"
 slapd slapd/domain string "$DOMAIN"
 EOF
@@ -21,6 +24,7 @@ EOF
   # Iniciar configuración inicial
   sudo dpkg-reconfigure -f noninteractive slapd
 }
+
 function configurar_interfaces_red() {
   # Configurar slapd para escuchar en todas las interfaces de red
   echo "Configurando slapd para escuchar en todas las interfaces de red..."
