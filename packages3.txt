@@ -3,8 +3,6 @@ clamav-daemon
 sqlite3
 libsqlite3-dev
 mysql-server
-mailutils
-libmailutils-dev
 python3-certbot-nginx
 slapd
 ldap-utils
