@@ -11,6 +11,8 @@ export SLAPD_NO_CONFIGURATION=true
 function instalar_openldap() {
   # Instalar OpenLDAP
   echo "Instalando OpenLDAP..."
+  echo "slapd slapd/no_configuration seen true" | sudo debconf-set-selections
+  sudo apt-get update
   sudo apt-get install -y slapd ldap-utils
 
   # Establecer contraseña de administrador
@@ -46,6 +48,7 @@ EOF
   restart_service
 }
 
+
 function configurar_interfaces_red() {
   # Configurar slapd para escuchar en todas las interfaces de red
   echo "Configurando slapd para escuchar en todas las interfaces de red..."
@@ -67,7 +70,7 @@ function restart_service() {
 
 # Funcion principal
 function openldap_config() {
-  configurar_openldap
+  instalar_openldap
   configurar_interfaces_red
   restart_service
 }
