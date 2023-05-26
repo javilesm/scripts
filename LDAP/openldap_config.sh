@@ -5,6 +5,7 @@ COMPANY="samava"
 DOMAIN="avilesworks.com"
 ADMIN_PASSWORD="1234"
 SLAP_CONFIG="/etc/default/slapd"
+ADMIN_FILE="/etc/ldap/slapd.d/admin.ldif"
 export DEBIAN_FRONTEND=noninteractive
 export SLAPD_NO_CONFIGURATION=true
 
@@ -17,37 +18,40 @@ function instalar_openldap() {
 
   # Establecer contraseña de administrador
   echo "Configurando contraseña de administrador..."
-  echo "cn=admin,$COMPANY" > admin.ldif
-  echo "dn: cn=admin,$COMPANY" >> admin.ldif
-  echo "objectClass: simpleSecurityObject" >> admin.ldif
-  echo "objectClass: organizationalRole" >> admin.ldif
-  echo "userPassword: $(slappasswd -s $ADMIN_PASSWORD)" >> admin.ldif
-  echo "cn: admin" >> admin.ldif
-  sudo ldapadd -x -D cn=admin,cn=config -W -f admin.ldif
-  rm admin.ldif
-
-  # Configurar dominio y organización
-  echo "Configurando dominio y organización..."
-  sudo ldapmodify -Y EXTERNAL -H ldapi:/// <<EOF
-dn: olcDatabase={1}mdb,cn=config
-changetype: modify
-replace: olcSuffix
-olcSuffix: dc=$DOMAIN
--
-replace: olcRootDN
-olcRootDN: cn=admin,dc=$DOMAIN
--
-add: olcRootPW
-olcRootPW: $(slappasswd -s $ADMIN_PASSWORD)
--
-replace: olcAccess
-olcAccess: {0}to * by * read
-EOF
-
-  # Reiniciar el servicio slapd
-  restart_service
+  echo "cn=admin,$COMPANY" > "$ADMIN_FILE"
+  echo "dn: cn=admin,$COMPANY" >> "$ADMIN_FILE"
+  echo "objectClass: simpleSecurityObject" >> "$ADMIN_FILE"
+  echo "objectClass: organizationalRole" >> "$ADMIN_FILE"
+  echo "userPassword: $(slappasswd -s $ADMIN_PASSWORD)" >> "$ADMIN_FILE"
+  echo "cn: admin" >> "$ADMIN_FILE"
+  sudo ldapadd -x -D cn=admin,cn=config -W -f "$ADMIN_FILE"
+  sudo rm "$ADMIN_FILE"
+  # Iniciar el servicio slapd
+  iniciar_servicio_ldap
 }
+function configurar_openldap() {
+  # Configuración inicial de OpenLDAP
+  echo "Configuración inicial de OpenLDAP..."
+  # Iniciar configuración inicial
+  sudo dpkg-reconfigure slapd
 
+  # Establecer respuestas para evitar el mensaje de configuración inicial y la eliminación de la base de datos
+  sudo debconf-set-selections <<EOF
+slapd slapd/no_configuration boolean true
+slapd slapd/purge_database boolean false
+slapd slapd/move_old_database boolean true
+slapd slapd/password1 password $ADMIN_PASSWORD
+slapd slapd/password2 password $ADMIN_PASSWORD
+slapd shared/organization string $COMPANY
+slapd slapd/domain string $DOMAIN
+EOF
+ 
+}
+function iniciar_servicio_ldap() {
+  # Iniciar el servicio slapd
+  echo "Iniciando el servicio slapd..."
+  sudo service slapd start
+}
 
 function configurar_interfaces_red() {
   # Configurar slapd para escuchar en todas las interfaces de red
@@ -71,7 +75,8 @@ function restart_service() {
 # Funcion principal
 function openldap_config() {
   instalar_openldap
-  configurar_interfaces_red
+  #configurar_openldap
+  #configurar_interfaces_red
   restart_service
 }
 # Llamar a la funcion principal
