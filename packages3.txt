@@ -4,8 +4,6 @@ sqlite3
 libsqlite3-dev
 mysql-server
 python3-certbot-nginx
-slapd
-ldap-utils
 transmission-gtk 
 transmission-cli 
 transmission-common 
