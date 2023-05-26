@@ -4,7 +4,7 @@
 COMPANY="samava"
 DOMAIN="avilesworks.com"
 ADMIN_PASSWORD="1234"
-SLAP_CONFIG="/etc/ldap/ldap.conf"
+SLAP_CONFIG="/etc/default/slapd"
 export DEBIAN_FRONTEND=noninteractive
 export SLAPD_NO_CONFIGURATION=true
 
