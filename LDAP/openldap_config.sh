@@ -8,24 +8,44 @@ SLAP_CONFIG="/etc/default/slapd"
 export DEBIAN_FRONTEND=noninteractive
 export SLAPD_NO_CONFIGURATION=true
 
-function configurar_openldap() {
-  # Configuración inicial de OpenLDAP
-  echo "Configuración inicial de OpenLDAP..."
-  # Iniciar configuración inicial
-  sudo dpkg-reconfigure slapd
+function instalar_openldap() {
+  # Instalar OpenLDAP
+  echo "Instalando OpenLDAP..."
+  sudo apt-get install -y slapd ldap-utils
 
-  # Establecer respuestas para evitar el mensaje de configuración inicial y la eliminación de la base de datos
-  sudo debconf-set-selections <<EOF
-slapd slapd/no_configuration boolean true
-slapd slapd/purge_database boolean false
-slapd slapd/move_old_database boolean true
-slapd slapd/password1 password $ADMIN_PASSWORD
-slapd slapd/password2 password $ADMIN_PASSWORD
-slapd shared/organization string $COMPANY
-slapd slapd/domain string $DOMAIN
+  # Establecer contraseña de administrador
+  echo "Configurando contraseña de administrador..."
+  echo "cn=admin,$COMPANY" > admin.ldif
+  echo "dn: cn=admin,$COMPANY" >> admin.ldif
+  echo "objectClass: simpleSecurityObject" >> admin.ldif
+  echo "objectClass: organizationalRole" >> admin.ldif
+  echo "userPassword: $(slappasswd -s $ADMIN_PASSWORD)" >> admin.ldif
+  echo "cn: admin" >> admin.ldif
+  sudo ldapadd -x -D cn=admin,cn=config -W -f admin.ldif
+  rm admin.ldif
+
+  # Configurar dominio y organización
+  echo "Configurando dominio y organización..."
+  sudo ldapmodify -Y EXTERNAL -H ldapi:/// <<EOF
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcSuffix
+olcSuffix: dc=$DOMAIN
+-
+replace: olcRootDN
+olcRootDN: cn=admin,dc=$DOMAIN
+-
+add: olcRootPW
+olcRootPW: $(slappasswd -s $ADMIN_PASSWORD)
+-
+replace: olcAccess
+olcAccess: {0}to * by * read
 EOF
- 
+
+  # Reiniciar el servicio slapd
+  restart_service
 }
+
 function configurar_interfaces_red() {
   # Configurar slapd para escuchar en todas las interfaces de red
   echo "Configurando slapd para escuchar en todas las interfaces de red..."
@@ -38,6 +58,7 @@ function configurar_interfaces_red() {
     echo "SLAPD_SERVICES="ldap:///"" >> "$SLAP_CONFIG"
   fi
 }
+
 function restart_service() {
   # Reiniciar el servicio slapd
   echo "Reiniciando el servicio slapd..."
