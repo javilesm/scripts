@@ -2,15 +2,16 @@
 # generate_certs.sh
 # Variables
 DOMAIN="avilesworks.com"
+NAME="samava"
 CERTS_PATH="/etc/dovecot/certs"
-KEY_FILE="samava"
-CSR_FILE="samava"
-CRT_FILE="samava"
-PEM_FILE="samava"
-KEY_PATH="$CERTS_PATH/$KEY_FILE.key"
-CSR_PATH="$CERTS_PATH/$CSR_FILE.csr"
-CRT_PATH="$CERTS_PATH/$CRT_FILE.crt"
-PEM_PATH="$CERTS_PATH/$PEM_FILE.pem"
+KEY_FILE="$NAME.key"
+CSR_FILE="$NAME.csr"
+CRT_FILE="$NAME.crt"
+PEM_FILE="$NAME.pem"
+KEY_PATH="$CERTS_PATH/$KEY_FILE"
+CSR_PATH="$CERTS_PATH/$CSR_FILE"
+CRT_PATH="$CERTS_PATH/$CRT_FILE"
+PEM_PATH="$CERTS_PATH/$PEM_FILE"
 
 # Función para crear el directorio para almacenar los certificados
 function create_cert_directory() {
