@@ -12,27 +12,31 @@ function configurar_openldap() {
   # Configuración inicial de OpenLDAP
   echo "Configuración inicial de OpenLDAP..."
   # Iniciar configuración inicial
-  sudo dpkg-reconfigure slapd 
+  sudo dpkg-reconfigure slapd
 
   # Establecer respuestas para evitar el mensaje de configuración inicial y la eliminación de la base de datos
   sudo debconf-set-selections <<EOF
 slapd slapd/no_configuration boolean true
 slapd slapd/purge_database boolean false
 slapd slapd/move_old_database boolean true
-slapd slapd/password1 password "$ADMIN_PASSWORD"
-slapd slapd/password2 password "$ADMIN_PASSWORD"
-slapd shared/organization string "$COMPANY"
-slapd slapd/domain string "$DOMAIN"
+slapd slapd/password1 password $ADMIN_PASSWORD
+slapd slapd/password2 password $ADMIN_PASSWORD
+slapd shared/organization string $COMPANY
+slapd slapd/domain string $DOMAIN
 EOF
-
-  
+ 
 }
 function configurar_interfaces_red() {
   # Configurar slapd para escuchar en todas las interfaces de red
   echo "Configurando slapd para escuchar en todas las interfaces de red..."
-
-  # Abrir el archivo de configuración slapd.conf
-  sudo sed -i "s|^SLAPD_SERVICES.*|SLAPD_SERVICES="ldap:///"|" "$SLAP_CONFIG"  || { echo "ERROR: Hubo un problema al configurar el archivo '$SLAP_CONFIG': SLAPD_SERVICES"; exit 1; }
+   #SLAPD_SERVICES
+  if grep -q "#SLAPD_SERVICES" "$SLAP_CONFIG"; then
+    sudo sed -i "s|^#SLAPD_SERVICES.*|SLAPD_SERVICES="ldap:///"|" "$SLAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$SLAP_CONFIG': #SLAPD_SERVICES"; exit 1; }
+  elif grep -q "SLAPD_SERVICES" "$SLAP_CONFIG"; then
+    sudo sed -i "s|^SLAPD_SERVICES.*|SLAPD_SERVICES="ldap:///"|" "$SLAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$SLAP_CONFIG': SLAPD_SERVICES"; exit 1; }
+  else
+    echo "SLAPD_SERVICES="ldap:///"" >> "$SLAP_CONFIG"
+  fi
 }
 function restart_service() {
   # Reiniciar el servicio slapd
