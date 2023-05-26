@@ -29,30 +29,16 @@ function create_cert_directory() {
         return 1
     fi
 }
-# Función para generar la llave privada
+# Función para generar la llave CA
 function generate_ca_key() {
   # generar la llave privada
   echo "Generando la llave privada..."
-  if sudo openssl genrsa -out "$CERTS_PATH/CA.key" 8192; then
-     echo "Se ha generado la llave '$CERTS_PATH/CA.key'"
-  else
-     echo "ERROR:Error al generar la llave '$CERTS_PATH/CA.key'."
-     return 1
-  fi
-  # cambiar permisos de la llave privada
-  echo "Cambiando permisos de la llave privada..."
-  sudo chmod 400 "$CERTS_PATH/CA.key"
-}
-# Función para generar la llave privada
-function generate_ca_pem() {
+  sudo openssl genrsa -out "$CERTS_PATH/CA.key" 8192 && sudo chmod 400 "$CERTS_PATH/CA.key"
+  echo "La llave privada '$CERTS_PATH/CA.key' hasido generada."
   #  Genera una solicitud de certificado 
   echo "Generando una solicitud de certificado..."
-  if sudo openssl req -new -x509 -nodes -key "$CERTS_PATH/CA.key" -days 3650 -out "$CERTS_PATH/CA.pem"; then
-     echo "El certificado '$CERTS_PATH/CA.pem' ha sido generado."
-  else
-     echo "ERROR:Error al generar el certificado '$CERTS_PATH/CA.pem."
-     return 1
-  fi  
+  sudo openssl req -new -x509 -nodes -key "$CERTS_PATH/CA.key" -days 3650 -out "$CERTS_PATH/CA.pem" -subj "/CN=${DOMAIN}"
+  echo "El certificado '$CERTS_PATH/CA.pem' ha sido generado."
 }
 # Función para generar la llave privada y el requerimiento
 function generate_key() {
@@ -91,7 +77,7 @@ function change_mod() {
     # cambiar permisos
     sudo chown -R openldap:openldap "$CERTS_PATH"
     sudo chmod 101 "$CERTS_PATH"
-    sudo chmod 400 "$CERTS_PATH/*"
+    sudo chmod -R 400 "$CERTS_PATH"
     echo "Cambiando permisos del archivo '$CRT_PATH'..."
     sudo chmod 404 "$CERTS_PATH/CA.pem"
     echo "Los permisos fueron cambiados."
@@ -101,7 +87,6 @@ function generate_certs() {
     echo "******************GENERATE CERTS******************"
     create_cert_directory
     generate_ca_key
-    generate_ca_pem
     generate_key
     generate_certificate
     change_mod
