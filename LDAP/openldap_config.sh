@@ -24,13 +24,27 @@ LDAP_CONFIG="/etc/ldap/ldap.conf"
 ADMIN_FILE="/etc/ldap/slapd.d/admin.ldif"
 export DEBIAN_FRONTEND=noninteractive
 export SLAPD_NO_CONFIGURATION=true
-
-function instalar_openldap() {
+# Funciones
+function install_slapd() {
   # Instalar OpenLDAP
   echo "Instalando OpenLDAP..."
   echo "slapd slapd/no_configuration seen true" | sudo debconf-set-selections
-  sudo apt-get update
-  sudo apt-get install -y slapd ldap-utils phpldapadmin
+  sudo apt-get install -y slapd
+
+  # Verificar si la instalación fue exitosa
+  if [ $? -ne 0 ]; then
+    echo "Error: La instalación de OpenLDAP ha fallado."
+    return 1
+  fi
+
+  # Iniciar el servicio slapd
+  iniciar_servicio_ldap
+
+  # Verificar si el servicio se ha iniciado correctamente
+  if [ $? -ne 0 ]; then
+    echo "Error: No se pudo iniciar el servicio slapd."
+    return 1
+  fi
 
   # Establecer contraseña de administrador
   echo "Configurando contraseña de administrador..."
@@ -40,24 +54,72 @@ function instalar_openldap() {
   echo "objectClass: organizationalRole" >> "$ADMIN_FILE"
   echo "userPassword: $(slappasswd -s $ADMIN_PASSWORD)" >> "$ADMIN_FILE"
   echo "cn: admin" >> "$ADMIN_FILE"
+
+  # Agregar la entrada del administrador
+  echo "Agregando plantilla desde '$ADMIN_FILE'..."
   sudo ldapadd -x -D cn=admin,cn=config -W -f "$ADMIN_FILE"
+
+  # Verificar si la adición de la entrada del administrador fue exitosa
+  if [ $? -ne 0 ]; then
+    echo "Error: No se pudo agregar la entrada del administrador."
+    sudo rm "$ADMIN_FILE"
+    return 1
+  fi
+
+  # Eliminar el archivo temporal del administrador
   sudo rm "$ADMIN_FILE"
-  # Iniciar el servicio slapd
-  iniciar_servicio_ldap
+
+  echo "OpenLDAP se ha instalado y configurado correctamente."
+  return 0
 }
+
+function install_ldap-utils() {
+  # Instalar LDAPutils
+  echo "Instalando LDAPutils..."
+  sudo apt-get install -y ldap-utils
+
+  # Verificar si la instalación fue exitosa
+  if [ $? -ne 0 ]; then
+    echo "Error: La instalación de LDAPutils ha fallado."
+    return 1
+  fi
+
+  echo "LDAPutils se ha instalado correctamente."
+  return 0
+}
+
 function add_templates() {
-    sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/cosine.ldif
-    sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/nis.ldif
-    sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/inetorgperson.ldif
-    sudo ldapadd -Y EXTERNAL -H ldapi:/// -f "$SLAPD_CONFIG_PATH"
-    sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_LOGLEVEL_PATH"
-    sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_SUFFIX_PATH"
-    sudo ldapmodify -x -W -D cn=admin,dc=ldap,dc=avilesworks,dc=com -H ldapi:/// -f "$SETUP_BASIC_PATH"
-    sudo ldapadd -C -X -D cn=admin,dc=ldap,dc=avilesworks,dc=com -W -f "$SLAPD_USERS_PATH"
-    #sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$SETUP_ROOT_PATH"
-    sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_TLS_PATH"
-   
-    
+  echo "Agregando plantilla desde '/etc/ldap/schema/cosine.ldif'..."
+  sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/cosine.ldif || { echo "Error: No se pudo agregar la plantilla 'cosine.ldif'."; return 1; }
+
+  echo "Agregando plantilla desde '/etc/ldap/schema/nis.ldif'..."
+  sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/nis.ldif || { echo "Error: No se pudo agregar la plantilla 'nis.ldif'."; return 1; }
+
+  echo "Agregando plantilla desde '/etc/ldap/schema/inetorgperson.ldif'..."
+  sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/inetorgperson.ldif || { echo "Error: No se pudo agregar la plantilla 'inetorgperson.ldif'."; return 1; }
+
+  echo "Agregando plantilla desde '$SLAPD_CONFIG_PATH'..."
+  sudo ldapadd -Y EXTERNAL -H ldapi:/// -f "$SLAPD_CONFIG_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_CONFIG_PATH'."; return 1; }
+
+  echo "Modificando '$CONFIG_LOGLEVEL_PATH'..."
+  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_LOGLEVEL_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_LOGLEVEL_PATH'."; return 1; }
+
+  echo "Modificando '$CONFIG_SUFFIX_PATH'..."
+  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_SUFFIX_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_SUFFIX_PATH'."; return 1; }
+
+  echo "Modificando '$SETUP_BASIC_PATH'..."
+  sudo ldapmodify -x -W -D cn=admin,dc=ldap,dc=avilesworks,dc=com -H ldapi:/// -f "$SETUP_BASIC_PATH" || { echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."; return 1; }
+
+  echo "Agregando plantilla desde '$SLAPD_USERS_PATH'..."
+  sudo ldapadd -C -X -D cn=admin,dc=ldap,dc=avilesworks,dc=com -W -f "$SLAPD_USERS_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_USERS_PATH'."; return 1; }
+
+  #sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$SETUP_ROOT_PATH"
+  
+  echo "Modificando '$CONFIG_TLS_PATH'..."
+  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_TLS_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_TLS_PATH'."; return 1; }
+
+  echo "Las plantillas y configuraciones se han agregado correctamente."
+  return 0
 }
 
 function enable_tls() {
@@ -91,10 +153,20 @@ slapd slapd/domain string $DOMAIN
 EOF
  
 }
+
 function iniciar_servicio_ldap() {
   # Iniciar el servicio slapd
   echo "Iniciando el servicio slapd..."
   sudo service slapd start
+
+  # Verificar si el inicio del servicio fue exitoso
+  if [ $? -ne 0 ]; then
+    echo "Error: No se pudo iniciar el servicio slapd."
+    return 1
+  fi
+
+  echo "El servicio slapd se ha iniciado correctamente."
+  return 0
 }
 
 function configurar_interfaces_red() {
@@ -113,25 +185,60 @@ function configurar_interfaces_red() {
 function add_host_config() {
     # Agregar al archivo /etc/hosts el dominio del servidor
     echo "Agregando al archivo '/etc/hosts' el dominio del servidor..."
-    sudo sed -i.bak "$ a\127.0.0.1 ldap.$DOMAIN" /etc/hosts || { echo "ERROR: Hubo un problema al configurar el archivo '/etc/hosts': 127.0.0.1 ldap.$DOMAIN"; exit 1; }
+    sudo sed -i.bak "$ a\127.0.0.1 ldap.$DOMAIN" /etc/hosts || { echo "ERROR: Hubo un problema al configurar el archivo '/etc/hosts': 127.0.0.1 ldap.$DOMAIN"; return 1; }
+    
+    # Verificar si la modificación del archivo /etc/hosts fue exitosa
+    if [ $? -ne 0 ]; then
+        echo "Error: No se pudo agregar el dominio del servidor al archivo '/etc/hosts'."
+        return 1
+    fi
+    
+    echo "El dominio del servidor se ha agregado correctamente al archivo '/etc/hosts'."
+    return 0
 }
 
 function restart_service() {
   # Reiniciar el servicio slapd
   echo "Reiniciando el servicio slapd..."
-  sudo service slapd restart 
+  sudo service slapd restart
+
+  # Verificar si el reinicio del servicio fue exitoso
+  if [ $? -ne 0 ]; then
+    echo "Error: No se pudo reiniciar el servicio slapd."
+    return 1
+  fi
+
+  echo "El servicio slapd se ha reiniciado correctamente."
+  return 0
+}
+
+function install_phpldapadmin() {
+  # Instalar phpldapadmin
+  echo "Instalando phpldapadmin..."
+  sudo apt-get install -y phpldapadmin
+
+  # Verificar si la instalación fue exitosa
+  if [ $? -ne 0 ]; then
+    echo "Error: La instalación de phpldapadmin ha fallado."
+    return 1
+  fi
+
+  echo "phpldapadmin se ha instalado correctamente."
+  return 0
 }
 
 # Funcion principal
 function openldap_config() {
-  instalar_openldap
+  install_slapd
+  install_ldap-utils
   add_templates
   enable_tls
   stop_processes_using_hosts
   add_host_config
-  configurar_openldap
+  #configurar_openldap
   configurar_interfaces_red
   restart_service
+  install_phpldapadmin
 }
 # Llamar a la funcion principal
 openldap_config
