@@ -36,7 +36,61 @@ function install_slapd() {
     echo "Error: La instalación de OpenLDAP ha fallado."
     return 1
   fi
+  echo "OpenLDAP se ha instalado correctamente."
+}
 
+function configurar_slapd() {
+  # Configuración inicial de OpenLDAP
+  echo "Configuración inicial de OpenLDAP..."
+  # Iniciar configuración inicial
+  sudo dpkg-reconfigure slapd
+
+  # Establecer respuestas para evitar el mensaje de configuración inicial y la eliminación de la base de datos
+  sudo debconf-set-selections <<EOF
+slapd slapd/no_configuration boolean true
+slapd slapd/purge_database boolean true
+slapd slapd/move_old_database boolean true
+slapd slapd/password1 password $ADMIN_PASSWORD
+slapd slapd/password2 password $ADMIN_PASSWORD
+slapd shared/organization string $COMPANY
+slapd slapd/domain string $DOMAIN
+EOF
+ 
+}
+function update_ldap_conf() {
+  # Actualizar parametro BASE
+  echo "Actualizando parametro BASE..."
+   #BASE
+  if grep -q "#BASE" "$LDAP_CONFIG"; then
+    sudo sed -i "s|^#BASE*|BASE dc=avilesworks,dc=com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #BASE"; exit 1; }
+  elif grep -q "BASE" "$SLAP_CONFIG"; then
+    sudo sed -i "s|^BASE.*|BASE dc=avilesworks,dc=com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': BASE"; exit 1; }
+  else
+    echo "BASE dc=avilesworks,dc=com" >> "$LDAP_CONFIG"
+  fi
+    # Actualizar parametro URI
+  echo "Actualizando parametro URI..."
+   #URI
+  if grep -q "#URI" "$LDAP_CONFIG"; then
+    sudo sed -i "s|^#URI*|URI ldap://ldap.avilesworks.com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #URI"; exit 1; }
+  elif grep -q "URI" "$SLAP_CONFIG"; then
+    sudo sed -i "s|^URI.*|URI ldap://ldap.avilesworks.com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': URI"; exit 1; }
+  else
+    echo "URI ldap://ldap.avilesworks.com" >> "$LDAP_CONFIG"
+  fi
+  # Actualizar parametro TLS_CACERT
+  echo "Actualizando parametro TLS_CACERT..."
+   #TLS_CACERT
+  if grep -q "#TLS_CACERT" "$LDAP_CONFIG"; then
+    sudo sed -i "s|^#TLS_CACERT*|TLS_CACERT /etc/ldap/tls/CA.pem|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #TLS_CACERT"; exit 1; }
+  elif grep -q "TLS_CACERT" "$SLAP_CONFIG"; then
+    sudo sed -i "s|^TLS_CACERT.*|TLS_CACERT /etc/ldap/tls/CA.pem|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': TLS_CACERT"; exit 1; }
+  else
+    echo "TLS_CACERT  /etc/ldap/tls/CA.pem" >> "$LDAP_CONFIG"
+  fi
+}
+
+function setup_slapd() {
   # Iniciar el servicio slapd
   iniciar_servicio_ldap
 
@@ -69,7 +123,7 @@ function install_slapd() {
   # Eliminar el archivo temporal del administrador
   sudo rm "$ADMIN_FILE"
 
-  echo "OpenLDAP se ha instalado y configurado correctamente."
+  echo "OpenLDAP se ha configurado correctamente."
   return 0
 }
 
@@ -108,10 +162,10 @@ function add_templates() {
   sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_SUFFIX_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_SUFFIX_PATH'."; return 1; }
 
   echo "Modificando '$SETUP_BASIC_PATH'..."
-  sudo ldapmodify -x -W -D cn=admin,dc=ldap,dc=avilesworks,dc=com -H ldapi:/// -f "$SETUP_BASIC_PATH" || { echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."; return 1; }
+  sudo ldapmodify -x -W -D cn=admin,dc=avilesworks,dc=com -H ldapi:/// -f "$SETUP_BASIC_PATH" || { echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."; return 1; }
 
   echo "Agregando plantilla desde '$SLAPD_USERS_PATH'..."
-  sudo ldapadd -C -X -D cn=admin,dc=ldap,dc=avilesworks,dc=com -W -f "$SLAPD_USERS_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_USERS_PATH'."; return 1; }
+  sudo ldapadd -C -X -D cn=admin,dc=avilesworks,dc=com -W -f "$SLAPD_USERS_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_USERS_PATH'."; return 1; }
 
   #sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$SETUP_ROOT_PATH"
   
@@ -120,38 +174,6 @@ function add_templates() {
 
   echo "Las plantillas y configuraciones se han agregado correctamente."
   return 0
-}
-
-function enable_tls() {
-  # Habilitar la autenticacion TLS
-  echo "Habilitando la autenticacion TLS..."
-   #TLS_CACERT
-  if grep -q "#TLS_CACERT" "$LDAP_CONFIG"; then
-    sudo sed -i "s|^#TLS_CACERT*|TLS_CACERT /etc/ldap/tls/CA.pem|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #TLS_CACERT"; exit 1; }
-  elif grep -q "TLS_CACERT" "$SLAP_CONFIG"; then
-    sudo sed -i "s|^TLS_CACERT.*|TLS_CACERT /etc/ldap/tls/CA.pem|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': TLS_CACERT"; exit 1; }
-  else
-    echo "TLS_CACERT /etc/ldap/tls/CA.pem" >> "$LDAP_CONFIG"
-  fi
-}
-
-function configurar_openldap() {
-  # Configuración inicial de OpenLDAP
-  echo "Configuración inicial de OpenLDAP..."
-  # Iniciar configuración inicial
-  sudo dpkg-reconfigure slapd
-
-  # Establecer respuestas para evitar el mensaje de configuración inicial y la eliminación de la base de datos
-  sudo debconf-set-selections <<EOF
-slapd slapd/no_configuration boolean true
-slapd slapd/purge_database boolean false
-slapd slapd/move_old_database boolean true
-slapd slapd/password1 password $ADMIN_PASSWORD
-slapd slapd/password2 password $ADMIN_PASSWORD
-slapd shared/organization string $COMPANY
-slapd slapd/domain string $DOMAIN
-EOF
- 
 }
 
 function iniciar_servicio_ldap() {
@@ -230,12 +252,13 @@ function install_phpldapadmin() {
 # Funcion principal
 function openldap_config() {
   install_slapd
+  configurar_slapd
+  update_ldap_conf
+  setup_slapd
   install_ldap-utils
   add_templates
-  enable_tls
-  stop_processes_using_hosts
+  #stop_processes_using_hosts
   add_host_config
-  #configurar_openldap
   configurar_interfaces_red
   restart_service
   install_phpldapadmin
