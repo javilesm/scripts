@@ -1,4 +1,4 @@
-dn: cn=Jorge,ou=users,dc=ldap,dc=avilesworks,dc=com
+dn: cn=Jorge,ou=users,dc=avilesworks,dc=com
 objectClass: inetOrgPerson
 objectClass: organizationalPerson
 objectClass: person
