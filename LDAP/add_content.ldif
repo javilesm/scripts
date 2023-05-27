@@ -1,0 +1,52 @@
+dn: ou=People,dc=avilesworks,dc=com
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Groups,dc=avilesworks,dc=com
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=Finance,ou=Groups,dc=avilesworks,dc=com
+objectClass: posixGroup
+cn: Finance
+gidNumber: 6000
+
+dn: cn=Marketing,ou=Groups,dc=avilesworks,dc=com
+objectClass: posixGroup
+cn: Marketing
+gidNumber: 7000
+
+dn: cn=Operations,ou=Groups,dc=avilesworks,dc=com
+objectClass: posixGroup
+cn: Operations
+gidNumber: 8000
+
+dn: uid=sam,ou=People,dc=avilesworks,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: sam
+sn: Aviles
+givenName: Sam
+cn: Sam Aviles
+uidNumber: 6001
+gidNumber: 6000
+userPassword: {PLAIN}sam123
+gecos: Sam Aviles
+loginShell: /bin/bash
+homeDirectory: /home/sam
+
+dn: uid=jorge,ou=People,dc=avilesworks,dc=com
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: jorge
+sn: Aviles
+givenName: Sam
+cn: Jorge Aviles
+uidNumber: 7001
+gidNumber: 7000
+userPassword: {PLAIN}jorge123
+gecos: Jorge Aviles
+loginShell: /bin/bash
+homeDirectory: /home/jorge
