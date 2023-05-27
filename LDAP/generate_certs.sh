@@ -2,7 +2,7 @@
 # generate_certs.sh
 # Variables
 DOMAIN="avilesworks.com"
-NAME="samava_ldap"
+NAME="device"
 CERTS_PATH="/etc/ldap/tls"
 KEY_FILE="$NAME.key"
 CSR_FILE="$NAME.csr"
