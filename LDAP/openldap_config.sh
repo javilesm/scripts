@@ -109,11 +109,13 @@ function configurar_interfaces_red() {
     echo "SLAPD_SERVICES="ldap:///"" >> "$SLAP_CONFIG"
   fi
 }
+
 function add_host_config() {
     # Agregar al archivo /etc/hosts el dominio del servidor
     echo "Agregando al archivo '/etc/hosts' el dominio del servidor..."
-    sudo sed -i "$ a\127.0.0.1 ldap.$DOMAIN" /etc/hosts || { echo "ERROR: Hubo un problema al configurar el archivo '/etc/hosts': 127.0.0.1 ldap.$DOMAIN"; exit 1; }
+    sudo sed -i.bak "$ a\127.0.0.1 ldap.$DOMAIN" /etc/hosts || { echo "ERROR: Hubo un problema al configurar el archivo '/etc/hosts': 127.0.0.1 ldap.$DOMAIN"; exit 1; }
 }
+
 function restart_service() {
   # Reiniciar el servicio slapd
   echo "Reiniciando el servicio slapd..."
@@ -125,9 +127,10 @@ function openldap_config() {
   instalar_openldap
   add_templates
   enable_tls
+  stop_processes_using_hosts
   add_host_config
-  #configurar_openldap
-  #configurar_interfaces_red
+  configurar_openldap
+  configurar_interfaces_red
   restart_service
 }
 # Llamar a la funcion principal
