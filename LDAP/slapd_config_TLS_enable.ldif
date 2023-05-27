@@ -1,0 +1,10 @@
+dn: cn=config
+changetype: modify
+add: olcTLSCACertificateFile
+olcTLSCACertificateFile: /etc/ldap/tls/CA.pem
+-
+add: olcTLSCertificateFile
+olcTLSCertificateFile: /etc/ldap/tls/device.crt
+-
+add: olcTLSCertificateKeyFile
+olcTLSCertificateKeyFile: /etc/ldap/tls/device.key
