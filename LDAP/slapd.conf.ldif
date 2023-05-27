@@ -45,7 +45,7 @@ olcAccess: {1}to dn.base="" by * read
 olcAccess: {2}to * by * read
 olcLastMod: TRUE
 olcRootDN: cn=admin,dc=avilesworks,dc=.com
-olcRootPW: {SSHA}y+w7CuWvn8HzCOyHk34p79nOzBiO3pTV
+olcRootPW: {PLAIN}1234
 olcDbCheckpoint: 512 30
 olcDbIndex: objectClass eq
 olcDbIndex: cn,uid eq
