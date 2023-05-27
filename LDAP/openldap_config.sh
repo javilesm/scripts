@@ -4,7 +4,7 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 SLAPD_CONFIG_FILE="slapd.conf.ldif"
 SLAPD_CONFIG_PATH="$CURRENT_DIR/$SLAPD_CONFIG_FILE"
-SLAPD_USERS_FILE="users.ldif"
+SLAPD_USERS_FILE="add_content.ldif"
 SLAPD_USERS_PATH="$CURRENT_DIR/$SLAPD_USERS_FILE"
 CONFIG_LOGLEVEL_FILE="slapd_config_loglevel.ldif"
 CONFIG_LOGLEVEL_PATH="$CURRENT_DIR/$CONFIG_LOGLEVEL_FILE"
@@ -165,7 +165,7 @@ function add_templates() {
   sudo ldapmodify -x -W -D cn=admin,dc=avilesworks,dc=com -H ldapi:/// -f "$SETUP_BASIC_PATH" || { echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."; return 1; }
 
   echo "Agregando plantilla desde '$SLAPD_USERS_PATH'..."
-  sudo ldapadd -C -X -D cn=admin,dc=avilesworks,dc=com -W -f "$SLAPD_USERS_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_USERS_PATH'."; return 1; }
+  sudo ldapadd -x -D cn=admin,dc=avilesworks,dc=com -W -f "$SLAPD_USERS_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_USERS_PATH'."; return 1; }
 
   #sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$SETUP_ROOT_PATH"
   
