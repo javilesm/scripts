@@ -1,0 +1,22 @@
+dn: ou=People,dc=avilesworks,dc=com
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Groups,dc=avilesworks,dc=com
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=Finance,ou=Groups,dc=avilesworks,dc=com
+objectClass: posixGroup
+cn: Finance
+gidNumber: 6000
+
+dn: cn=Marketing,ou=Groups,dc=avilesworks,dc=com
+objectClass: posixGroup
+cn: Marketing
+gidNumber: 7000
+
+dn: cn=Operations,ou=Groups,dc=avilesworks,dc=com
+objectClass: posixGroup
+cn: Operations
+gidNumber: 6000
