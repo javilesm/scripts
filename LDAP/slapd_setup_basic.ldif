@@ -1,0 +1,15 @@
+dn: dc=ldap,dc=avilesworks,dc=com
+changetype: add
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: samava
+dc: your
+
+dn: cn=admin,dc=ldap,dc=avilesworks,dc=com
+changetype: add
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: admin
+description: LDAP administrator
+userPassword:
