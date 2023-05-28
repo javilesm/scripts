@@ -28,7 +28,7 @@ export SLAPD_NO_CONFIGURATION=true
 function install_slapd() {
   # Instalar OpenLDAP
   echo "Instalando OpenLDAP..."
-  echo "slapd slapd/no_configuration seen true" | sudo debconf-set-selections
+  sudo apt-get update
   sudo apt-get install -y slapd
 
   # Verificar si la instalación fue exitosa
@@ -36,7 +36,17 @@ function install_slapd() {
     echo "Error: La instalación de OpenLDAP ha fallado."
     return 1
   fi
+
   echo "OpenLDAP se ha instalado correctamente."
+
+  # Configurar OpenLDAP automáticamente
+  sudo dpkg-reconfigure slapd
+
+  # Establecer contraseña de administrador
+  sudo ldappasswd -x -D "cn=admin,dc=$COMPANY,dc=$DOMAIN" -w "$ADMIN_PASSWORD" -s "$ADMIN_PASSWORD"
+
+  # Reiniciar OpenLDAP
+  sudo service slapd restart
 }
 
 function configurar_slapd() {
@@ -90,8 +100,20 @@ function update_ldap_conf() {
   fi
 }
 
-function setup_slapd() {
-  # Iniciar el servicio slapd
+function install_ldap-utils() {
+  # Instalar LDAPutils
+  echo "Instalando LDAPutils..."
+  sudo apt-get install -y ldap-utils
+
+  # Verificar si la instalación fue exitosa
+  if [ $? -ne 0 ]; then
+    echo "Error: La instalación de LDAPutils ha fallado."
+    return 1
+  fi
+
+  echo "LDAPutils se ha instalado correctamente."
+  return 0
+    # Iniciar el servicio slapd
   iniciar_servicio_ldap
 
   # Verificar si el servicio se ha iniciado correctamente
@@ -99,7 +121,9 @@ function setup_slapd() {
     echo "Error: No se pudo iniciar el servicio slapd."
     return 1
   fi
+}
 
+function setup_slapd() {
   # Establecer contraseña de administrador
   echo "Configurando contraseña de administrador..."
   echo "cn=admin,$COMPANY" > "$ADMIN_FILE"
@@ -127,31 +151,9 @@ function setup_slapd() {
   return 0
 }
 
-function install_ldap-utils() {
-  # Instalar LDAPutils
-  echo "Instalando LDAPutils..."
-  sudo apt-get install -y ldap-utils
 
-  # Verificar si la instalación fue exitosa
-  if [ $? -ne 0 ]; then
-    echo "Error: La instalación de LDAPutils ha fallado."
-    return 1
-  fi
-
-  echo "LDAPutils se ha instalado correctamente."
-  return 0
-}
 
 function add_templates() {
-  echo "Agregando plantilla desde '/etc/ldap/schema/cosine.ldif'..."
-  sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/cosine.ldif || { echo "Error: No se pudo agregar la plantilla 'cosine.ldif'."; return 1; }
-
-  echo "Agregando plantilla desde '/etc/ldap/schema/nis.ldif'..."
-  sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/nis.ldif || { echo "Error: No se pudo agregar la plantilla 'nis.ldif'."; return 1; }
-
-  echo "Agregando plantilla desde '/etc/ldap/schema/inetorgperson.ldif'..."
-  sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/inetorgperson.ldif || { echo "Error: No se pudo agregar la plantilla 'inetorgperson.ldif'."; return 1; }
-
   echo "Agregando plantilla desde '$SLAPD_CONFIG_PATH'..."
   sudo ldapadd -Y EXTERNAL -H ldapi:/// -f "$SLAPD_CONFIG_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_CONFIG_PATH'."; return 1; }
 
@@ -252,16 +254,16 @@ function install_phpldapadmin() {
 # Funcion principal
 function openldap_config() {
   install_slapd
-  configurar_slapd
+  #configurar_slapd
   update_ldap_conf
-  setup_slapd
   install_ldap-utils
+  setup_slapd
   add_templates
   #stop_processes_using_hosts
   add_host_config
   configurar_interfaces_red
   restart_service
-  install_phpldapadmin
+  #install_phpldapadmin
 }
 # Llamar a la funcion principal
 openldap_config
