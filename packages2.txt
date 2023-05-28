@@ -1,4 +1,5 @@
 tree
+expect
 telnet
 net-tools
 sasl2-bin
