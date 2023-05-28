@@ -26,10 +26,16 @@ export DEBIAN_FRONTEND=noninteractive
 export SLAPD_NO_CONFIGURATION=true
 # Funciones
 function install_slapd() {
+  # Verificar si el usuario actual es root
+  if [ "$EUID" -ne 0 ]; then
+    echo "Este script debe ejecutarse como usuario root."
+    return 1
+  fi
+
   # Instalar OpenLDAP
   echo "Instalando OpenLDAP..."
-  sudo apt-get update
-  sudo apt-get install -y slapd
+  apt-get update
+  apt-get install -y slapd
 
   # Verificar si la instalación fue exitosa
   if [ $? -ne 0 ]; then
@@ -39,34 +45,31 @@ function install_slapd() {
 
   echo "OpenLDAP se ha instalado correctamente."
 
+  # Instalar el paquete ldap-utils
+  echo "Instalando ldap-utils..."
+  apt-get install -y ldap-utils
+  # Iniciar el servicio slapd
+  iniciar_servicio_ldap
+
   # Configurar OpenLDAP automáticamente
-  sudo dpkg-reconfigure slapd
+  echo -e "slapd slapd/internal/adminpw password $ADMIN_PASSWORD\n\
+  slapd slapd/password2 password $ADMIN_PASSWORD\n\
+  slapd slapd/password1 password $ADMIN_PASSWORD\n\
+  slapd slapd/dump_database_destdir string /var/backups/slapd-VERSION\n\
+  slapd slapd/upgrade_slapcat_failure error\n\
+  slapd slapd/no_configuration boolean false\n\
+  slapd slapd/move_old_database boolean true" | debconf-set-selections
+
+  # Utilizar redirección para simular la pulsación de Enter
+  echo -e "\n" | dpkg-reconfigure slapd
 
   # Establecer contraseña de administrador
-  sudo ldappasswd -x -D "cn=admin,dc=$COMPANY,dc=$DOMAIN" -w "$ADMIN_PASSWORD" -s "$ADMIN_PASSWORD"
+  ldappasswd -x -D "cn=admin,dc=$COMPANY,dc=$DOMAIN" -w "$ADMIN_PASSWORD" -s "$ADMIN_PASSWORD"
 
   # Reiniciar OpenLDAP
-  sudo service slapd restart
+  service slapd restart
 }
 
-function configurar_slapd() {
-  # Configuración inicial de OpenLDAP
-  echo "Configuración inicial de OpenLDAP..."
-  # Iniciar configuración inicial
-  sudo dpkg-reconfigure slapd
-
-  # Establecer respuestas para evitar el mensaje de configuración inicial y la eliminación de la base de datos
-  sudo debconf-set-selections <<EOF
-slapd slapd/no_configuration boolean true
-slapd slapd/purge_database boolean true
-slapd slapd/move_old_database boolean true
-slapd slapd/password1 password $ADMIN_PASSWORD
-slapd slapd/password2 password $ADMIN_PASSWORD
-slapd shared/organization string $COMPANY
-slapd slapd/domain string $DOMAIN
-EOF
- 
-}
 function update_ldap_conf() {
   # Actualizar parametro BASE
   echo "Actualizando parametro BASE..."
@@ -97,29 +100,6 @@ function update_ldap_conf() {
     sudo sed -i "s|^TLS_CACERT.*|TLS_CACERT /etc/ldap/tls/CA.pem|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': TLS_CACERT"; exit 1; }
   else
     echo "TLS_CACERT  /etc/ldap/tls/CA.pem" >> "$LDAP_CONFIG"
-  fi
-}
-
-function install_ldap-utils() {
-  # Instalar LDAPutils
-  echo "Instalando LDAPutils..."
-  sudo apt-get install -y ldap-utils
-
-  # Verificar si la instalación fue exitosa
-  if [ $? -ne 0 ]; then
-    echo "Error: La instalación de LDAPutils ha fallado."
-    return 1
-  fi
-
-  echo "LDAPutils se ha instalado correctamente."
-  return 0
-    # Iniciar el servicio slapd
-  iniciar_servicio_ldap
-
-  # Verificar si el servicio se ha iniciado correctamente
-  if [ $? -ne 0 ]; then
-    echo "Error: No se pudo iniciar el servicio slapd."
-    return 1
   fi
 }
 
@@ -224,10 +204,7 @@ function install_phpldapadmin() {
 # Funcion principal
 function openldap_config() {
   install_slapd
-  #configurar_slapd
-  #update_ldap_conf
-  #install_ldap-utils
-  #setup_slapd
+  update_ldap_conf
   #add_templates
   #stop_processes_using_hosts
   #add_host_config
