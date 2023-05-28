@@ -21,7 +21,7 @@ DOMAIN="avilesworks.com"
 ADMIN_PASSWORD="1234"
 SLAP_CONFIG="/etc/default/slapd"
 LDAP_CONFIG="/etc/ldap/ldap.conf"
-ADMIN_FILE="/etc/ldap/slapd.d/admin.ldif"
+
 export DEBIAN_FRONTEND=noninteractive
 export SLAPD_NO_CONFIGURATION=true
 # Funciones
@@ -122,36 +122,6 @@ function install_ldap-utils() {
     return 1
   fi
 }
-
-function setup_slapd() {
-  # Establecer contraseña de administrador
-  echo "Configurando contraseña de administrador..."
-  echo "cn=admin,$COMPANY" > "$ADMIN_FILE"
-  echo "dn: cn=admin,$COMPANY" >> "$ADMIN_FILE"
-  echo "objectClass: simpleSecurityObject" >> "$ADMIN_FILE"
-  echo "objectClass: organizationalRole" >> "$ADMIN_FILE"
-  echo "userPassword: $(slappasswd -s $ADMIN_PASSWORD)" >> "$ADMIN_FILE"
-  echo "cn: admin" >> "$ADMIN_FILE"
-
-  # Agregar la entrada del administrador
-  echo "Agregando plantilla desde '$ADMIN_FILE'..."
-  sudo ldapadd -x -D cn=admin,cn=config -W -f "$ADMIN_FILE"
-
-  # Verificar si la adición de la entrada del administrador fue exitosa
-  if [ $? -ne 0 ]; then
-    echo "Error: No se pudo agregar la entrada del administrador."
-    sudo rm "$ADMIN_FILE"
-    return 1
-  fi
-
-  # Eliminar el archivo temporal del administrador
-  sudo rm "$ADMIN_FILE"
-
-  echo "OpenLDAP se ha configurado correctamente."
-  return 0
-}
-
-
 
 function add_templates() {
   echo "Agregando plantilla desde '$SLAPD_CONFIG_PATH'..."
