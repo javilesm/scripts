@@ -225,14 +225,14 @@ function install_phpldapadmin() {
 function openldap_config() {
   install_slapd
   #configurar_slapd
-  update_ldap_conf
-  install_ldap-utils
-  setup_slapd
-  add_templates
+  #update_ldap_conf
+  #install_ldap-utils
+  #setup_slapd
+  #add_templates
   #stop_processes_using_hosts
-  add_host_config
-  configurar_interfaces_red
-  restart_service
+  #add_host_config
+  #configurar_interfaces_red
+  #restart_service
   #install_phpldapadmin
 }
 # Llamar a la funcion principal
