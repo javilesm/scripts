@@ -38,13 +38,13 @@ objectClass: olcDatabaseConfig
 objectClass: olcMdbConfig
 olcDatabase: {1}mdb
 olcDbDirectory: /var/lib/ldap
-olcSuffix: dc=avilesworks,dc=.com
+olcSuffix: dc=avilesworks,dc=com
 olcAccess: {0}to attrs=userPassword,shadowLastChange by self write by anonymou
  s auth by * none
 olcAccess: {1}to dn.base="" by * read
 olcAccess: {2}to * by * read
 olcLastMod: TRUE
-olcRootDN: cn=admin,dc=avilesworks,dc=.com
+olcRootDN: cn=admin,dc=avilesworks,dc=com
 olcRootPW: {PLAIN}1234
 olcDbCheckpoint: 512 30
 olcDbIndex: objectClass eq
