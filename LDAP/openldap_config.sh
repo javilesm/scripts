@@ -4,8 +4,8 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 SLAPD_CONFIG_FILE="slapd.conf.ldif"
 SLAPD_CONFIG_PATH="$CURRENT_DIR/$SLAPD_CONFIG_FILE"
-SLAPD_USERS_FILE="add_content.ldif"
-SLAPD_USERS_PATH="$CURRENT_DIR/$SLAPD_USERS_FILE"
+CONTENT_FILE="add_content.ldif"
+CONTENT_PATH="$CURRENT_DIR/$CONTENT_FILE"
 CONFIG_LOGLEVEL_FILE="slapd_config_loglevel.ldif"
 CONFIG_LOGLEVEL_PATH="$CURRENT_DIR/$CONFIG_LOGLEVEL_FILE"
 CONFIG_SUFFIX_FILE="slapd_config_suffix.ldif"
@@ -107,28 +107,54 @@ function update_ldap_conf() {
 }
 
 function add_templates() {
-  echo "Agregando plantilla desde '$SLAPD_CONFIG_PATH'..."
-  sudo ldapadd -Y EXTERNAL -H ldapi:/// -f "$SLAPD_CONFIG_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_CONFIG_PATH'."; return 1; }
+  modif_setup
+  add_content
 
   echo "Modificando '$CONFIG_LOGLEVEL_PATH'..."
-  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_LOGLEVEL_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_LOGLEVEL_PATH'."; return 1; }
+  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_LOGLEVEL_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_LOGLEVEL_PATH'."; }
 
   echo "Modificando '$CONFIG_SUFFIX_PATH'..."
-  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_SUFFIX_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_SUFFIX_PATH'."; return 1; }
-
-  echo "Modificando '$SETUP_BASIC_PATH'..."
-  sudo ldapmodify -x -W -D cn=admin,dc=avilesworks,dc=com -H ldapi:/// -f "$SETUP_BASIC_PATH" || { echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."; return 1; }
-
-  echo "Agregando plantilla desde '$SLAPD_USERS_PATH'..."
-  sudo ldapadd -x -D cn=admin,dc=avilesworks,dc=com -W -f "$SLAPD_USERS_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_USERS_PATH'."; return 1; }
-
+  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_SUFFIX_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_SUFFIX_PATH'."; }
+  
   #sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$SETUP_ROOT_PATH"
   
   echo "Modificando '$CONFIG_TLS_PATH'..."
-  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_TLS_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_TLS_PATH'."; return 1; }
+  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_TLS_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_TLS_PATH'."; }
 
   echo "Las plantillas y configuraciones se han agregado correctamente."
   return 0
+}
+
+function modif_setup() {
+  echo "Modificando '$SETUP_BASIC_PATH'..."
+sudo expect << EOF
+spawn sudo ldapmodify -x -W -D cn=admin,dc=avilesworks,dc=com -H ldapi:/// -f "$SETUP_BASIC_PATH"
+expect "Enter LDAP Password:"
+send "$ADMIN_PASSWORD\r"
+expect eof
+EOF
+
+if [ $? -ne 0 ]; then
+  echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."
+  return 1
+fi
+}
+
+function add_content() {
+  echo "Agregando contenido desde '$CONTENT_PATH'..."
+  sudo expect << EOF
+spawn sudo ldapadd -x -D cn=admin,dc=avilesworks,dc=com -W -f "$CONTENT_PATH" 
+expect "Enter LDAP Password:"
+send "$ADMIN_PASSWORD\r"
+expect eof
+EOF
+
+if [ $? -ne 0 ]; then
+  echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."
+  return 1
+fi
+echo "Todo el contenido desde '$CONTENT_PATH' fue agreago exitosamente."
+ldapsearch -x -LLL -b dc=avilesworks,dc=com
 }
 
 function iniciar_servicio_ldap() {
@@ -208,12 +234,12 @@ function install_phpldapadmin() {
 function openldap_config() {
   install_slapd
   update_ldap_conf
-  #add_templates
+  add_templates
   #stop_processes_using_hosts
   #add_host_config
-  #configurar_interfaces_red
-  #restart_service
-  #install_phpldapadmin
+  configurar_interfaces_red
+  restart_service
+  install_phpldapadmin
 }
 # Llamar a la funcion principal
 openldap_config
