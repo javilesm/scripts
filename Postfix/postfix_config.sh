@@ -434,7 +434,7 @@ function config_postfix() {
     else
         echo "virtual_minimum_uid= 5000" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_minimum_uid = 5000" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_minimum_uid = ${GID//\"/}" >> "$CURRENT_DIR/test.txt"
     #vvirtual_uid_maps
     if grep -q "#virtual_uid_maps" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#virtual_uid_maps =.*|virtual_uid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_uid_maps"; exit 1; }
@@ -443,7 +443,7 @@ function config_postfix() {
     else
         echo "virtual_uid_maps = static:5000" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_uid_maps = static:5000" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_uid_maps = static:${GID//\"/}" >> "$CURRENT_DIR/test.txt"
     #virtual_gid_maps
     if grep -q "#virtual_gid_maps" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#virtual_gid_maps =.*|virtual_gid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_gid_maps"; exit 1; }
@@ -452,7 +452,7 @@ function config_postfix() {
     else
         echo "virtual_gid_maps = static:5000" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_gid_maps = static:5000" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_gid_maps = static:${GID//\"/}" >> "$CURRENT_DIR/test.txt"
     #inet_protocols
     if grep -q "#inet_protocols" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#inet_protocols =.*|inet_protocols = ipv4|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #inet_protocols"; exit 1; }
@@ -560,23 +560,23 @@ function restart_services() {
 # Función para verificar si el archivo de configuración existe
 function validate_script() {
   echo "Verificando si el archivo de configuración existe..."
-  if [ ! -f "$ACCOUNTS_PATH" ]; then
-    echo "ERROR: El archivo de configuración '$ACCOUNTS_SCRIPT' no se puede encontrar en la ruta '$ACCOUNTS_PATH'."
+  if [ ! -f "$POSTFIX_ACCOUNTS_PATH" ]; then
+    echo "ERROR: El archivo de configuración '$POSTFIX_ACCOUNTS_SCRIPT' no se puede encontrar en la ruta '$POSTFIX_ACCOUNTS_PATH'."
     exit 1
   fi
-  echo "El archivo de configuración '$ACCOUNTS_SCRIPT' existe."
+  echo "El archivo de configuración '$POSTFIX_ACCOUNTS_SCRIPT' existe."
 }
 # Función para ejecutar el configurador de Postfix
 function run_script() {
-  echo "Ejecutar el configurador '$ACCOUNTS_SCRIPT'..."
+  echo "Ejecutar el configurador '$POSTFIX_ACCOUNTS_SCRIPT'..."
     # Intentar ejecutar el archivo de configuración de Postfix
-  if sudo bash "$ACCOUNTS_PATH"; then
-    echo "El archivo de configuración '$ACCOUNTS_SCRIPT' se ha ejecutado correctamente."
+  if sudo bash "$POSTFIX_ACCOUNTS_PATH"; then
+    echo "El archivo de configuración '$POSTFIX_ACCOUNTS_SCRIPT' se ha ejecutado correctamente."
   else
-    echo "ERROR: No se pudo ejecutar el archivo de configuración '$ACCOUNTS_SCRIPT'."
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$POSTFIX_ACCOUNTS_SCRIPT'."
     exit 1
   fi
-  echo "Configurador '$ACCOUNTS_SCRIPT' ejecutado."
+  echo "Configurador '$POSTFIX_ACCOUNTS_SCRIPT' ejecutado."
 }
 # Función principal
 function postfix_config() {
