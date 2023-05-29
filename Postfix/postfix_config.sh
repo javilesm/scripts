@@ -3,6 +3,8 @@
 # Variables
 MY_DOMAIN="avilesworks.com"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+ACCOUNTS_SCRIPT="postfix_accounts.sh"
+ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_SCRIPT"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
@@ -11,6 +13,14 @@ VIRTUAL_DOMAINS="$POSTFIX_PATH/virtual_domains.cf"
 VIRTUAL_MAILBOX="$POSTFIX_PATH/virtual_mailbox.cf"
 VIRTUAL_ALIAS_CF="$POSTFIX_PATH/virtual_alias.cf"
 VIRTUAL_ALIAS="$POSTFIX_PATH/virtual"
+# Función para leer la varible $GID
+function read_gid() {
+    # Cargar el contenido de script2.sh en script1.sh
+    source "$ACCOUNTS_PATH"
+
+    # Acceder a la variable GID definida en script2.sh
+    echo "El GID es: $GID"
+}
 # Función para crear al usuario vmail:5000
 function create_vmail_user() {
     # crear al usuario vmail:5000
@@ -533,11 +543,32 @@ function restart_services() {
     echo "Restarting Dovecot service..."
     sudo service dovecot restart || { echo "Error: Failed to restart Dovecot service."; return 1; }
     echo "Dovecot service restarted successfully."
-    
+}
+# Función para verificar si el archivo de configuración existe
+function validate_script() {
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$ACCOUNTS_PATH" ]; then
+    echo "ERROR: El archivo de configuración '$ACCOUNTS_SCRIPT' no se puede encontrar en la ruta '$ACCOUNTS_PATH'."
+    exit 1
+  fi
+  echo "El archivo de configuración '$ACCOUNTS_SCRIPT' existe."
+}
+# Función para ejecutar el configurador de Postfix
+function run_script() {
+  echo "Ejecutar el configurador '$MAKEGROUPS_SCRIPT'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$ACCOUNTS_PATH"; then
+    echo "El archivo de configuración '$MAKEGROUPS_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$MAKEGROUPS_SCRIPT'."
+    exit 1
+  fi
+  echo "Configurador '$MAKEGROUPS_SCRIPT' ejecutado."
 }
 # Función principal
 function postfix_config() {
   echo "***************POSTFIX CONFIG***************"
+  read_gid
   create_vmail_user
   verify_config_files
   backup_config_files
