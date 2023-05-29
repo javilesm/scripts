@@ -53,11 +53,14 @@ function install_slapd() {
 
   # Configurar OpenLDAP automáticamente
   echo -e "slapd slapd/internal/adminpw password $ADMIN_PASSWORD\n\
-  slapd slapd/password2 password $ADMIN_PASSWORD\n\
-  slapd slapd/password1 password $ADMIN_PASSWORD\n\
+  slapd slapd/password1 password $ADMIN_PASSWORD
+  slapd slapd/password2 password $ADMIN_PASSWORD
+  slapd shared/organization string $COMPANY
+  slapd slapd/domain string $DOMAIN
   slapd slapd/dump_database_destdir string /var/backups/slapd-VERSION\n\
   slapd slapd/upgrade_slapcat_failure error\n\
   slapd slapd/no_configuration boolean false\n\
+  slapd slapd/purge_database boolean false\n\
   slapd slapd/move_old_database boolean true" | debconf-set-selections
 
   # Utilizar redirección para simular la pulsación de Enter
