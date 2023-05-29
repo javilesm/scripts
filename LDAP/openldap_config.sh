@@ -4,6 +4,8 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 MAKEACCOUNTS_SCRIPT="make_accounts.sh"
 MAKEACCOUNTS_PATH="$CURRENT_DIR/$MAKEACCOUNTS_SCRIPT"
+MAKEGROUPS_SCRIPT="make_accounts.sh"
+MAKEGROUPS_PATH="$CURRENT_DIR/$MAKEGROUPS_SCRIPT"
 SLAPD_CONFIG_FILE="slapd.conf.ldif"
 SLAPD_CONFIG_PATH="$CURRENT_DIR/$SLAPD_CONFIG_FILE"
 GROUPS_FILE="grupos.ldif"
@@ -266,28 +268,51 @@ function install_phpldapadmin() {
 function validate_accounts_script() {
   echo "Verificando si el archivo de configuración existe..."
   if [ ! -f "$MAKEACCOUNTS_PATH" ]; then
-    echo "ERROR: El archivo de configuración '$MAKEACCOUNTS_FILE' no se puede encontrar en la ruta '$MAKEACCOUNTS_PATH'."
+    echo "ERROR: El archivo de configuración '$MAKEACCOUNTS_SCRIPT' no se puede encontrar en la ruta '$MAKEACCOUNTS_PATH'."
+    exit 1
+  fi
+  echo "El archivo de configuración '$MAKEACCOUNTS_SCRIPT' existe."
+}
+# Función para ejecutar el configurador de Postfix
+function run_accounts_script() {
+  echo "Ejecutar el configurador '$MAKEACCOUNTS_SCRIPT'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$MAKEACCOUNTS_PATH"; then
+    echo "El archivo de configuración '$MAKEACCOUNTS_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$MAKEACCOUNTS_SCRIPT'."
+    exit 1
+  fi
+  echo "Configurador '$MAKEACCOUNTS_SCRIPT' ejecutado."
+}
+# Función para verificar si el archivo de configuración existe
+function validate_groups_script() {
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$MAKEGROUPS_PATH" ]; then
+    echo "ERROR: El archivo de configuración '$MAKEACCOUNTS_FILE' no se puede encontrar en la ruta '$MAKEGROUPS_PATH'."
     exit 1
   fi
   echo "El archivo de configuración '$MAKEACCOUNTS_FILE' existe."
 }
 # Función para ejecutar el configurador de Postfix
-function run_accounts_script() {
-  echo "Ejecutar el configurador '$MAKEACCOUNTS_FILE'..."
+function run_groups_script() {
+  echo "Ejecutar el configurador '$MAKEGROUPS_SCRIPT'..."
     # Intentar ejecutar el archivo de configuración de Postfix
-  if sudo bash "$MAKEACCOUNTS_PATH"; then
-    echo "El archivo de configuración '$MAKEACCOUNTS_FILE' se ha ejecutado correctamente."
+  if sudo bash "$MAKEGROUPS_PATH"; then
+    echo "El archivo de configuración '$MAKEGROUPS_SCRIPT' se ha ejecutado correctamente."
   else
-    echo "ERROR: No se pudo ejecutar el archivo de configuración '$MAKEACCOUNTS_FILE'."
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$MAKEGROUPS_SCRIPT'."
     exit 1
   fi
-  echo "Configurador '$MAKEACCOUNTS_FILE' ejecutado."
+  echo "Configurador '$MAKEGROUPS_SCRIPT' ejecutado."
 }
 # Funcion principal
 function openldap_config() {
   install_slapd
   set_hostname
   add_hostname_config
+  validate_groups_script
+  run_groups_script
   add_groups
   validate_accounts_script
   run_accounts_script
