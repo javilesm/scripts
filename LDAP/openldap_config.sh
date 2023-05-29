@@ -18,6 +18,10 @@ SETUP_ROOT_FILE="slapd_setup_config_rootPW.ldif"
 SETUP_ROOT_PATH="$CURRENT_DIR/$SETUP_ROOT_FILE"
 COMPANY="samava"
 DOMAIN="avilesworks.com"
+SUBDOMAIN="${DOMAIN%%.*}"
+TOPLEVEL="${DOMAIN#*.}"
+HOST_SUFFIX="ldap"
+HOSTNAME="$HOST_SUFFIX.$DOMAIN"
 ADMIN_PASSWORD="1234"
 SLAP_CONFIG="/etc/default/slapd"
 LDAP_CONFIG="/etc/ldap/ldap.conf"
@@ -53,10 +57,10 @@ function install_slapd() {
 
   # Configurar OpenLDAP automáticamente
   echo -e "slapd slapd/internal/adminpw password $ADMIN_PASSWORD\n\
-  slapd slapd/password1 password $ADMIN_PASSWORD
-  slapd slapd/password2 password $ADMIN_PASSWORD
-  slapd shared/organization string $COMPANY
-  slapd slapd/domain string $DOMAIN
+  slapd slapd/password1 password $ADMIN_PASSWORD\n\
+  slapd slapd/password2 password $ADMIN_PASSWORD\n\
+  slapd shared/organization string $COMPANY\n\
+  slapd slapd/domain string $DOMAIN\n\
   slapd slapd/dump_database_destdir string /var/backups/slapd-VERSION\n\
   slapd slapd/upgrade_slapcat_failure error\n\
   slapd slapd/no_configuration boolean false\n\
@@ -67,10 +71,37 @@ function install_slapd() {
   echo -e "\n" | dpkg-reconfigure slapd
 
   # Establecer contraseña de administrador
-  ldappasswd -x -D "cn=admin,dc=$COMPANY,dc=$DOMAIN" -w "$ADMIN_PASSWORD" -s "$ADMIN_PASSWORD"
-
+  sudo ldappasswd -x -D "cn=admin,dc=$COMPANY,dc=$SUBDOMAIN,dc=$TOPLEVEL" -w "$ADMIN_PASSWORD" -s "$ADMIN_PASSWORD"
+  
+  # Auditar configuracion
+  echo "Auditando configuracion"
+  sudo slapcat
+  
   # Reiniciar OpenLDAP
-  service slapd restart
+  restart_service
+}
+
+function set_hostname() {
+  # Establecer hostname LDAP del dominio
+  echo "Estableciendo el hostname $HOSTNAME del dominio '$DOMAIN'..."
+  sudo hostnamectl set-hostname $HOSTNAME 
+  echo "El hostname '$HOSTNAME ' del dominio '$DOMAIN' ha sido establecido."
+  hostname
+}
+
+function add_hostname_config() {
+    # Agregar al archivo /etc/hosts el hostname '$HOSTNAME'
+    echo "Agregando al archivo '/etc/hosts' el hostname '$HOSTNAME'..."
+    sudo sed -i.bak "$ a\127.0.0.1 $$HOSTNAME" /etc/hosts || { echo "ERROR: Hubo un problema al configurar el archivo '/etc/hosts': 127.0.0.1 ldap.$DOMAIN"; return 1; }
+    
+    # Verificar si la modificación del archivo /etc/hosts fue exitosa
+    if [ $? -ne 0 ]; then
+        echo "Error: No se pudo agregar el hostname '$HOSTNAME' al archivo '/etc/hosts'."
+        return 1
+    fi
+    
+    echo "El hostname '$HOSTNAME' se ha agregado correctamente al archivo '/etc/hosts'."
+    return 0
 }
 
 function update_ldap_conf() {
@@ -107,19 +138,21 @@ function update_ldap_conf() {
 }
 
 function add_templates() {
-  modif_setup
+  #modif_setup
   add_content
+  echo "Agregando plantilla desde '$SLAPD_CONFIG_PATH'..."
+  #sudo ldapadd -Y EXTERNAL -H ldapi:/// -f "$SLAPD_CONFIG_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_CONFIG_PATH'."; return 1; }
 
   echo "Modificando '$CONFIG_LOGLEVEL_PATH'..."
-  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_LOGLEVEL_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_LOGLEVEL_PATH'."; }
+  #sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_LOGLEVEL_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_LOGLEVEL_PATH'."; return 0; }
 
   echo "Modificando '$CONFIG_SUFFIX_PATH'..."
-  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_SUFFIX_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_SUFFIX_PATH'."; }
+  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_SUFFIX_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_SUFFIX_PATH'."; return 0; }
   
   #sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$SETUP_ROOT_PATH"
   
   echo "Modificando '$CONFIG_TLS_PATH'..."
-  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_TLS_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_TLS_PATH'."; }
+  sudo ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f "$CONFIG_TLS_PATH" || { echo "Error: No se pudo modificar el archivo '$CONFIG_TLS_PATH'."; return 0; }
 
   echo "Las plantillas y configuraciones se han agregado correctamente."
   return 0
@@ -128,7 +161,7 @@ function add_templates() {
 function modif_setup() {
   echo "Modificando '$SETUP_BASIC_PATH'..."
 sudo expect << EOF
-spawn sudo ldapmodify -x -W -D cn=admin,dc=avilesworks,dc=com -H ldapi:/// -f "$SETUP_BASIC_PATH"
+spawn sudo ldapmodify -x -W -D cn=admin,dc=$SUBDOMAIN,dc=$TOPLEVEL -H ldapi:/// -f "$SETUP_BASIC_PATH"
 expect "Enter LDAP Password:"
 send "$ADMIN_PASSWORD\r"
 expect eof
@@ -143,7 +176,7 @@ fi
 function add_content() {
   echo "Agregando contenido desde '$CONTENT_PATH'..."
   sudo expect << EOF
-spawn sudo ldapadd -x -D cn=admin,dc=avilesworks,dc=com -W -f "$CONTENT_PATH" 
+spawn sudo ldapadd -x -D cn=admin,dc=$SUBDOMAIN,dc=$TOPLEVEL -W -f "$CONTENT_PATH" 
 expect "Enter LDAP Password:"
 send "$ADMIN_PASSWORD\r"
 expect eof
@@ -154,7 +187,7 @@ if [ $? -ne 0 ]; then
   return 1
 fi
 echo "Todo el contenido desde '$CONTENT_PATH' fue agreago exitosamente."
-ldapsearch -x -LLL -b dc=avilesworks,dc=com
+ldapsearch -x -LLL -b dc=$SUBDOMAIN,dc=$TOPLEVEL
 }
 
 function iniciar_servicio_ldap() {
@@ -185,21 +218,6 @@ function configurar_interfaces_red() {
   fi
 }
 
-function add_host_config() {
-    # Agregar al archivo /etc/hosts el dominio del servidor
-    echo "Agregando al archivo '/etc/hosts' el dominio del servidor..."
-    sudo sed -i.bak "$ a\127.0.0.1 ldap.$DOMAIN" /etc/hosts || { echo "ERROR: Hubo un problema al configurar el archivo '/etc/hosts': 127.0.0.1 ldap.$DOMAIN"; return 1; }
-    
-    # Verificar si la modificación del archivo /etc/hosts fue exitosa
-    if [ $? -ne 0 ]; then
-        echo "Error: No se pudo agregar el dominio del servidor al archivo '/etc/hosts'."
-        return 1
-    fi
-    
-    echo "El dominio del servidor se ha agregado correctamente al archivo '/etc/hosts'."
-    return 0
-}
-
 function restart_service() {
   # Reiniciar el servicio slapd
   echo "Reiniciando el servicio slapd..."
@@ -213,6 +231,7 @@ function restart_service() {
 
   echo "El servicio slapd se ha reiniciado correctamente."
   return 0
+  sudo service slapd status
 }
 
 function install_phpldapadmin() {
@@ -233,10 +252,10 @@ function install_phpldapadmin() {
 # Funcion principal
 function openldap_config() {
   install_slapd
+  set_hostname
+  add_hostname_config
   update_ldap_conf
   add_templates
-  #stop_processes_using_hosts
-  #add_host_config
   configurar_interfaces_red
   restart_service
   install_phpldapadmin
