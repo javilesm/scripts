@@ -18,7 +18,7 @@ function install_packages() {
   
   # Instalar y reiniciar postfix y postfix-sqlite
   install_and_restart postfix
-  install_and_restart postfix-sqlite
+  install_and_restart postfix-ldap
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
