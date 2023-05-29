@@ -3,23 +3,43 @@
 # Variables
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
-ACCOUNTS_FILE="mail_users.csv"
-ACCOUNTS_PATH="$PARENT_DIR/Postfix/$ACCOUNTS_FILE"
+MAIL_ACCOUNTS_FILE="mail_users.csv"
+MAIL_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$MAIL_ACCOUNTS_FILE"
 USERS_FILE="accounts.ldif"
 USERS_PATH="$CURRENT_DIR/$USERS_FILE"
 MAIL_DIR="/var/mail"
 LOGIN_SHELL="/usr/bin/nologin"
 POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
 POSTFIX_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$POSTFIX_ACCOUNTS_SCRIPT"
-# Cargar el contenido de script2.sh en script1.sh
-source "$POSTFIX_ACCOUNTS_PATH"
+
+# Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
+function read_gid() {
+    # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
+    echo "Leyendo la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'..."
+    
+    # Verificar si el archivo existe
+    if [ -f "$POSTFIX_ACCOUNTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable GID
+            if [[ "$line" =~ ^GID= ]]; then
+                # Extraer el valor de la variable GID
+                GID=$(echo "$line" | cut -d'=' -f2)
+                export GID
+                break
+            fi
+        done < "$POSTFIX_ACCOUNTS_PATH"
+    else
+        echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
+    fi
+}
 # Función para crear el archivo base de usuarios, leer la lista de usuarios y escribir la informacion del usuario en el archivo base de usuarios
 function read_accounts() {
   echo "Creando el archivo base de usuarios '$USERS_PATH'..."
   sudo touch "$USERS_PATH"
-  
-  local uidNumber=$((GID + 1))
-  local gidNumber=$GID
+  echo "El GID es: $GID"
+  local gidNumber=${GID//\"/}
+  local uidNumber=$((gidNumber + 1))
   
   while IFS="," read -r username name lastname email alias password; do
     echo "Usuario: $username"
@@ -55,13 +75,16 @@ function read_accounts() {
     echo "Creando al usuario '$uidNumber'..."
     sudo useradd -u "$uidNumber" -g "$gidNumber" -s "$LOGIN_SHELL" -d "$MAIL_DIR/$domain/$username" -m "$username"
     ((uidNumber++))
-  done < <(grep -v '^$' "$ACCOUNTS_PATH")
+  done < <(grep -v '^$' "$MAIL_ACCOUNTS_PATH")
   
   echo "Todas las cuentas de correo han sido copiadas."
 }
-
+# Función principal
 function make_accounts() {
-    read_accounts
+  echo "***************MAKE ACCOUNTS***************"
+  read_gid
+  read_accounts
+  echo "***************ALL DONE***************"
 }
 # Llamar a la funcion principal
 make_accounts
