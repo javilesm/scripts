@@ -3,8 +3,8 @@
 # Variables
 MY_DOMAIN="avilesworks.com"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
-ACCOUNTS_SCRIPT="postfix_accounts.sh"
-ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_SCRIPT"
+POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
+POSTFIX_ACCOUNTS_PATH="$CURRENT_DIR/$POSTFIX_ACCOUNTS_SCRIPT"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
@@ -13,13 +13,26 @@ VIRTUAL_DOMAINS="$POSTFIX_PATH/virtual_domains.cf"
 VIRTUAL_MAILBOX="$POSTFIX_PATH/virtual_mailbox.cf"
 VIRTUAL_ALIAS_CF="$POSTFIX_PATH/virtual_alias.cf"
 VIRTUAL_ALIAS="$POSTFIX_PATH/virtual"
-# Función para leer la varible $GID
+# Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
 function read_gid() {
-    # Cargar el contenido de script2.sh en script1.sh
-    source "$ACCOUNTS_PATH"
-
-    # Acceder a la variable GID definida en script2.sh
-    echo "El GID es: $GID"
+    # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
+    echo "Leyendo la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'..."
+    
+    # Verificar si el archivo existe
+    if [ -f "$POSTFIX_ACCOUNTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable GID
+            if [[ "$line" =~ ^GID= ]]; then
+                # Extraer el valor de la variable GID
+                GID=$(echo "$line" | cut -d'=' -f2)
+                export GID
+                break
+            fi
+        done < "$POSTFIX_ACCOUNTS_PATH"
+    else
+        echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
+    fi
 }
 # Función para crear al usuario vmail:5000
 function create_vmail_user() {
