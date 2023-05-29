@@ -8,16 +8,11 @@ ACCOUNTS_PATH="$PARENT_DIR/Postfix/$ACCOUNTS_FILE"
 USERS_FILE="accounts.ldif"
 USERS_PATH="$CURRENT_DIR/$USERS_FILE"
 MAIL_DIR="/var/mail"
+LOGIN_SHELL="/usr/bin/nologin"
 POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
 POSTFIX_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$POSTFIX_ACCOUNTS_SCRIPT"
-# Función para leer la varible $GID
-function read_gid() {
-    # Cargar el contenido de script2.sh en script1.sh
-    source "$POSTFIX_ACCOUNTS_PATH"
-
-    # Acceder a la variable GID definida en script2.sh
-    echo "El GID es: $GID"
-}
+# Cargar el contenido de script2.sh en script1.sh
+source "$POSTFIX_ACCOUNTS_PATH"
 # Función para crear el archivo base de usuarios, leer la lista de usuarios y escribir la informacion del usuario en el archivo base de usuarios
 function read_accounts() {
   echo "Creando el archivo base de usuarios '$USERS_PATH'..."
@@ -53,10 +48,12 @@ function read_accounts() {
     echo "uidNumber: $uidNumber" >> "$USERS_PATH"
     echo "gidNumber: $gidNumber" >> "$USERS_PATH"
     echo "userPassword: $password" >> "$USERS_PATH"
-    echo "loginShell: /bin/bash" >> "$USERS_PATH"
+    echo "loginShell: $LOGIN_SHELL" >> "$USERS_PATH"
     echo "homeDirectory: $MAIL_DIR/$domain/$username" >> "$USERS_PATH"
     echo >> "$USERS_PATH"
-  
+    # crear al usuario $uidNumber
+    echo "Creando al usuario '$uidNumber'..."
+    sudo useradd -u "$uidNumber" -g "$gidNumber" -s "$LOGIN_SHELL" -d "$MAIL_DIR/$domain/$username" -m "$username"
     ((uidNumber++))
   done < <(grep -v '^$' "$ACCOUNTS_PATH")
   
@@ -64,7 +61,6 @@ function read_accounts() {
 }
 
 function make_accounts() {
-    read_gid
     read_accounts
 }
 # Llamar a la funcion principal
