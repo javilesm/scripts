@@ -31,6 +31,7 @@ function read_groups() {
     # Escribir la estructura para cada dominio en el archivo base de grupos
     echo "dn: ou=People,dc=$domain,dc=$top_level" >> "$GROUPS_PATH"
     echo "objectClass: organizationalUnit" >> "$GROUPS_PATH"
+    echo "objectClass: top" >> "$GROUPS_PATH"
     echo "ou: People" >> "$GROUPS_PATH"
     echo >> "$GROUPS_PATH"
 
