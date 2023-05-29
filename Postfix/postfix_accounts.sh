@@ -46,8 +46,11 @@ function validate_users_file() {
 function read_domains() {
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
-    while read -r host; do
-        # crear subdirectorios para cada dominio
+    while read -r hostname; do
+      local host="${hostname#*@}"
+      host="${host%%.*}"
+      echo "Hostname: $host"
+      # crear subdirectorios para cada dominio
       echo "Cambiando los permisos del directorio padre '$MAIL_PATH'..."
       sudo mkdir -p "$MAIL_PATH/$host"
       # cambiar permisos del subdirectorio
@@ -70,20 +73,21 @@ function read_accounts() {
       echo "Contraseña: ${password:0:3}*********"
       # Obtener el dominio del correo electrónico (todo lo que está después del símbolo @)
       local domain="${alias#*@}"
+      domain="${domain%%.*}"
       echo "Dominio: $domain"
+      local top_level="${alias##*.}"
+      echo "Top level: $top_level"
       # crear subdirectorio del usuario
       echo "Creando subdirectorio del usuario '$username' del dominio '$domain'..."
       sudo mkdir -p "$MAIL_PATH/$domain/$username"
       # cambiar permisos al subdirectorio del usuario
       echo "Cambiando permisos del subdirectorio del usuario '$username' del dominio '$domain'..."
       sudo chmod +w "$MAIL_PATH/$domain/$username"
-      # cambiar propoiedad del subdirectorio del usuario
+      # cambiar propiedad del subdirectorio del usuario
       echo "Cambiando la propiedad del subdirectorio del usuario '$username' del dominio '$domain'..."
       sudo chown 5000:5000 "$MAIL_PATH/$domain/$username"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
-      echo "$username@$domain $username.$domain"
-      # Escribiendo datos 
-      echo "$username@$domain $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual_alias_maps"
+      echo "$alias $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual_alias_maps"
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual_alias_maps'"
       # agregar las cuentas de correo junto con sus contraseñas
       echo "Agregando las cuentas de correo junto con sus contraseñas..."
