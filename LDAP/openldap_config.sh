@@ -4,8 +4,10 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 SLAPD_CONFIG_FILE="slapd.conf.ldif"
 SLAPD_CONFIG_PATH="$CURRENT_DIR/$SLAPD_CONFIG_FILE"
-CONTENT_FILE="add_content.ldif"
-CONTENT_PATH="$CURRENT_DIR/$CONTENT_FILE"
+GROUPS_FILE="grupos.ldif"
+GROUPS_PATH="$CURRENT_DIR/$GROUPS_FILE"
+ACCOUNTS_FILE="accounts.ldif"
+ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_FILE"
 CONFIG_LOGLEVEL_FILE="slapd_config_loglevel.ldif"
 CONFIG_LOGLEVEL_PATH="$CURRENT_DIR/$CONFIG_LOGLEVEL_FILE"
 CONFIG_SUFFIX_FILE="slapd_config_suffix.ldif"
@@ -104,6 +106,32 @@ function add_hostname_config() {
     return 0
 }
 
+function add_groups() {
+  echo "Agregando contenido desde '$GROUPS_PATH'..."
+  sudo expect << EOF
+spawn sudo ldapadd -D cn=admin,dc=$SUBDOMAIN,dc=$TOPLEVEL -W -H ldapi:/// -f "$GROUPS_PATH" 
+expect "Enter LDAP Password:"
+send "$ADMIN_PASSWORD\r"
+expect eof
+EOF
+
+echo "Todo el contenido desde '$GROUPS_PATH' fue agreago exitosamente."
+sudo ldapsearch -x -LLL -b dc=$SUBDOMAIN,dc=$TOPLEVEL ou
+}
+
+function add_accounts() {
+  echo "Agregando contenido desde '$ACCOUNTS_PATH'..."
+  sudo expect << EOF
+spawn sudo ldapadd -D cn=admin,dc=$SUBDOMAIN,dc=$TOPLEVEL -W -H ldapi:/// -f "$ACCOUNTS_PATH" 
+expect "Enter LDAP Password:"
+send "$ADMIN_PASSWORD\r"
+expect eof
+EOF
+
+echo "Todo el contenido desde '$ACCOUNTS_PATH' fue agreago exitosamente."
+sudo ldapsearch -x -LLL -b dc=$SUBDOMAIN,dc=$TOPLEVEL
+}
+
 function update_ldap_conf() {
   # Actualizar parametro BASE
   echo "Actualizando parametro BASE..."
@@ -139,7 +167,7 @@ function update_ldap_conf() {
 
 function add_templates() {
   #modif_setup
-  add_content
+  
   echo "Agregando plantilla desde '$SLAPD_CONFIG_PATH'..."
   #sudo ldapadd -Y EXTERNAL -H ldapi:/// -f "$SLAPD_CONFIG_PATH" || { echo "Error: No se pudo agregar la plantilla desde '$SLAPD_CONFIG_PATH'."; return 1; }
 
@@ -171,23 +199,6 @@ if [ $? -ne 0 ]; then
   echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."
   return 1
 fi
-}
-
-function add_content() {
-  echo "Agregando contenido desde '$CONTENT_PATH'..."
-  sudo expect << EOF
-spawn sudo ldapadd -x -D cn=admin,dc=$SUBDOMAIN,dc=$TOPLEVEL -W -f "$CONTENT_PATH" 
-expect "Enter LDAP Password:"
-send "$ADMIN_PASSWORD\r"
-expect eof
-EOF
-
-if [ $? -ne 0 ]; then
-  echo "Error: No se pudo modificar el archivo '$SETUP_BASIC_PATH'."
-  return 1
-fi
-echo "Todo el contenido desde '$CONTENT_PATH' fue agreago exitosamente."
-ldapsearch -x -LLL -b dc=$SUBDOMAIN,dc=$TOPLEVEL
 }
 
 function iniciar_servicio_ldap() {
@@ -254,8 +265,10 @@ function openldap_config() {
   install_slapd
   set_hostname
   add_hostname_config
+  add_groups
+  add_accounts
   update_ldap_conf
-  add_templates
+  #add_templates
   configurar_interfaces_red
   restart_service
   install_phpldapadmin
