@@ -3,8 +3,6 @@ objectClass: top
 objectClass: account
 objectClass: posixAccount
 objectClass: shadowAccount
-givenName: Sam
-sn: Aviles
 cn: Sam.Aviles
 uid: sam.aviles
 uidNumber: 10001
@@ -18,8 +16,6 @@ objectClass: top
 objectClass: account
 objectClass: posixAccount
 objectClass: shadowAccount
-givenName: Jorge
-sn: Aviles
 cn: Jorge.Aviles
 uid: jorge.aviles
 uidNumber: 10002
