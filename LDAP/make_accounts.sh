@@ -65,6 +65,9 @@ function read_accounts() {
     echo "objectClass: shadowAccount" >> "$USERS_PATH"
     echo "cn: $name.$lastname" >> "$USERS_PATH"
     echo "uid: $username" >> "$USERS_PATH"
+    echo "mailDrop: $alias" >> "$USERS_PATH"
+    echo "mailEnabled: TRUE" >> "$USERS_PATH"
+    echo "mailQuota: 1G" >> "$USERS_PATH"
     echo "uidNumber: $uidNumber" >> "$USERS_PATH"
     echo "gidNumber: $gidNumber" >> "$USERS_PATH"
     echo "userPassword: $password" >> "$USERS_PATH"
@@ -73,7 +76,7 @@ function read_accounts() {
     echo >> "$USERS_PATH"
     # crear al usuario $uidNumber
     echo "Creando al usuario '$uidNumber'..."
-    sudo useradd -u "$uidNumber" -g "$gidNumber" -s "$LOGIN_SHELL" -d "$MAIL_DIR/$domain/$username" -m "$username"
+    sudo useradd -u "$uidNumber" -g "$gidNumber" -s "$LOGIN_SHELL" -d "$MAIL_DIR/$domain/$username" -m "$alias"
     ((uidNumber++))
   done < <(grep -v '^$' "$MAIL_ACCOUNTS_PATH")
   
