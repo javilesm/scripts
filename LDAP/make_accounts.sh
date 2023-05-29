@@ -8,14 +8,23 @@ ACCOUNTS_PATH="$PARENT_DIR/Postfix/$ACCOUNTS_FILE"
 USERS_FILE="accounts.ldif"
 USERS_PATH="$CURRENT_DIR/$USERS_FILE"
 MAIL_DIR="/var/mail"
+POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
+POSTFIX_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$POSTFIX_ACCOUNTS_SCRIPT"
+# Función para leer la varible $GID
+function read_gid() {
+    # Cargar el contenido de script2.sh en script1.sh
+    source "$POSTFIX_ACCOUNTS_PATH"
 
+    # Acceder a la variable GID definida en script2.sh
+    echo "El GID es: $GID"
+}
 # Función para crear el archivo base de usuarios, leer la lista de usuarios y escribir la informacion del usuario en el archivo base de usuarios
 function read_accounts() {
   echo "Creando el archivo base de usuarios '$USERS_PATH'..."
   sudo touch "$USERS_PATH"
   
-  local uidNumber=10001
-  local gidNumber=10001
+  local uidNumber=$((GID + 1))
+  local gidNumber=$GID
   
   while IFS="," read -r username name lastname email alias password; do
     echo "Usuario: $username"
@@ -49,13 +58,13 @@ function read_accounts() {
     echo >> "$USERS_PATH"
   
     ((uidNumber++))
-    ((gidNumber++))
   done < <(grep -v '^$' "$ACCOUNTS_PATH")
   
   echo "Todas las cuentas de correo han sido copiadas."
 }
 
 function make_accounts() {
+    read_gid
     read_accounts
 }
 # Llamar a la funcion principal
