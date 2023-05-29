@@ -9,6 +9,7 @@ DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
 DOVECOT_PATH="/etc/dovecot"
 MAIL_PATH="/var/mail"
+GID="10000"
 # Función para verificar si el archivo de cuentas de usuario existe
 function validate_accounts_file() {
     # verificar si el archivo de dominios existe
@@ -56,9 +57,11 @@ function read_domains() {
       # cambiar permisos del subdirectorio
       echo "Cambiando los permisos del subdirectorio '$MAIL_PATH/$host'..."
       sudo chmod +x "$MAIL_PATH/$host"
+      sudo chmod o+w "$MAIL_PATH/$host"
       # cambiar la propiedad del directorio
       echo "Cambiando la propiedad del directorio '$MAIL_PATH/$host'..."
-      sudo chown 5000:5000 "$MAIL_PATH/$host"
+      sudo chown :"$GID" "$MAIL_PATH/$host"
+      sudo chmod g+w "$MAIL_PATH/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -85,7 +88,7 @@ function read_accounts() {
       sudo chmod +w "$MAIL_PATH/$domain/$username"
       # cambiar propiedad del subdirectorio del usuario
       echo "Cambiando la propiedad del subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo chown 5000:5000 "$MAIL_PATH/$domain/$username"
+      sudo chown :$GID "$MAIL_PATH/$domain/$username"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$alias $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual_alias_maps"
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual_alias_maps'"
