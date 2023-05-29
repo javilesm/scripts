@@ -289,10 +289,10 @@ function run_accounts_script() {
 function validate_groups_script() {
   echo "Verificando si el archivo de configuración existe..."
   if [ ! -f "$MAKEGROUPS_PATH" ]; then
-    echo "ERROR: El archivo de configuración '$MAKEACCOUNTS_SCRIPT' no se puede encontrar en la ruta '$MAKEGROUPS_PATH'."
+    echo "ERROR: El archivo de configuración '$MAKEGROUPS_SCRIPT' no se puede encontrar en la ruta '$MAKEGROUPS_PATH'."
     exit 1
   fi
-  echo "El archivo de configuración '$MAKEACCOUNTS_SCRIPT' existe."
+  echo "El archivo de configuración '$MAKEGROUPS_SCRIPT' existe."
 }
 # Función para ejecutar el configurador de Postfix
 function run_groups_script() {
