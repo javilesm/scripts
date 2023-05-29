@@ -555,15 +555,15 @@ function validate_script() {
 }
 # Función para ejecutar el configurador de Postfix
 function run_script() {
-  echo "Ejecutar el configurador '$MAKEGROUPS_SCRIPT'..."
+  echo "Ejecutar el configurador '$ACCOUNTS_SCRIPT'..."
     # Intentar ejecutar el archivo de configuración de Postfix
   if sudo bash "$ACCOUNTS_PATH"; then
-    echo "El archivo de configuración '$MAKEGROUPS_SCRIPT' se ha ejecutado correctamente."
+    echo "El archivo de configuración '$ACCOUNTS_SCRIPT' se ha ejecutado correctamente."
   else
-    echo "ERROR: No se pudo ejecutar el archivo de configuración '$MAKEGROUPS_SCRIPT'."
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$ACCOUNTS_SCRIPT'."
     exit 1
   fi
-  echo "Configurador '$MAKEGROUPS_SCRIPT' ejecutado."
+  echo "Configurador '$ACCOUNTS_SCRIPT' ejecutado."
 }
 # Función principal
 function postfix_config() {
@@ -578,6 +578,8 @@ function postfix_config() {
   config_postfix
   postfix_check
   restart_services
+  validate_script
+  run_script
   echo "***************ALL DONE***************"
 }
 # Llamar a la función principal
