@@ -14,9 +14,6 @@ function read_groups() {
   echo "Creando el archivo base de usuarios '$GROUPS_PATH'..."
   sudo touch "$GROUPS_PATH"
   
-  local uidNumber=10001
-  local gidNumber=10001
-  
   while IFS="," read -r hostname; do
     echo "Hostname: $hostname"
      
