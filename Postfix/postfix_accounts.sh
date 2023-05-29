@@ -10,6 +10,13 @@ POSTFIX_PATH="/etc/postfix"
 DOVECOT_PATH="/etc/dovecot"
 MAIL_PATH="/var/mail"
 GID="10000"
+# Función para crear al grupo $GID
+function group_add() {
+    # crear al grupo $GID
+    echo "Creando al grupo '$GID'..."
+    sudo groupadd -g "$GID" people
+    cat /etc/group
+}
 # Función para verificar si el archivo de cuentas de usuario existe
 function validate_accounts_file() {
     # verificar si el archivo de dominios existe
@@ -119,6 +126,7 @@ function restart_services() {
 # Función principal
 function postfix_accounts() {
   echo "***************POSTFIX ACCOUNTS***************"
+  group_add
   validate_accounts_file
   validate_mail_path
   validate_users_file
