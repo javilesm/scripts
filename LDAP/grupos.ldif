@@ -1,7 +1,0 @@
-dn: ou=People,dc=avilesworks,dc=com
-objectClass: organizationalUnit
-ou: People
-
-dn: ou=Groups,dc=avilesworks,dc=com
-objectClass: organizationalUnit
-ou: Groups
