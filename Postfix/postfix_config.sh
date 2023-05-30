@@ -9,10 +9,11 @@ DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
 POSTFIX_MAIN="$POSTFIX_PATH/main.cf"
-VIRTUAL_DOMAINS="$POSTFIX_PATH/virtual_domains.cf"
-VIRTUAL_MAILBOX="$POSTFIX_PATH/virtual_mailbox.cf"
+VIRTUAL_DOMAINS_CF="$POSTFIX_PATH/virtual_domains.cf"
+VIRTUAL_MAILBOX_CF="$POSTFIX_PATH/virtual_mailbox.cf"
 VIRTUAL_ALIAS_CF="$POSTFIX_PATH/virtual_alias.cf"
 VIRTUAL_ALIAS="$POSTFIX_PATH/virtual"
+
 # Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
 function read_gid() {
     # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
@@ -48,29 +49,29 @@ function verify_config_files() {
     local error=0
     # Verificar si el archivo de configuración virtual_domains.cf ya existe
     echo "Verificando si el archivo de configuración virtual_domains.cf ya existe..."
-    if [[ -f "$VIRTUAL_DOMAINS" ]]; then
-        echo "El archivo de configuración '$VIRTUAL_DOMAINS' ya existe."
+    if [[ -f "$VIRTUAL_DOMAINS_CF" ]]; then
+        echo "El archivo de configuración '$VIRTUAL_DOMAINS_CF' ya existe."
     else
         # Crear archivo de configuración virtual_domains.cf
-        echo "Creando archivo de configuración: '$VIRTUAL_DOMAINS'... "
-        if sudo touch "$VIRTUAL_DOMAINS"; then
-            echo "Se ha creado el archivo '$VIRTUAL_DOMAINS'."
+        echo "Creando archivo de configuración: '$VIRTUAL_DOMAINS_CF'... "
+        if sudo touch "$VIRTUAL_DOMAINS_CF"; then
+            echo "Se ha creado el archivo '$VIRTUAL_DOMAINS_CF'."
         else
-            echo "ERROR: No se pudo crear el archivo '$VIRTUAL_DOMAINS'."
+            echo "ERROR: No se pudo crear el archivo '$VIRTUAL_DOMAINS_CF'."
             error=1
         fi
     fi
     # Verificar si el archivo de configuración virtual_mailbox.cf ya existe
     echo "Verificando si el archivo de configuración virtual_mailbox.cf ya existe..."
-    if [[ -f "$VIRTUAL_MAILBOX" ]]; then
-        echo "El archivo de configuración '$VIRTUAL_MAILBOX' ya existe."
+    if [[ -f "$VIRTUAL_MAILBOX_CF" ]]; then
+        echo "El archivo de configuración '$VIRTUAL_MAILBOX_CF' ya existe."
     else
         # Crear archivo de configuración virtual_mailbox.cf
-        echo "Creando archivo de configuración: '$VIRTUAL_MAILBOX'... "
-        if sudo touch "$VIRTUAL_MAILBOX"; then
-            echo "Se ha creado el archivo '$VIRTUAL_MAILBOX'."
+        echo "Creando archivo de configuración: '$VIRTUAL_MAILBOX_CF'... "
+        if sudo touch "$VIRTUAL_MAILBOX_CF"; then
+            echo "Se ha creado el archivo '$VIRTUAL_MAILBOX_CF'."
         else
-            echo "ERROR: No se pudo crear el archivo '$VIRTUAL_MAILBOX'."
+            echo "ERROR: No se pudo crear el archivo '$VIRTUAL_MAILBOX_CF'."
             error=1
         fi
     fi
@@ -101,7 +102,7 @@ function verify_config_files() {
 # Función para realizar un respaldo de seguridad de los archivos de configuración
 function backup_config_files() {
     # Verificar si los archivos de respaldo ya existen
-    if [[ -f "$VIRTUAL_DOMAINS.bak" || -f "$VIRTUAL_MAILBOX.bak" || -f "$VIRTUAL_ALIAS_CF.bak" ]]; then
+    if [[ -f "$VIRTUAL_DOMAINS_CF.bak" || -f "$VIRTUAL_MAILBOX_CF.bak" || -f "$VIRTUAL_ALIAS_CF.bak" ]]; then
         echo "ERROR: Uno o más archivos de respaldo ya existen."
         ls "$POSTFIX_PATH"
         return 1
@@ -114,13 +115,13 @@ function backup_config_files() {
         return 1
     fi
     
-    if ! sudo cp "$VIRTUAL_DOMAINS" "$VIRTUAL_DOMAINS.bak"; then
-        echo "ERROR: No se pudo realizar el respaldo de seguridad de $VIRTUAL_DOMAINS."
+    if ! sudo cp "$VIRTUAL_DOMAINS_CF" "$VIRTUAL_DOMAINS_CF.bak"; then
+        echo "ERROR: No se pudo realizar el respaldo de seguridad de $VIRTUAL_DOMAINS_CF."
         return 1
     fi
     
-    if ! sudo cp "$VIRTUAL_MAILBOX" "$VIRTUAL_MAILBOX.bak"; then
-        echo "ERROR: No se pudo realizar el respaldo de seguridad de $VIRTUAL_MAILBOX."
+    if ! sudo cp "$VIRTUAL_MAILBOX_CF" "$VIRTUAL_MAILBOX_CF.bak"; then
+        echo "ERROR: No se pudo realizar el respaldo de seguridad de $VIRTUAL_MAILBOX_CF."
         return 1
     fi
     
@@ -162,29 +163,29 @@ function config_virtual_files() {
     while read -r domain; do
         echo "Configurando dominio: $domain"
         # Configurar el archivo virtual_domains.cf
-        echo "Configurando el archivo '$VIRTUAL_DOMAINS'..."
-        if ! sudo echo "DBNAME=/var/mail/vhosts/$domain.db" >> "$VIRTUAL_DOMAINS"; then
-            echo "ERROR: Error al escribir 'DBNAME=/var/mail/vhosts/$domain.db' en el archivo '$VIRTUAL_DOMAINS'."
+        echo "Configurando el archivo '$VIRTUAL_DOMAINS_CF'..."
+        if ! sudo echo "DBNAME=/var/mail/$domain.db" >> "$VIRTUAL_DOMAINS_CF"; then
+            echo "ERROR: Error al escribir 'DBNAME=/var/mail/$domain.db' en el archivo '$VIRTUAL_DOMAINS_CF'."
             exit 1
         fi
-        if ! sudo echo "QUERY=SELECT domain FROM domain WHERE domain='$domain' AND active = '1'" >> "$VIRTUAL_DOMAINS"; then
-            echo "ERROR: Error al escribir 'QUERY=SELECT domain FROM domain WHERE domain='$domain' AND active = '1'' en el archivo '$VIRTUAL_DOMAINS'."
+        if ! sudo echo "QUERY=SELECT domain FROM domain WHERE domain='$domain' AND active = '1'" >> "$VIRTUAL_DOMAINS_CF"; then
+            echo "ERROR: Error al escribir 'QUERY=SELECT domain FROM domain WHERE domain='$domain' AND active = '1'' en el archivo '$VIRTUAL_DOMAINS_CF'."
             exit 1
         fi
         # Configurar el archivo virtual_mailbox.cf
-         echo "Configurando el archivo '$VIRTUAL_MAILBOX'..."
-        if ! sudo echo "DBNAME=/var/mail/vhosts/$domain.db" >> "$VIRTUAL_MAILBOX"; then
-            echo "ERROR: Error al escribir 'DBNAME=/var/mail/vhosts/$domain.db' en el archivo '$VIRTUAL_MAILBOX'."
+         echo "Configurando el archivo '$VIRTUAL_MAILBOX_CF'..."
+        if ! sudo echo "DBNAME=/var/mail/$domain.db" >> "$VIRTUAL_MAILBOX_CF"; then
+            echo "ERROR: Error al escribir 'DBNAME=/var/mail/$domain.db' en el archivo '$VIRTUAL_MAILBOX_CF'."
             exit 1
         fi
-        if ! sudo echo "QUERY=SELECT email FROM mailbox WHERE username='%u@$domain' AND active = '1'" >> "$VIRTUAL_MAILBOX"; then
-            echo "ERROR: Error al escribir 'QUERY=SELECT email FROM mailbox WHERE username='%u@$domain' AND active = '1'' en el archivo '$VIRTUAL_MAILBOX'."
+        if ! sudo echo "QUERY=SELECT email FROM mailbox WHERE username='%u@$domain' AND active = '1'" >> "$VIRTUAL_MAILBOX_CF"; then
+            echo "ERROR: Error al escribir 'QUERY=SELECT email FROM mailbox WHERE username='%u@$domain' AND active = '1'' en el archivo '$VIRTUAL_MAILBOX_CF'."
             exit 1
         fi
         # Configurar el archivo virtual_alias.cf
         echo "Configurando el archivo '$VIRTUAL_ALIAS_CF'..."
-        if ! sudo echo "DBNAME=/var/mail/vhosts/$domain.db" >> "$VIRTUAL_ALIAS_CF"; then
-            echo "ERROR: Error al escribir 'DBNAME=/var/mail/vhosts/$domain.db' en el archivo '$VIRTUAL_ALIAS_CF'."
+        if ! sudo echo "DBNAME=/var/mail/$domain.db" >> "$VIRTUAL_ALIAS_CF"; then
+            echo "ERROR: Error al escribir 'DBNAME=/var/mail/$domain.db' en el archivo '$VIRTUAL_ALIAS_CF'."
             exit 1
         fi
         if ! sudo echo "QUERY=SELECT email FROM alias WHERE source='%s@$domain' AND active = '1'" >> "$VIRTUAL_ALIAS_CF"; then
@@ -197,6 +198,10 @@ function config_virtual_files() {
 # Función para leer la lista de dominios y configurar el archivo main.cf
 function config_postfix() {
     virtual_mailbox_domains=""
+    virtual_mailbox_maps="hash:/etc/postfix/virtual_alias_maps"
+    #virtual_mailbox_maps="ldap:/etc/postfix/ldap-users.cf"
+    virtual_alias_maps="hash:/etc/postfix/virtual_alias_maps"
+    #virtual_alias_maps="ldap:/etc/postfix/ldap-aliases.cf"
     while read -r domain; do
         virtual_mailbox_domains+="$domain, "
     done < <(sed -e '$a\' "$DOMAINS_PATH")
@@ -212,7 +217,7 @@ function config_postfix() {
     #virtual_mailbox_base
     if grep -q "#virtual_mailbox_base" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#virtual_mailbox_base =.*|virtual_mailbox_base = /var/mail/|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_base"; exit 1; }
-    elif grep -q "virtual_mailbox_maps" "$POSTFIX_MAIN"; then
+    elif grep -q "virtual_mailbox_base" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^virtual_mailbox_base =.*|virtual_mailbox_base = /var/mail/|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_base"; exit 1; }
     else
         echo "virtual_mailbox_base = /var/mail/" >> "$POSTFIX_MAIN"
@@ -220,22 +225,22 @@ function config_postfix() {
     echo "virtual_mailbox_base = /var/mail/" >> "$CURRENT_DIR/test.txt"
     #virtual_mailbox_maps
     if grep -q "#virtual_mailbox_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_mailbox_maps =.*|virtual_mailbox_maps = hash:/etc/postfix/virtual_alias_maps|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_maps"; exit 1; }
+        sudo sed -i "s|^#virtual_mailbox_maps =.*|virtual_mailbox_maps = ${virtual_mailbox_maps//\"/}"|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_maps"; exit 1; }
     elif grep -q "virtual_mailbox_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_mailbox_maps =.*|virtual_mailbox_maps = hash:/etc/postfix/virtual_alias_maps|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_maps"; exit 1; }
+        sudo sed -i "s|^virtual_mailbox_maps =.*|virtual_mailbox_maps = ${virtual_mailbox_maps//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_maps"; exit 1; }
     else
-        echo "virtual_mailbox_maps = hash:/etc/postfix/virtual_alias_maps" >> "$POSTFIX_MAIN"
+        echo "virtual_mailbox_maps = ${virtual_mailbox_maps//\"/}" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_mailbox_maps = hash:/etc/postfix/virtual_alias_maps" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_mailbox_maps = ${virtual_mailbox_maps//\"/}" >> "$CURRENT_DIR/test.txt"
     #virtual_alias_maps
     if grep -q "#virtual_alias_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_alias_maps =.*|virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_alias_maps"; exit 1; }
+        sudo sed -i "s|^#virtual_alias_maps =.*|virtual_alias_maps = ${virtual_alias_maps//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_alias_maps"; exit 1; }
     elif grep -q "virtual_alias_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_alias_maps =.*|virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_maps"; exit 1; }
+        sudo sed -i "s|^virtual_alias_maps =.*|virtual_alias_maps = ${virtual_alias_maps//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_maps"; exit 1; }
     else
-        echo "virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps" >> "$POSTFIX_MAIN"
+        echo "virtual_alias_maps = ${virtual_alias_maps//\"/}" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_alias_maps = hash:/etc/postfix/virtual_alias_maps" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_alias_maps = ${virtual_alias_maps//\"/}" >> "$CURRENT_DIR/test.txt"
     #virtual_transport
     if grep -q "#virtual_transport" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#virtual_transport =.*|virtual_transport = lmtp:unix:private/dovecot-lmtp|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_transport"; exit 1; }
