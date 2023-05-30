@@ -6,10 +6,10 @@ passdb {
 userdb {
   driver = ldap
   args = /etc/dovecot/dovecot-ldap.conf.ext
-  default_fields = home=/var/spool/virtual/%u
+  default_fields = home=/var/mail/%d/%n
 }
 
 userdb {
   driver = static
-  args = uid=10000 gid=10000 home=/var/spool/vitrual/%u
+  args = uid=10000 gid=10000 home=/var/mail/%d/%n
 }
