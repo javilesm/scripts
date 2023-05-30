@@ -3,6 +3,8 @@
 # Variables
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
+CONFIG_FILE="openldap_config.sh"
+CONFIG_PATH="$CURRENT_DIR/$CONFIG_FILE"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$PARENT_DIR/Postfix/$DOMAINS_FILE"
 GROUPS_FILE="grupos.ldif"
@@ -10,6 +12,12 @@ GROUPS_PATH="$CURRENT_DIR/$GROUPS_FILE"
 LDAP_USERS_PATH="/etc/postfix/ldap-users.cf"
 LDAP_ALIASES_PATH="/etc/postfix/ldap-aliases.cf"
 MAIL_DIR="/var/mail"
+# Función para leer la variable "ADMIN_PASSWORD" desde el script "openldap_config.sh" 
+function read_openldap_config() {
+  # leer la variable "ADMIN_PASSWORD" desde el script "openldap_config.sh"
+  admin_password=$(grep -oP 'ADMIN_PASSWORD=\K.*' "$CONFIG_PATH")
+  echo "La contraseña del administrador es: $admin_password"
+}
 # Función para crear el archivo base de usuarios
 function create_groups_file() {
   # Verificar si el archivo ya existe
@@ -157,6 +165,7 @@ function make_ldap_aliases() {
 }
 function make_groups() {
   echo "***************MAKE GROUPS***************"
+  read_openldap_config
   create_groups_file
   make_grupos
   create_users_file
