@@ -57,6 +57,7 @@ function make_grupos() {
     echo "objectClass: organizationalUnit" >> "$GROUPS_PATH"
     echo "objectClass: top" >> "$GROUPS_PATH"
     echo "ou: People" >> "$GROUPS_PATH"
+     echo "" >> "$GROUPS_PATH"
     echo >> "$GROUPS_PATH"
 
   done < <(grep -v '^$' "$DOMAINS_PATH")
@@ -107,10 +108,11 @@ function make_ldap_users() {
     echo "version = 3" >> "$LDAP_USERS_PATH"
     echo "bind = yes" >> "$LDAP_USERS_PATH"
     echo "bind_dn = cn=admin,dc=$domain,dc=$top_level" >> "$LDAP_USERS_PATH"
-    echo "bind_pw = admin_password" >> "$LDAP_USERS_PATH"
+    echo "bind_pw = $admin_password" >> "$LDAP_USERS_PATH"
     echo "query_filter = (&(objectClass=inetOrgPerson)(mail=%s))" >> "$LDAP_USERS_PATH"
     echo "result_attribute = homeDirectory" >> "$LDAP_USERS_PATH"
     echo "result_filter = %s/Maildir/" >> "$LDAP_USERS_PATH"
+    echo "" >> "$LDAP_USERS_PATH"
   done < <(grep -v '^$' "$DOMAINS_PATH")
   echo "Todas las cuentas de correo han sido copiadas."
 }
@@ -156,10 +158,11 @@ function make_ldap_aliases() {
     echo "version = 3" >> "$LDAP_ALIASES_PATH"
     echo "bind = yes" >> "$LDAP_ALIASES_PATH"
     echo "bind_dn = cn=admin,dc=$domain,dc=$top_level" >> "$LDAP_ALIASES_PATH"
-    echo "bind_pw = admin_password" >> "$LDAP_ALIASES_PATH"
+    echo "bind_pw = $admin_password" >> "$LDAP_ALIASES_PATH"
     echo "query_filter = (&(objectClass=inetOrgPerson)(mail=%s))" >> "$LDAP_ALIASES_PATH"
     echo "result_attribute = mail" >> "$LDAP_ALIASES_PATH"
     echo "result_filter = %s" >> "$LDAP_ALIASES_PATH"
+    echo "" >> "$LDAP_ALIASES_PATH"
   done < <(grep -v '^$' "$DOMAINS_PATH")
   echo "Todas las cuentas de correo han sido copiadas."
 }
