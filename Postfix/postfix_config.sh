@@ -35,12 +35,11 @@ function read_gid() {
         echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
     fi
 }
-# Función para crear al usuario vmail:5000
+# Función para crear al usuario vmail:GID
 function create_vmail_user() {
-    # crear al usuario vmail:5000
-    echo "Creando al usuario vmail:5000..."
-    sudo groupadd -g 5000 vmail
-    sudo useradd -u 5000 -g vmail -s /usr/bin/nologin -d /var/mail -m vmail
+    # crear al usuario vmail:GID
+    echo "Creando al usuario vmail:${GID//\"/}..."
+    sudo useradd -u vmail -g ${GID//\"/} -s /usr/bin/nologin -d /var/mail -m vmail
 }
 # Función para crear archivos de configuración de la base de datos virtual
 function verify_config_files() {
@@ -202,6 +201,8 @@ function config_postfix() {
     #virtual_mailbox_maps="ldap:/etc/postfix/ldap-users.cf"
     virtual_alias_maps="hash:/etc/postfix/virtual_alias_maps"
     #virtual_alias_maps="ldap:/etc/postfix/ldap-aliases.cf"
+    virtual_mailbox_base="/var/mail/"
+    virtual_alias_domains="hash:/etc/postfix/virtual_domains"
     while read -r domain; do
         virtual_mailbox_domains+="$domain, "
     done < <(sed -e '$a\' "$DOMAINS_PATH")
@@ -216,13 +217,13 @@ function config_postfix() {
     echo "virtual_mailbox_domains = ${virtual_mailbox_domains::-1}" >> "$CURRENT_DIR/test.txt"
     #virtual_mailbox_base
     if grep -q "#virtual_mailbox_base" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_mailbox_base =.*|virtual_mailbox_base = /var/mail/|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_base"; exit 1; }
+        sudo sed -i "s|^#virtual_mailbox_base =.*|virtual_mailbox_base = ${virtual_mailbox_base//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_base"; exit 1; }
     elif grep -q "virtual_mailbox_base" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_mailbox_base =.*|virtual_mailbox_base = /var/mail/|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_base"; exit 1; }
+        sudo sed -i "s|^virtual_mailbox_base =.*|virtual_mailbox_base = ${virtual_mailbox_base//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_base"; exit 1; }
     else
-        echo "virtual_mailbox_base = /var/mail/" >> "$POSTFIX_MAIN"
+        echo "virtual_mailbox_base = ${virtual_mailbox_base//\"/}" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_mailbox_base = /var/mail/" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_mailbox_base = ${virtual_mailbox_base//\"/}" >> "$CURRENT_DIR/test.txt"
     #virtual_mailbox_maps
     if grep -q "#virtual_mailbox_maps" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#virtual_mailbox_maps =.*|virtual_mailbox_maps = ${virtual_mailbox_maps//\"/}"|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_maps"; exit 1; }
@@ -252,13 +253,13 @@ function config_postfix() {
     echo "virtual_transport = lmtp:unix:private/dovecot-lmtp" >> "$CURRENT_DIR/test.txt"
     #virtual_alias_domains
     if grep -q "#virtual_alias_domains" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_alias_domains =.*|virtual_alias_domains = hash:/etc/postfix/virtual_domains|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_alias_domains"; exit 1; }
+        sudo sed -i "s|^#virtual_alias_domains =.*|virtual_alias_domains = ${virtual_alias_domains//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_alias_domains"; exit 1; }
     elif grep -q "virtual_alias_domains" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_alias_domains =.*|virtual_alias_domains = hash:/etc/postfix/virtual_domains|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_domains"; exit 1; }
+        sudo sed -i "s|^virtual_alias_domains =.*|virtual_alias_domains = ${virtual_alias_domains//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_alias_domains"; exit 1; }
     else
-        echo "virtual_alias_domains = hash:/etc/postfix/virtual_domains" >> "$POSTFIX_MAIN"
+        echo "virtual_alias_domains = ${virtual_alias_domains//\"/}" >> "$POSTFIX_MAIN"
     fi
-    echo "virtual_alias_domains = hash:/etc/postfix/virtual_domains" >> "$CURRENT_DIR/test.txt"
+    echo "virtual_alias_domains = ${virtual_alias_domains//\"/}" >> "$CURRENT_DIR/test.txt"
     #smtpd_tls_cert_file
     if grep -q "#smtpd_tls_cert_file" "$POSTFIX_MAIN"; then
         sudo sed -i "s|^#smtpd_tls_cert_file=.*|smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_cert_file"; exit 1; }
@@ -433,29 +434,29 @@ function config_postfix() {
   
     #virtual_minimum_uid
     if grep -q "#virtual_minimum_uid" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = 5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_minimum_uid"; exit 1; }
+        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = ${GID//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_minimum_uid"; exit 1; }
     elif grep -q "virtual_minimum_uid" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = 5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_minimum_uid"; exit 1; }
+        sudo sed -i "s|^#virtual_minimum_uid =.*|virtual_minimum_uid = ${GID//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_minimum_uid"; exit 1; }
     else
-        echo "virtual_minimum_uid= 5000" >> "$POSTFIX_MAIN"
+        echo "virtual_minimum_uid= ${GID//\"/}" >> "$POSTFIX_MAIN"
     fi
     echo "virtual_minimum_uid = ${GID//\"/}" >> "$CURRENT_DIR/test.txt"
     #vvirtual_uid_maps
     if grep -q "#virtual_uid_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_uid_maps =.*|virtual_uid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_uid_maps"; exit 1; }
+        sudo sed -i "s|^#virtual_uid_maps =.*|virtual_uid_maps = static:${GID//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_uid_maps"; exit 1; }
     elif grep -q "virtual_uid_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_uid_maps =.*|virtual_uid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_uid_maps"; exit 1; }
+        sudo sed -i "s|^virtual_uid_maps =.*|virtual_uid_maps = static:${GID//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_uid_maps"; exit 1; }
     else
-        echo "virtual_uid_maps = static:5000" >> "$POSTFIX_MAIN"
+        echo "virtual_uid_maps = static:${GID//\"/}" >> "$POSTFIX_MAIN"
     fi
     echo "virtual_uid_maps = static:${GID//\"/}" >> "$CURRENT_DIR/test.txt"
     #virtual_gid_maps
     if grep -q "#virtual_gid_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#virtual_gid_maps =.*|virtual_gid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_gid_maps"; exit 1; }
+        sudo sed -i "s|^#virtual_gid_maps =.*|virtual_gid_maps = static:${GID//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_gid_maps"; exit 1; }
     elif grep -q "virtual_gid_maps" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^virtual_gid_maps =.*|virtual_gid_maps = static:5000|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_gid_maps"; exit 1; }
+        sudo sed -i "s|^virtual_gid_maps =.*|virtual_gid_maps = static:${GID//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_gid_maps"; exit 1; }
     else
-        echo "virtual_gid_maps = static:5000" >> "$POSTFIX_MAIN"
+        echo "virtual_gid_maps = static:${GID//\"/}" >> "$POSTFIX_MAIN"
     fi
     echo "virtual_gid_maps = static:${GID//\"/}" >> "$CURRENT_DIR/test.txt"
     #inet_protocols
