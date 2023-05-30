@@ -17,7 +17,8 @@ function install_packages() {
   sudo debconf-set-selections <<< "postfix-sqlite postfix-sqlite/dbconfig-upgrade boolean true"
   
   # Instalar y reiniciar postfix y postfix-sqlite
-  install_and_restart postfix postfix-ldap
+  install_and_restart postfix
+  install_and_restart postfix-ldap
 }
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
