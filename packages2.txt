@@ -2,6 +2,7 @@ tree
 expect
 telnet
 net-tools
+bind9
 sasl2-bin
 openssl
 dnsutils
