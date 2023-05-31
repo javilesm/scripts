@@ -82,8 +82,6 @@ function read_MAIL_DIR() {
 function validate_script() {
   echo "Verificando si el archivo de configuración existe..."
   if [ ! -f "$AUTH_LDAP_PATH" ]; then
-  if [ ! -f "$" ]; then
-  if [ ! -f "$AUTH_LDAP_PATH" ]; then
     echo "ERROR: El archivo de configuración '$AUTH_LDAP_FILE' no se puede encontrar en la ruta '$AUTH_LDAP_PATH'."
     exit 1
   fi
@@ -93,8 +91,7 @@ function validate_script() {
 function run_script() {
   echo "Ejecutar el configurador '$AUTH_LDAP_FILE'..."
     # Intentar ejecutar el archivo de configuración de Postfix
-  if [ ! -f "$AUTH_LDAP_PATH" ]; then
-  if sudo bash "$"; then
+  if sudo bash "$AUTH_LDAP_PATH"; then
     echo "El archivo de configuración '$AUTH_LDAP_FILE' se ha ejecutado correctamente."
   else
     echo "ERROR: No se pudo ejecutar el archivo de configuración '$AUTH_LDAP_FILE'."
@@ -103,7 +100,7 @@ function run_script() {
   echo "Configurador '$AUTH_LDAP_FILE' ejecutado."
 }
 function edit_auth_file_fake() {
-    # userdb { }
+    # userdb {
     if grep -q "# userdb {" "$auth_file_fake"; then
         sudo sed -i "s|^# userdb {.*|userdb {\n    driver = static\n    args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n  \n}|" "$auth_file_fake" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_file_fake': # userdb { }"; exit 1; }
     elif grep -q "userdb { }" "$auth_file_fake"; then
@@ -314,8 +311,6 @@ function enable_protocols() {
 function edit_dovecot-sql-conf_file() {
     # editar el archivo 'dovecot-sql-conf_file'
     echo "Editando el archivo '$dovecot_sql_conf_file'..."
-    #driver
-    echo "Driver..."
     if grep -q "#driver" "$dovecot_sql_conf_file"; then
         sudo sed -i "s|^#driver =.*|driver = ${DRIVER//\"/}|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$dovecot_sql_conf_file': #driver"; exit 1; }
     elif grep -q "driver" "$dovecot_sql_conf_file"; then
@@ -328,7 +323,7 @@ function edit_dovecot-sql-conf_file() {
     echo "connect = host=localhost dbname=postfix user=postfix_user password=postfix2023" >> "$dovecot_sql_conf_file"
     echo "default_pass_scheme = SHA512-CRYPT" >> "$dovecot_sql_conf_file"
     echo "password_query = SELECT username, password FROM users WHERE username = '%u';" >> "$dovecot_sql_conf_file"
-    echo "user_query = SELECT '/var/mail' || maildir AS home, 'maildir:/var/mail' || maildir AS mail, 1001 AS uid, 1001 AS gid FROM users WHERE username = '%u';" >> "$dovecot_sql_conf_file"
+    echo "user_query = SELECT '${MAIL_DIR//\"/}' || maildir AS home, 'maildir:${MAIL_DIR//\"/}' || maildir AS mail, 1001 AS uid, ${GID//\"/} AS gid FROM users WHERE username = '%u';" >> "$dovecot_sql_conf_file"
 }
 # Función para iniciar y habilitar el servicio de Dovecot
 function start_and_enable() {
