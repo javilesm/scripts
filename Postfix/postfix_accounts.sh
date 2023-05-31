@@ -10,11 +10,12 @@ POSTFIX_PATH="/etc/postfix"
 DOVECOT_PATH="/etc/dovecot"
 MAIL_PATH="/var/mail"
 GID="10000"
+GID_NAME="people"
 # Función para crear al grupo $GID
 function group_add() {
     # crear al grupo $GID
     echo "Creando al grupo '$GID'..."
-    sudo groupadd -g "$GID" people
+    sudo groupadd -g "$GID" "$GID_NAME"
     cat /etc/group
 }
 # Función para verificar si el archivo de cuentas de usuario existe
