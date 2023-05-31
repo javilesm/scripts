@@ -3,6 +3,7 @@
 # Variables
 MY_DOMAIN="avilesworks.com"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
 POSTFIX_ACCOUNTS_PATH="$CURRENT_DIR/$POSTFIX_ACCOUNTS_SCRIPT"
 DOMAINS_FILE="domains.txt"
@@ -13,12 +14,12 @@ VIRTUAL_DOMAINS_CF="$POSTFIX_PATH/virtual_domains.cf"
 VIRTUAL_MAILBOX_CF="$POSTFIX_PATH/virtual_mailbox.cf"
 VIRTUAL_ALIAS_CF="$POSTFIX_PATH/virtual_alias.cf"
 VIRTUAL_ALIAS="$POSTFIX_PATH/virtual"
-
+LDAP_GROUPS_FILE="make_groups.sh"
+LDAP_GROUPS_PATH="$PARENT_DIR/LDAP/$LDAP_GROUPS_FILE"
 # Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
-function read_gid() {
+function read_GID() {
     # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
     echo "Leyendo la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'..."
-    
     # Verificar si el archivo existe
     if [ -f "$POSTFIX_ACCOUNTS_PATH" ]; then
         # Leer el archivo línea por línea
@@ -33,6 +34,26 @@ function read_gid() {
         done < "$POSTFIX_ACCOUNTS_PATH"
     else
         echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
+    fi
+}
+# Función para leer la variable LDAP_ALIASES_PATH desde el script '$LDAP_GROUPS_PATH'
+function read_LDAP_ALIASES_PATH() {
+    # Leer la variable LDAP_ALIASES_PATH desde el script '$LDAP_GROUPS_PATH'
+    echo "Leyendo la variable LDAP_ALIASES_PATH desde el script '$LDAP_GROUPS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$LDAP_GROUPS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable LDAP_ALIASES_PATH
+            if [[ "$line" =~ ^LDAP_ALIASES_PATH= ]]; then
+                # Extraer el valor de la variable LDAP_ALIASES_PATH
+                LDAP_ALIASES_PATH=$(echo "$line" | cut -d'=' -f2)
+                export LDAP_ALIASES_PATH
+                break
+            fi
+        done < "$LDAP_GROUPS_PATH"
+    else
+        echo "El archivo '$LDAP_GROUPS_PATH' no existe."
     fi
 }
 # Función para crear al usuario vmail:GID
@@ -199,8 +220,8 @@ function config_postfix() {
     virtual_mailbox_domains=""
     virtual_mailbox_maps="hash:/etc/postfix/virtual_alias_maps"
     #virtual_mailbox_maps="ldap:/etc/postfix/ldap-users.cf"
-    virtual_alias_maps="hash:/etc/postfix/virtual_alias_maps"
-    #virtual_alias_maps="ldap:/etc/postfix/ldap-aliases.cf"
+    #virtual_alias_maps="hash:/etc/postfix/virtual_alias_maps"
+    virtual_alias_maps="$LDAP_GROUPS_PATH"
     virtual_mailbox_base="/var/mail/"
     virtual_alias_domains="hash:/etc/postfix/virtual_domains"
     while read -r domain; do
@@ -587,7 +608,8 @@ function run_script() {
 # Función principal
 function postfix_config() {
   echo "***************POSTFIX CONFIG***************"
-  read_gid
+  read_GID
+  read_LDAP_ALIASES_PATH
   create_vmail_user
   verify_config_files
   backup_config_files
