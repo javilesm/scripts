@@ -30,32 +30,12 @@ function read_KEY_PATH() {
 
         # Imprimir el valor actual de la variable KEY_PATH
         echo "El valor del KEY_PATH definido es: $KEY_PATH"
+        echo "El valor del PEM_PATH definido es: $PEM_PATH"
     else
         echo "El archivo '$CERTS_PATH' no existe."
     fi
 }
 
-# Función para leer la variable PEM_PATH desde el script '$CERTS_PATH'
-function read_PEM_PATH() {
-    # Leer la variable PEM_PATH desde el script '$CERTS_PATH'
-    echo "Leyendo la variable PEM_PATH desde el script '$CERTS_PATH'..."
-    # Verificar si el archivo existe
-    if [ -f "$CERTS_PATH" ]; then
-        # Leer el archivo línea por línea
-        while IFS= read -r line || [[ -n "$line" ]]; do
-            # Buscar la línea que define la variable PEM_PATH
-            if [[ "$line" =~ ^PEM_PATH= ]]; then
-                # Extraer el valor de la variable PEM_PATH
-                PEM_PATH=$(echo "$line" | cut -d'=' -f2)
-                export PEM_PATH
-                break
-            fi
-        done < "$CERTS_PATH"
-    else
-        echo "El archivo '$CERTS_PATH' no existe."
-    fi
-    echo "El valor del PEM_PATH definido es: $PEM_PATH"
-}
 # Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
 function read_GID() {
     # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
@@ -695,7 +675,6 @@ function run_script() {
 function postfix_config() {
   echo "***************POSTFIX CONFIG***************"
   read_KEY_PATH
-  read_PEM_PATH
   read_GID
   read_LDAP_USERS_PATH
   read_LDAP_ALIASES_PATH
