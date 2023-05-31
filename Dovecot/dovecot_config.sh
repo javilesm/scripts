@@ -2,12 +2,15 @@
 # dovecot_config.sh
 # Variables
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
+AUTH_LDAP_FILE="auth_ldap_gen.sh"
+AUTH_LDAP_PATH="$CURRENT_DIR/$AUTH_LDAP_FILE"
 CONFIG_FILE="dovecot.conf"
 DOVECOT_PATH="/etc/dovecot"
 CONFIG_PATH="$DOVECOT_PATH/$CONFIG_FILE"
 USERS_FILE="users.csv"
 INTERFACE_IP="*"
-DRIVER="pgsql"
+DRIVER="ldap"
 MAILBOX_PATH=$HOME
 POSTFIX_USER="postfix"
 POSTFIX_GROUP="postfix"
@@ -29,6 +32,86 @@ ssl_file_fake="$CURRENT_DIR/10-ssl.conf"
 dovecot_sql_conf_file="$DOVECOT_PATH/dovecot-sql.conf.ext"
 auth_ldap_orginal="$DOVECOT_PATH/auth-ldap.conf.ext"
 auth_ldap_fake="$CURRENT_DIR/auth-ldap.conf.ext"
+POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
+POSTFIX_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$POSTFIX_ACCOUNTS_SCRIPT"
+LDAP_GROUPS_FILE="make_groups.sh"
+LDAP_GROUPS_PATH="$PARENT_DIR/LDAP/$LDAP_GROUPS_FILE"
+# Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
+function read_GID() {
+    # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
+    echo "Leyendo la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$POSTFIX_ACCOUNTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable GID
+            if [[ "$line" =~ ^GID= ]]; then
+                # Extraer el valor de la variable GID
+                GID=$(echo "$line" | cut -d'=' -f2)
+                export GID
+                break
+            fi
+        done < "$POSTFIX_ACCOUNTS_PATH"
+    else
+        echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
+    fi
+    echo "El valor de GID es: ${GID//\"/}"
+}
+# Función para leer la variable MAIL_DIR desde el script '$LDAP_GROUPS_PATH'
+function read_MAIL_DIR() {
+    # Leer la variable MAIL_DIR desde el script '$LDAP_GROUPS_PATH'
+    echo "Leyendo la variable MAIL_DIR desde el script '$LDAP_GROUPS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$LDAP_GROUPS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable MAIL_DIR
+            if [[ "$line" =~ ^MAIL_DIR= ]]; then
+                # Extraer el valor de la variable MAIL_DIR
+                MAIL_DIR=$(echo "$line" | cut -d'=' -f2)
+                export MAIL_DIR
+                break
+            fi
+        done < "$LDAP_GROUPS_PATH"
+    else
+        echo "El archivo '$LDAP_GROUPS_PATH' no existe."
+    fi
+    echo "El valor de MAIL_DIR es: ${MAIL_DIR//\"/}"
+}
+# Función para verificar si el archivo de configuración existe
+function validate_script() {
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$AUTH_LDAP_PATH" ]; then
+  if [ ! -f "$" ]; then
+  if [ ! -f "$AUTH_LDAP_PATH" ]; then
+    echo "ERROR: El archivo de configuración '$AUTH_LDAP_FILE' no se puede encontrar en la ruta '$'."
+    exit 1
+  fi
+  echo "El archivo de configuración '$AUTH_LDAP_FILE' existe."
+}
+# Función para ejecutar el configurador de Postfix
+function run_script() {
+  echo "Ejecutar el configurador '$AUTH_LDAP_FILE'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if [ ! -f "$AUTH_LDAP_PATH" ]; then
+  if sudo bash "$"; then
+    echo "El archivo de configuración '$AUTH_LDAP_FILE' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$AUTH_LDAP_FILE'."
+    exit 1
+  fi
+  echo "Configurador '$AUTH_LDAP_FILE' ejecutado."
+}
+function edit_auth_file_fake() {
+    # userdb { }
+    if grep -q "# userdb {" "$auth_file_fake"; then
+        sudo sed -i "s|^# userdb {.*|userdb {\n    driver = static\n    args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n  \n}|" "$auth_file_fake" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_file_fake': # userdb { }"; exit 1; }
+    elif grep -q "userdb { }" "$auth_file_fake"; then
+        sudo sed -i "s|^userdb {.*|userdb {\n    driver = static\n    args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n  \n}|" "$auth_file_fake" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_file_fake': userdb { }"; exit 1; }
+    else
+         echo -e "userdb {\n    driver = static\n    args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n  \n}" >> "$auth_file_fake"
+    fi
+}
 # Función para crear una copia de seguridad del archivo de configuración
 function backup_original_files() {
     echo "Creando una copia de seguridad de los archivos de configuración..."
@@ -209,6 +292,22 @@ function enable_protocols() {
     else
          echo "mail_location = maildir:~/Maildir" >> "$CONFIG_PATH"
     fi
+    # protocol imap { }
+    if grep -q "# protocol imap {" "$CONFIG_PATH"; then
+        sudo sed -i "s|^# protocol imap {.*|protocol imap {\n    auth = ${DRIVER//\"/}\n}|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': # protocol imap { }"; exit 1; }
+    elif grep -q "protocol imap { }" "$CONFIG_PATH"; then
+        sudo sed -i "s|^protocol imap {.*|protocol imap {\n    auth = ${DRIVER//\"/}\n}|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocol imap { }"; exit 1; }
+    else
+         echo -e "protocol imap {\n    auth = ${DRIVER//\"/}\n}" >> "$CONFIG_PATH"
+    fi
+    #protocol pop3
+    if grep -q "# protocol pop3 {" "$CONFIG_PATH"; then
+        sudo sed -i "s|^# protocol pop3 {.*|protocol pop3 {\n    auth = ${DRIVER//\"/}\n}|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': #protocol pop3 {}"; exit 1; }
+    elif grep -q "protocol pop3 {" "$CONFIG_PATH"; then
+        sudo sed -i "s|^protocol pop3 {.*|protocol pop3 {\n    auth = ${DRIVER//\"/}\n}|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocol pop3 {}"; exit 1; }
+    else
+         echo -e "protocol pop3 {\n    auth = ${DRIVER//\"/}\n}" >> "$CONFIG_PATH"
+    fi
 }
 
 # Función para editar el archivo 'dovecot-sql-conf_file'
@@ -263,6 +362,11 @@ function restart_services() {
 # Función principal
 function dovecot_config() {
     echo "***************DOVECOT CONFIGURATOR***************"
+    read_GID
+    read_MAIL_DIR
+    validate_script
+    run_script
+    edit_auth_file_fake
     backup_original_files
     change_original_files
     enable_protocols
