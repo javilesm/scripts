@@ -26,9 +26,11 @@ auth_file_fake="$CURRENT_DIR/10-auth.conf"
 ssl_file_original="$DOVECOT_PATH/conf.d/10-ssl.conf"
 ssl_file_fake="$CURRENT_DIR/10-ssl.conf"
 dovecot_sql_conf_file="$DOVECOT_PATH/dovecot-sql.conf.ext"
+auth_ldap_orginal="$DOVECOT_PATH/auth-ldap.conf.ext"
+auth_ldap_fake="$CURRENT_DIR/auth-ldap.conf.ext"
 # Función para crear una copia de seguridad del archivo de configuración
-function backup_conf() {
-    echo "Creando una copia de seguridad del archivo de configuración..."
+function backup_original_files() {
+    echo "Creando una copia de seguridad de los archivos de configuración..."
     # Verificar si el archivo de configuración existe antes de hacer una copia de seguridad
     if [ -f "$CONFIG_PATH" ]; then
         echo "Creando copia de seguridad del archivo '$CONFIG_FILE' ..."
@@ -38,6 +40,14 @@ function backup_conf() {
         echo "ERROR: El archivo de configuración '$CONFIG_FILE' no existe. No se puede crear una copia de seguridad."
     fi
 
+    if [ -f "$auth_ldap_orginal" ]; then
+        echo "Creando copia de seguridad del archivo '$auth_ldap_orginal' ..."
+        sudo cp "$auth_ldap_orginal" "$auth_ldap_orginal".bak 
+        echo "Copia de seguridad creada en '$auth_ldap_orginal.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$auth_ldap_orginal' no existe. No se puede crear una copia de seguridad."
+    fi
+    
     if [ -f "$auth_config_file" ]; then
         echo "Creando copia de seguridad del archivo '$auth_config_file' ..."
         sudo cp "$auth_config_file" "$auth_config_file".bak 
@@ -94,8 +104,18 @@ function backup_conf() {
         echo "ERROR: El archivo de configuración '$ssl_file_original' no existe. No se puede crear una copia de seguridad."
     fi
 }
-# Función para reemplazar el archivo 10-master.conf
-function change_master_file() {
+# Función para reemplazar los archivos de configuración originales
+function change_original_files() {
+    # reemplazar los archivos de configuración originales
+    echo "Reemplazando los archivos de configuración originales..."
+    # reemplazar el archivo auth_ldap_orginal
+    echo "Reemplazando el archivo '$auth_ldap_orginal' ..."
+    if [ -f "$auth_ldap_orginal" ]; then
+        sudo mv "$auth_ldap_fake" "$auth_ldap_orginal"
+        echo "El archivo '$auth_ldap_orginal' fue reemplazado por '$auth_ldap_fake'"
+    else
+        echo "ERROR: El archivo de configuración '$master_file_original' no existe. No se puede reemplazar."
+    fi
     # reemplazar el archivo 10-master.conf
     echo "Reemplazando el archivo '$master_file_original' ..."
     if [ -f "$master_file_original" ]; then
@@ -104,9 +124,6 @@ function change_master_file() {
     else
         echo "ERROR: El archivo de configuración '$master_file_original' no existe. No se puede reemplazar."
     fi
-}
-# Función para reemplazar el archivo 20-imap.conf
-function change_imap_file() {
     # reemplazar el archivo 20-imap.conf
     echo "Reemplazando el archivo '$imap_file_original' ..."
     if [ -f "$imap_file_original" ]; then
@@ -115,10 +132,7 @@ function change_imap_file() {
     else
         echo "ERROR: El archivo de configuración '$imap_file_original' no existe. No se puede reemplazar."
     fi
-}
-# Función para reemplazar el archivo 20-pop3.conf
-function change_pop3_file() {
-    # reemplazar el archivo 20-pop3.conf
+     # reemplazar el archivo 20-pop3.conf
     echo "Reemplazando el archivo '$pop3_file_original' ..."
     if [ -f "$pop3_file_original" ]; then
         sudo mv "$pop3_file_fake" "$pop3_file_original"
@@ -126,9 +140,6 @@ function change_pop3_file() {
     else
         echo "ERROR: El archivo de configuración '$pop3_file_original' no existe. No se puede reemplazar."
     fi
-}
-# Función para reemplazar el archivo 10-auth.conf
-function change_auth_file() {
     # reemplazar el archivo 10-auth.conf
     echo "Reemplazando el archivo '$auth_file_original' ..."
     if [ -f "$auth_file_original" ]; then
@@ -137,9 +148,6 @@ function change_auth_file() {
     else
         echo "ERROR: El archivo de configuración '$auth_file_original' no existe. No se puede reemplazar."
     fi
-}
-# Función para reemplazar el archivo 10-ssl.conf
-function change_ssl_file() {
     # reemplazar el archivo 10-ssl.conf
     echo "Reemplazando el archivo '$ssl_file_original' ..."
     if [ -f "$ssl_file_original" ]; then
@@ -148,9 +156,6 @@ function change_ssl_file() {
     else
         echo "ERROR: El archivo de configuración '$ssl_file_original' no existe. No se puede reemplazar."
     fi
-}
-# Función para reemplazar el archivo 10-mail.conf
-function change_mail_file() {
     # reemplazar el archivo 10-mail.conf
     echo "Reemplazando el archivo '$mailbox_file_original' ..."
     if [ -f "$mailbox_file_original" ]; then
@@ -160,6 +165,7 @@ function change_mail_file() {
         echo "ERROR: El archivo de configuración '$mailbox_file_original' no existe. No se puede reemplazar."
     fi
 }
+
 # Función para habilitar los protocolos
 function enable_protocols() {
     # habilitar los protocolos
@@ -256,13 +262,8 @@ function restart_services() {
 # Función principal
 function dovecot_config() {
     echo "***************DOVECOT CONFIGURATOR***************"
-    backup_conf
-    change_master_file
-    change_imap_file
-    change_pop3_file
-    change_auth_file
-    change_ssl_file
-    change_mail_file
+    backup_original_files
+    change_original_files
     enable_protocols
     edit_dovecot-sql-conf_file
     start_and_enable
