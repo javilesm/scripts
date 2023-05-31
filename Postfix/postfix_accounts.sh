@@ -8,7 +8,7 @@ DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
 DOVECOT_PATH="/etc/dovecot"
-MAIL_PATH="/var/mail"
+MAIL_DIR="/var/mail"
 GID="10000"
 GID_NAME="people"
 # Función para crear al grupo $GID
@@ -18,6 +18,15 @@ function group_add() {
     sudo groupadd -g "$GID" "$GID_NAME"
     cat /etc/group
 }
+# Función para crear al usuario uidname:GID
+function create_uidname_user() {
+  local uidname="vmail"
+  # crear al usuario uidname:GID
+  echo "Creando al usuario $uidname:${GID//\"/}..."
+  sudo useradd -u 1001 -g ${GID//\"/} -s /usr/bin/nologin -d ${MAIL_DIR//\"/} -m "$uidname"
+  cat /etc/passwd
+}
+
 # Función para verificar si el archivo de cuentas de usuario existe
 function validate_accounts_file() {
     # verificar si el archivo de dominios existe
@@ -29,17 +38,17 @@ function validate_accounts_file() {
   echo "El archivo de cuentas de usuario '$ACCOUNTS_FILE' existe."
 }
 # Función para verificar si la ruta virtual existe
-function validate_mail_path() {
-  echo "Verificando si la ruta '$MAIL_PATH' existe..."
-  if [ ! -d "$MAIL_PATH" ]; then
+function validate_MAIL_DIR() {
+  echo "Verificando si la ruta '$MAIL_DIR' existe..."
+  if [ ! -d "$MAIL_DIR" ]; then
     # crear directorio
-    echo "Creando el directorio: '$MAIL_PATH'..."
-    sudo mkdir -p "$MAIL_PATH"
+    echo "Creando el directorio: '$MAIL_DIR'..."
+    sudo mkdir -p "$MAIL_DIR"
     # cambiar permisos del directorio padre
-    echo "Cambiando los permisos del directorio padre '$MAIL_PATH'..."
-    sudo chmod 777 "$MAIL_PATH"
+    echo "Cambiando los permisos del directorio padre '$MAIL_DIR'..."
+    sudo chmod 777 "$MAIL_DIR"
   else
-    echo "La ruta '$MAIL_PATH' ya existe."
+    echo "La ruta '$MAIL_DIR' ya existe."
   fi
 }
 # Función para verificar si el archivo /etc/dovecot/users existe
@@ -60,16 +69,16 @@ function read_domains() {
       host="${host%%.*}"
       echo "Hostname: $host"
       # crear subdirectorios para cada dominio
-      echo "Cambiando los permisos del directorio padre '$MAIL_PATH'..."
-      sudo mkdir -p "$MAIL_PATH/$host"
+      echo "Cambiando los permisos del directorio padre '$MAIL_DIR'..."
+      sudo mkdir -p "$MAIL_DIR/$host"
       # cambiar permisos del subdirectorio
-      echo "Cambiando los permisos del subdirectorio '$MAIL_PATH/$host'..."
-      sudo chmod +x "$MAIL_PATH/$host"
-      sudo chmod o+w "$MAIL_PATH/$host"
+      echo "Cambiando los permisos del subdirectorio '$MAIL_DIR/$host'..."
+      sudo chmod +x "$MAIL_DIR/$host"
+      sudo chmod o+w "$MAIL_DIR/$host"
       # cambiar la propiedad del directorio
-      echo "Cambiando la propiedad del directorio '$MAIL_PATH/$host'..."
-      sudo chown :"$GID" "$MAIL_PATH/$host"
-      sudo chmod g+w "$MAIL_PATH/$host"
+      echo "Cambiando la propiedad del directorio '$MAIL_DIR/$host'..."
+      sudo chown :"$GID" "$MAIL_DIR/$host"
+      sudo chmod g+w "$MAIL_DIR/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -90,13 +99,13 @@ function read_accounts() {
       echo "Top level: $top_level"
       # crear subdirectorio del usuario
       echo "Creando subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo mkdir -p "$MAIL_PATH/$domain/$username"
+      sudo mkdir -p "$MAIL_DIR/$domain/$username"
       # cambiar permisos al subdirectorio del usuario
       echo "Cambiando permisos del subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo chmod +w "$MAIL_PATH/$domain/$username"
+      sudo chmod +w "$MAIL_DIR/$domain/$username"
       # cambiar propiedad del subdirectorio del usuario
       echo "Cambiando la propiedad del subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo chown :$GID "$MAIL_PATH/$domain/$username"
+      sudo chown :$GID "$MAIL_DIR/$domain/$username"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$alias $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual_alias_maps"
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual_alias_maps'"
@@ -128,8 +137,9 @@ function restart_services() {
 function postfix_accounts() {
   echo "***************POSTFIX ACCOUNTS***************"
   group_add
+  create_uidname_user
   validate_accounts_file
-  validate_mail_path
+  validate_MAIL_DIR
   validate_users_file
   read_domains
   read_accounts
