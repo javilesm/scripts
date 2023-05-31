@@ -16,6 +16,46 @@ VIRTUAL_ALIAS_CF="$POSTFIX_PATH/virtual_alias.cf"
 VIRTUAL_ALIAS="$POSTFIX_PATH/virtual"
 LDAP_GROUPS_FILE="make_groups.sh"
 LDAP_GROUPS_PATH="$PARENT_DIR/LDAP/$LDAP_GROUPS_FILE"
+CERTS_FILE="generate_certs.sh"
+CERTS_PATH="$PARENT_DIR/Dovecot/$CERTS_FILE"
+# Función para leer la variable KEY_PATH desde el script '$CERTS_PATH'
+function read_KEY_PATH() {
+    # Verificar si el archivo existe
+    if [ -f "$CERTS_PATH" ]; then
+        # Cargar el contenido del archivo 'generate_certs.sh' en una variable
+        file_contents=$(<"$CERTS_PATH")
+
+        # Evaluar la cadena para expandir las variables
+        eval "$file_contents"
+
+        # Imprimir el valor actual de la variable KEY_PATH
+        echo "El valor del KEY_PATH definido es: $KEY_PATH"
+    else
+        echo "El archivo '$CERTS_PATH' no existe."
+    fi
+}
+
+# Función para leer la variable PEM_PATH desde el script '$CERTS_PATH'
+function read_PEM_PATH() {
+    # Leer la variable PEM_PATH desde el script '$CERTS_PATH'
+    echo "Leyendo la variable PEM_PATH desde el script '$CERTS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$CERTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable PEM_PATH
+            if [[ "$line" =~ ^PEM_PATH= ]]; then
+                # Extraer el valor de la variable PEM_PATH
+                PEM_PATH=$(echo "$line" | cut -d'=' -f2)
+                export PEM_PATH
+                break
+            fi
+        done < "$CERTS_PATH"
+    else
+        echo "El archivo '$CERTS_PATH' no existe."
+    fi
+    echo "El valor del PEM_PATH definido es: $PEM_PATH"
+}
 # Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
 function read_GID() {
     # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
@@ -35,6 +75,28 @@ function read_GID() {
     else
         echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
     fi
+    echo "El valor del GID definido es: $GID"
+}
+# Función para leer la variable LDAP_USERS_PATH desde el script '$LDAP_GROUPS_PATH'
+function read_LDAP_USERS_PATH() {
+    # Leer la variable LDAP_USERS_PATH desde el script '$LDAP_GROUPS_PATH'
+    echo "Leyendo la variable LDAP_USERS_PATH desde el script '$LDAP_GROUPS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$LDAP_GROUPS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable LDAP_USERS_PATH
+            if [[ "$line" =~ ^LDAP_USERS_PATH= ]]; then
+                # Extraer el valor de la variable LDAP_USERS_PATH
+                LDAP_USERS_PATH=$(echo "$line" | cut -d'=' -f2)
+                export LDAP_USERS_PATH
+                break
+            fi
+        done < "$LDAP_GROUPS_PATH"
+    else
+        echo "El archivo '$LDAP_GROUPS_PATH' no existe."
+    fi
+    echo "El valor de virtual_mailbox_maps es: $LDAP_USERS_PATH"
 }
 # Función para leer la variable LDAP_ALIASES_PATH desde el script '$LDAP_GROUPS_PATH'
 function read_LDAP_ALIASES_PATH() {
@@ -55,6 +117,28 @@ function read_LDAP_ALIASES_PATH() {
     else
         echo "El archivo '$LDAP_GROUPS_PATH' no existe."
     fi
+    echo "El valor de virtual_alias_maps es: $LDAP_ALIASES_PATH"
+}
+# Función para leer la variable MAIL_DIR desde el script '$LDAP_GROUPS_PATH'
+function read_MAIL_DIR() {
+    # Leer la variable MAIL_DIR desde el script '$LDAP_GROUPS_PATH'
+    echo "Leyendo la variable MAIL_DIR desde el script '$LDAP_GROUPS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$LDAP_GROUPS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable MAIL_DIR
+            if [[ "$line" =~ ^MAIL_DIR= ]]; then
+                # Extraer el valor de la variable MAIL_DIR
+                MAIL_DIR=$(echo "$line" | cut -d'=' -f2)
+                export MAIL_DIR
+                break
+            fi
+        done < "$LDAP_GROUPS_PATH"
+    else
+        echo "El archivo '$LDAP_GROUPS_PATH' no existe."
+    fi
+    echo "El valor de virtual_mailbox_base es: $MAIL_DIR"
 }
 # Función para crear al usuario vmail:GID
 function create_vmail_user() {
@@ -218,12 +302,14 @@ function config_virtual_files() {
 # Función para leer la lista de dominios y configurar el archivo main.cf
 function config_postfix() {
     virtual_mailbox_domains=""
-    virtual_mailbox_maps="hash:/etc/postfix/virtual_alias_maps"
-    #virtual_mailbox_maps="ldap:/etc/postfix/ldap-users.cf"
+    #virtual_mailbox_maps="hash:/etc/postfix/virtual_alias_maps"
+    virtual_mailbox_maps="ldap:$LDAP_USERS_PATH"
     #virtual_alias_maps="hash:/etc/postfix/virtual_alias_maps"
-    virtual_alias_maps="$LDAP_GROUPS_PATH"
-    virtual_mailbox_base="/var/mail/"
+    virtual_alias_maps="ldap:$LDAP_ALIASES_PATH"
+    virtual_mailbox_base="$MAIL_DIR"
     virtual_alias_domains="hash:/etc/postfix/virtual_domains"
+    smtpd_tls_cert_file="$PEM_PATH"
+    smtpd_tls_key_file="$KEY_PATH"
     while read -r domain; do
         virtual_mailbox_domains+="$domain, "
     done < <(sed -e '$a\' "$DOMAINS_PATH")
@@ -283,22 +369,22 @@ function config_postfix() {
     echo "virtual_alias_domains = ${virtual_alias_domains//\"/}" >> "$CURRENT_DIR/test.txt"
     #smtpd_tls_cert_file
     if grep -q "#smtpd_tls_cert_file" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#smtpd_tls_cert_file=.*|smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_cert_file"; exit 1; }
+        sudo sed -i "s|^#smtpd_tls_cert_file=.*|smtpd_tls_cert_file=${smtpd_tls_cert_file//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_cert_file"; exit 1; }
     elif grep -q "smtpd_tls_cert_file" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^smtpd_tls_cert_file=.*|smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_cert_file"; exit 1; }
+        sudo sed -i "s|^smtpd_tls_cert_file=.*|smtpd_tls_cert_file=${smtpd_tls_cert_file//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_cert_file"; exit 1; }
     else
-        echo "smtpd_tls_cert_file= /etc/dovecot/certs/samava.pem" >> "$POSTFIX_MAIN"
+        echo "smtpd_tls_cert_file=${smtpd_tls_cert_file//\"/}" >> "$POSTFIX_MAIN"
     fi
-    echo "smtpd_tls_cert_file=/etc/dovecot/certs/samava.pem" >> "$CURRENT_DIR/test.txt"
+    echo "smtpd_tls_cert_file=${smtpd_tls_cert_file//\"/}" >> "$CURRENT_DIR/test.txt"
     #smtpd_tls_key_file
     if grep -q "#smtpd_tls_key_file" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^#smtpd_tls_key_file=.*|smtpd_tls_key_file=/etc/dovecot/certs/samava.key|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_key_file"; exit 1; }
+        sudo sed -i "s|^#smtpd_tls_key_file=.*|smtpd_tls_key_file=${smtpd_tls_key_file//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_key_file"; exit 1; }
     elif grep -q "smtpd_tls_key_file" "$POSTFIX_MAIN"; then
-        sudo sed -i "s|^smtpd_tls_key_file=.*|smtpd_tls_key_file=/etc/dovecot/certs/samava.key|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_key_file"; exit 1; }
+        sudo sed -i "s|^smtpd_tls_key_file=.*|smtpd_tls_key_file=${smtpd_tls_key_file//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtpd_tls_key_file"; exit 1; }
     else
-        echo "smtpd_tls_key_file=/etc/dovecot/certs/samava.key" >> "$POSTFIX_MAIN"
+        echo "smtpd_tls_key_file=${smtpd_tls_key_file//\"/}" >> "$POSTFIX_MAIN"
     fi
-    echo "smtpd_tls_key_file=/etc/dovecot/certs/samava.key" >> "$CURRENT_DIR/test.txt"
+    echo "smtpd_tls_key_file=${smtpd_tls_key_file//\"/}" >> "$CURRENT_DIR/test.txt"
     #smtpd_tls_security_level
     if grep -q "#smtpd_tls_security_level" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^#smtpd_tls_security_level =.*/smtpd_tls_security_level = may/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtpd_tls_security_level"; exit 1; }
@@ -608,8 +694,12 @@ function run_script() {
 # Función principal
 function postfix_config() {
   echo "***************POSTFIX CONFIG***************"
+  read_KEY_PATH
+  read_PEM_PATH
   read_GID
+  read_LDAP_USERS_PATH
   read_LDAP_ALIASES_PATH
+  read_MAIL_DIR
   create_vmail_user
   verify_config_files
   backup_config_files
