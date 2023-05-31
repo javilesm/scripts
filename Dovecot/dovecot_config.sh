@@ -7,6 +7,7 @@ DOVECOT_PATH="/etc/dovecot"
 CONFIG_PATH="$DOVECOT_PATH/$CONFIG_FILE"
 USERS_FILE="users.csv"
 INTERFACE_IP="*"
+DRIVER="pgsql"
 MAILBOX_PATH=$HOME
 POSTFIX_USER="postfix"
 POSTFIX_GROUP="postfix"
@@ -217,11 +218,11 @@ function edit_dovecot-sql-conf_file() {
     #driver
     echo "Driver..."
     if grep -q "#driver" "$dovecot_sql_conf_file"; then
-        sudo sed -i "s|^#driver =.*|driver = pgsql|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$dovecot_sql_conf_file': #driver"; exit 1; }
+        sudo sed -i "s|^#driver =.*|driver = ${DRIVER//\"/}|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$dovecot_sql_conf_file': #driver"; exit 1; }
     elif grep -q "driver" "$dovecot_sql_conf_file"; then
-        sudo sed -i  "s|^driver =.*|driver = pgsql|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$dovecot_sql_conf_file': driver"; exit 1; }
+        sudo sed -i  "s|^driver =.*|driver = ${DRIVER//\"/}|" "$dovecot_sql_conf_file" || { echo "ERROR: Hubo un problema al configurar el archivo '$dovecot_sql_conf_file': driver"; exit 1; }
     else
-         echo "driver = pgsql" >> "$dovecot_sql_conf_file"
+         echo "driver = ${DRIVER//\"/}" >> "$dovecot_sql_conf_file"
     fi
     # parámetros
     echo "Parametros.."
