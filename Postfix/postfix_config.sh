@@ -120,12 +120,7 @@ function read_MAIL_DIR() {
     fi
     echo "El valor de virtual_mailbox_base es: $MAIL_DIR"
 }
-# Función para crear al usuario vmail:GID
-function create_vmail_user() {
-    # crear al usuario vmail:GID
-    echo "Creando al usuario vmail:${GID//\"/}..."
-    sudo useradd -u vmail -g ${GID//\"/} -s /usr/bin/nologin -d /var/mail -m vmail
-}
+
 # Función para crear archivos de configuración de la base de datos virtual
 function verify_config_files() {
     # Verificar si los archivos de configuración ya existen
@@ -248,8 +243,8 @@ function config_virtual_files() {
         echo "Configurando dominio: $domain"
         # Configurar el archivo virtual_domains.cf
         echo "Configurando el archivo '$VIRTUAL_DOMAINS_CF'..."
-        if ! sudo echo "DBNAME=/var/mail/$domain.db" >> "$VIRTUAL_DOMAINS_CF"; then
-            echo "ERROR: Error al escribir 'DBNAME=/var/mail/$domain.db' en el archivo '$VIRTUAL_DOMAINS_CF'."
+        if ! sudo echo "DBNAME=${MAIL_DIR//\"/}/$domain.db" >> "$VIRTUAL_DOMAINS_CF"; then
+            echo "ERROR: Error al escribir 'DBNAME=${MAIL_DIR//\"/}/$domain.db' en el archivo '$VIRTUAL_DOMAINS_CF'."
             exit 1
         fi
         if ! sudo echo "QUERY=SELECT domain FROM domain WHERE domain='$domain' AND active = '1'" >> "$VIRTUAL_DOMAINS_CF"; then
@@ -258,8 +253,8 @@ function config_virtual_files() {
         fi
         # Configurar el archivo virtual_mailbox.cf
          echo "Configurando el archivo '$VIRTUAL_MAILBOX_CF'..."
-        if ! sudo echo "DBNAME=/var/mail/$domain.db" >> "$VIRTUAL_MAILBOX_CF"; then
-            echo "ERROR: Error al escribir 'DBNAME=/var/mail/$domain.db' en el archivo '$VIRTUAL_MAILBOX_CF'."
+        if ! sudo echo "DBNAME=${MAIL_DIR//\"/}/$domain.db" >> "$VIRTUAL_MAILBOX_CF"; then
+            echo "ERROR: Error al escribir 'DBNAME=${MAIL_DIR//\"/}/$domain.db' en el archivo '$VIRTUAL_MAILBOX_CF'."
             exit 1
         fi
         if ! sudo echo "QUERY=SELECT email FROM mailbox WHERE username='%u@$domain' AND active = '1'" >> "$VIRTUAL_MAILBOX_CF"; then
@@ -268,8 +263,8 @@ function config_virtual_files() {
         fi
         # Configurar el archivo virtual_alias.cf
         echo "Configurando el archivo '$VIRTUAL_ALIAS_CF'..."
-        if ! sudo echo "DBNAME=/var/mail/$domain.db" >> "$VIRTUAL_ALIAS_CF"; then
-            echo "ERROR: Error al escribir 'DBNAME=/var/mail/$domain.db' en el archivo '$VIRTUAL_ALIAS_CF'."
+        if ! sudo echo "DBNAME=${MAIL_DIR//\"/}/$domain.db" >> "$VIRTUAL_ALIAS_CF"; then
+            echo "ERROR: Error al escribir 'DBNAME=${MAIL_DIR//\"/}/$domain.db' en el archivo '$VIRTUAL_ALIAS_CF'."
             exit 1
         fi
         if ! sudo echo "QUERY=SELECT email FROM alias WHERE source='%s@$domain' AND active = '1'" >> "$VIRTUAL_ALIAS_CF"; then
@@ -679,7 +674,6 @@ function postfix_config() {
   read_LDAP_USERS_PATH
   read_LDAP_ALIASES_PATH
   read_MAIL_DIR
-  create_vmail_user
   verify_config_files
   backup_config_files
   validate_domains_file
