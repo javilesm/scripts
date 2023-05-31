@@ -8,7 +8,7 @@ LDAP_GROUPS_PATH="$PARENT_DIR/LDAP/$LDAP_GROUPS_FILE"
 POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
 POSTFIX_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$POSTFIX_ACCOUNTS_SCRIPT"
 DOVECOT_CONFIG_SCRIPT="dovecot_config.sh"
-DOVECOT_CONFIG_PATH="$CURRENT_DIR$DOVECOT_CONFIG_SCRIPT"
+DOVECOT_CONFIG_PATH="$CURRENT_DIR/$DOVECOT_CONFIG_SCRIPT"
 AUTH_LDAP_FILE="auth-ldap.conf.ext"
 AUTH_LDAP_PATH="$CURRENT_DIR/$AUTH_LDAP_FILE"
 # Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
@@ -30,7 +30,7 @@ function read_GID() {
     else
         echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
     fi
-    echo "El valor de GID es: $GID"
+    echo "El valor de GID es: ${GID//\"/}"
 }
 # Función para leer la variable MAIL_DIR desde el script '$LDAP_GROUPS_PATH'
 function read_MAIL_DIR() {
@@ -51,7 +51,7 @@ function read_MAIL_DIR() {
     else
         echo "El archivo '$LDAP_GROUPS_PATH' no existe."
     fi
-    echo "El valor de MAIL_DIR es: $MAIL_DIR"
+    echo "El valor de MAIL_DIR es: ${MAIL_DIR//\"/}"
 }
 # Función para leer la variable DRIVER desde el script '$DOVECOT_CONFIG_PATH'
 function read_DRIVER() {
@@ -72,7 +72,7 @@ function read_DRIVER() {
     else
         echo "El archivo '$DOVECOT_CONFIG_PATH' no existe."
     fi
-    echo "El valor de DRIVER es: $MAIL_DIR"
+    echo "El valor de DRIVER es: ${DRIVER//\"/}"
 }
 # Función para crear el archivo auth-ldap.conf.ext
 function create_auth_file() {
@@ -84,19 +84,19 @@ function create_auth_file() {
 function edit_auth_file() {
     # Contenido del archivo
     local contenido="passdb {
-  driver = $DRIVER
+  driver = ${DRIVER//\"/}
   args = /etc/dovecot/dovecot-ldap.conf.ext
 }
 
 userdb {
-  driver = $DRIVER
+  driver = ${DRIVER//\"/}
   args = /etc/dovecot/dovecot-ldap.conf.ext
-  default_fields = home=$MAIL_DIR/%d/%n
+  default_fields = home=${MAIL_DIR//\"/}/%d/%n
 }
 
 userdb {
   driver = static
-  args = uid=$GID gid=$GID home=$MAIL_DIR/%d/%n
+  args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n
 }"
 
     # Escribir el contenido en el archivo
