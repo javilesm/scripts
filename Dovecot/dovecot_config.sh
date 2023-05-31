@@ -84,7 +84,7 @@ function validate_script() {
   if [ ! -f "$AUTH_LDAP_PATH" ]; then
   if [ ! -f "$" ]; then
   if [ ! -f "$AUTH_LDAP_PATH" ]; then
-    echo "ERROR: El archivo de configuración '$AUTH_LDAP_FILE' no se puede encontrar en la ruta '$'."
+    echo "ERROR: El archivo de configuración '$AUTH_LDAP_FILE' no se puede encontrar en la ruta '$AUTH_LDAP_PATH'."
     exit 1
   fi
   echo "El archivo de configuración '$AUTH_LDAP_FILE' existe."
