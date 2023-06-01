@@ -146,7 +146,13 @@ function create_auth_file() {
 # Función para editar el archivo auth-ldap.conf.ext
 function edit_auth_file() {
     # Contenido del archivo
-    local contenido="passdb {
+    local contenido="##
+disable_plaintext_auth = no
+auth_mechanisms = plain login
+!include auth-system.conf.ext
+!include auth-ldap.conf.ext
+
+passdb {
   driver = passwd-file
   args = scheme=PLAIN username_format=%u ${USERS_PATH//\"/}
 }
@@ -159,8 +165,8 @@ userdb {
 userdb {
   driver = static
   args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n
-}"
-
+}
+"
     # Escribir el contenido en el archivo
     echo "$contenido" | sudo tee "$AUTH_PATH" > /dev/null
 
