@@ -5,8 +5,8 @@ CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actua
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 AUTH_LDAP_FILE="auth_ldap_gen.sh"
 AUTH_LDAP_PATH="$CURRENT_DIR/$AUTH_LDAP_FILE"
-10_AUTH_FILE="10_auth_gen.sh"
-10_AUTH_PATH="$CURRENT_DIR/$10_AUTH_FILE"
+AUTH_FILE="auth_gen.sh"
+AUTH_PATH="$CURRENT_DIR/$AUTH_FILE"
 CONFIG_FILE="dovecot.conf"
 DOVECOT_PATH="/etc/dovecot"
 CONFIG_PATH="$DOVECOT_PATH/$CONFIG_FILE"
@@ -102,16 +102,16 @@ function run_script() {
   echo "Configurador '$AUTH_LDAP_FILE' ejecutado."
 }
 # Función para ejecutar el configurador de Postfix
-function run_script2() {
-  echo "Ejecutar el configurador '$10_AUTH_FILE'..."
+function run_auth_script() {
+  echo "Ejecutar el configurador '$AUTH_FILE'..."
     # Intentar ejecutar el archivo de configuración de Postfix
-  if sudo bash "$10_AUTH_PATH"; then
-    echo "El archivo de configuración '$10_AUTH_FILE' se ha ejecutado correctamente."
+  if sudo bash "$AUTH_PATH"; then
+    echo "El archivo de configuración '$AUTH_FILE' se ha ejecutado correctamente."
   else
-    echo "ERROR: No se pudo ejecutar el archivo de configuración '$10_AUTH_FILE'."
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$AUTH_FILE'."
     exit 1
   fi
-  echo "Configurador '$10_AUTH_FILE' ejecutado."
+  echo "Configurador '$AUTH_FILE' ejecutado."
 }
 function edit_auth_file_fake() {
     # userdb {
@@ -376,7 +376,7 @@ function dovecot_config() {
     read_MAIL_DIR
     validate_script
     run_script
-    run_script2S
+    run_auth_script
     edit_auth_file_fake
     backup_original_files
     change_original_files
