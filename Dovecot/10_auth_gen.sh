@@ -35,12 +35,12 @@ function read_GID() {
 # Función para leer la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'
 function read_GID_NAME() {
     # Leer la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'
-    echo "Leyendo la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'..."
+    echo "Leyendo la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'..."
     # Verificar si el archivo existe
     if [ -f "$POSTFIX_ACCOUNTS_PATH" ]; then
         # Leer el archivo línea por línea
         while IFS= read -r line || [[ -n "$line" ]]; do
-            # Buscar la línea que define la variable GID
+            # Buscar la línea que define la variable GID_NAME
             if [[ "$line" =~ ^GID_NAME= ]]; then
                 # Extraer el valor de la variable GID_NAME
                 GID_NAME=$(echo "$line" | cut -d'=' -f2)
@@ -52,6 +52,27 @@ function read_GID_NAME() {
         echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
     fi
     echo "El valor de GID_NAME es: ${GID_NAME//\"/}"
+}
+# Función para leer la variable USERS_PATH desde el script '$POSTFIX_ACCOUNTS_PATH'
+function read_USERS_PATH() {
+    # Leer la variable USERS_PATH desde el script '$POSTFIX_ACCOUNTS_PATH'
+    echo "Leyendo la variable USERS_PATH desde el script '$POSTFIX_ACCOUNTS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$POSTFIX_ACCOUNTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable USERS_PATH
+            if [[ "$line" =~ ^USERS_PATH= ]]; then
+                # Extraer el valor de la variable USERS_PATH
+                USERS_PATH=$(echo "$line" | cut -d'=' -f2)
+                export USERS_PATH
+                break
+            fi
+        done < "$POSTFIX_ACCOUNTS_PATH"
+    else
+        echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
+    fi
+    echo "El valor de USERS_PATH es: ${USERS_PATH//\"/}"
 }
 # Función para leer la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'
 function read_GID_NAME() {
@@ -127,7 +148,7 @@ function edit_auth_file() {
     # Contenido del archivo
     local contenido="passdb {
   driver = passwd-file
-  args = scheme=PLAIN username_format=%u /etc/dovecot/users
+  args = scheme=PLAIN username_format=%u ${USERS_PATH//\"/}
 }
 
 userdb {
@@ -152,6 +173,7 @@ function auth_ldap_gen() {
     echo "***************AUTH-LDAP GEN***************"
     read_GID
     read_GID_NAME
+    read_USERS_PATH
     read_MAIL_DIR
     read_DRIVER
     create_auth_file
