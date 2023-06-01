@@ -5,6 +5,8 @@ CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actua
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 CONFIG_FILE="openldap_config.sh"
 CONFIG_PATH="$CURRENT_DIR/$CONFIG_FILE"
+POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
+POSTFIX_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$POSTFIX_ACCOUNTS_SCRIPT"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$PARENT_DIR/Postfix/$DOMAINS_FILE"
 GROUPS_FILE="grupos.ldif"
@@ -12,6 +14,27 @@ GROUPS_PATH="$CURRENT_DIR/$GROUPS_FILE"
 LDAP_USERS_PATH="/etc/postfix/ldap-users.cf"
 LDAP_ALIASES_PATH="/etc/postfix/ldap-aliases.cf"
 MAIL_DIR="/var/mail"
+# Función para leer la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'
+function read_GID_NAME() {
+    # Leer la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'
+    echo "Leyendo la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$POSTFIX_ACCOUNTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable GID_NAME
+            if [[ "$line" =~ ^GID_NAME= ]]; then
+                # Extraer el valor de la variable GID
+                GID_NAME=$(echo "$line" | cut -d'=' -f2)
+                export GID_NAME
+                break
+            fi
+        done < "$POSTFIX_ACCOUNTS_PATH"
+    else
+        echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
+    fi
+    echo "El valor del GID_NAME definido es: ${GID_NAME//\"/}"
+}
 # Función para leer la variable "ADMIN_PASSWORD" desde el script "openldap_config.sh" 
 function read_openldap_config() {
   # leer la variable "ADMIN_PASSWORD" desde el script "openldap_config.sh"
@@ -53,11 +76,11 @@ function make_grupos() {
   
     echo "Escribiendo la estructura para cada dominio en el archivo base de grupos..."
     # Escribir la estructura para cada dominio en el archivo base de grupos
-    echo "dn: ou=People,dc=$domain,dc=$top_level" >> "$GROUPS_PATH"
+    echo "dn: ou=${GID_NAME//\"/},dc=$domain,dc=$top_level" >> "$GROUPS_PATH"
     echo "objectClass: organizationalUnit" >> "$GROUPS_PATH"
     echo "objectClass: top" >> "$GROUPS_PATH"
-    echo "ou: People" >> "$GROUPS_PATH"
-     echo "" >> "$GROUPS_PATH"
+    echo "ou: ${GID_NAME//\"/}" >> "$GROUPS_PATH"
+    echo "" >> "$GROUPS_PATH"
     echo >> "$GROUPS_PATH"
 
   done < <(grep -v '^$' "$DOMAINS_PATH")
@@ -103,7 +126,7 @@ function make_ldap_users() {
     echo "start_tls = yes" >> "$LDAP_USERS_PATH"
     echo "tls_ca_cert_file = /etc/ldap/tls/CA.pem" >> "$LDAP_USERS_PATH"
     echo "tls_require_cert = yes" >> "$LDAP_USERS_PATH"
-    echo "search_base = dc=$domain,dc=$top_level" >> "$LDAP_USERS_PATH"
+    echo "search_base = ou=${GID_NAME//\"/},dc=$domain,dc=$top_level" >> "$LDAP_USERS_PATH"
     echo "scope = sub" >> "$LDAP_USERS_PATH"
     echo "version = 3" >> "$LDAP_USERS_PATH"
     echo "bind = yes" >> "$LDAP_USERS_PATH"
@@ -153,7 +176,7 @@ function make_ldap_aliases() {
     echo "start_tls = yes" >> "$LDAP_ALIASES_PATH"
     echo "tls_ca_cert_file = /etc/ldap/tls/CA.pem" >> "$LDAP_ALIASES_PATH"
     echo "tls_require_cert = yes" >> "$LDAP_ALIASES_PATH"
-    echo "search_base = dc=$domain,dc=$top_level" >> "$LDAP_ALIASES_PATH"
+    echo "search_base = ou=${GID_NAME//\"/},dc=$domain,dc=$top_level" >> "$LDAP_ALIASES_PATH"
     echo "scope = sub" >> "$LDAP_ALIASES_PATH"
     echo "version = 3" >> "$LDAP_ALIASES_PATH"
     echo "bind = yes" >> "$LDAP_ALIASES_PATH"
@@ -168,6 +191,7 @@ function make_ldap_aliases() {
 }
 function make_groups() {
   echo "***************MAKE GROUPS***************"
+  read_GID_NAME
   read_openldap_config
   create_groups_file
   make_grupos
