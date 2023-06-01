@@ -262,7 +262,7 @@ function change_original_files() {
 }
 
 # Función para habilitar los protocolos
-function enable_protocols() {
+function edit_params() {
     # habilitar los protocolos
     echo "Habilitando los protocolos..."
     #include_try
@@ -303,13 +303,15 @@ function enable_protocols() {
     else
          echo "mail_location = maildir:~/Maildir" >> "$CONFIG_PATH"
     fi
+}
+function edit_protocols() {
     # protocol imap { }
     if grep -q "# protocol imap {" "$CONFIG_PATH"; then
         sudo sed -i "s|^# protocol imap {.*|protocol imap {\n    auth = ${DRIVER//\"/}\n}|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': # protocol imap { }"; exit 1; }
     elif grep -q "protocol imap { }" "$CONFIG_PATH"; then
         sudo sed -i "s|^protocol imap {.*|protocol imap {\n    auth = ${DRIVER//\"/}\n}|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocol imap { }"; exit 1; }
     else
-         echo -e "protocol imap {\n    auth = ${DRIVER//\"/}\n}" >> "$CONFIG_PATH"
+        echo -e "protocol imap {\n    auth = ${DRIVER//\"/}\n}" >> "$CONFIG_PATH"
     fi
     #protocol pop3
     if grep -q "# protocol pop3 {" "$CONFIG_PATH"; then
@@ -317,10 +319,9 @@ function enable_protocols() {
     elif grep -q "protocol pop3 {" "$CONFIG_PATH"; then
         sudo sed -i "s|^protocol pop3 {.*|protocol pop3 {\n    auth = ${DRIVER//\"/}\n}|" "$CONFIG_PATH" || { echo "ERROR: Hubo un problema al configurar el archivo '$CONFIG_PATH': protocol pop3 {}"; exit 1; }
     else
-         echo -e "protocol pop3 {\n    auth = ${DRIVER//\"/}\n}" >> "$CONFIG_PATH"
+        echo -e "protocol pop3 {\n    auth = ${DRIVER//\"/}\n}" >> "$CONFIG_PATH"
     fi
 }
-
 # Función para editar el archivo 'dovecot-sql-conf_file'
 function edit_dovecot-sql-conf_file() {
     # editar el archivo 'dovecot-sql-conf_file'
@@ -375,11 +376,12 @@ function dovecot_config() {
     read_MAIL_DIR
     validate_script
     run_script
-    run_script2
+    run_script2S
     edit_auth_file_fake
     backup_original_files
     change_original_files
-    enable_protocols
+    edit_params
+    #edit_protocols
     edit_dovecot-sql-conf_file
     start_and_enable
     restart_services
