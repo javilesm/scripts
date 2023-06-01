@@ -11,9 +11,29 @@ MAIL_DIR="/var/mail"
 LOGIN_SHELL="/usr/bin/nologin"
 POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
 POSTFIX_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$POSTFIX_ACCOUNTS_SCRIPT"
-
+# Función para leer la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'
+function read_GID_NAME() {
+    # Leer la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'
+    echo "Leyendo la variable GID_NAME desde el script '$POSTFIX_ACCOUNTS_PATH'..."
+    # Verificar si el archivo existe
+    if [ -f "$POSTFIX_ACCOUNTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable GID_NAME
+            if [[ "$line" =~ ^GID_NAME= ]]; then
+                # Extraer el valor de la variable GID
+                GID_NAME=$(echo "$line" | cut -d'=' -f2)
+                export GID_NAME
+                break
+            fi
+        done < "$POSTFIX_ACCOUNTS_PATH"
+    else
+        echo "El archivo '$POSTFIX_ACCOUNTS_PATH' no existe."
+    fi
+    echo "El valor del GID_NAME definido es: ${GID_NAME//\"/}"
+}
 # Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
-function read_gid() {
+function read_GID() {
     # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
     echo "Leyendo la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'..."
     
@@ -37,7 +57,7 @@ function read_gid() {
 function read_accounts() {
   echo "Creando el archivo base de usuarios '$USERS_PATH'..."
   sudo touch "$USERS_PATH"
-  echo "El GID es: $GID"
+  echo "El GID es: ${GID//\"/}"
   local gidNumber=${GID//\"/}
   local uidNumber=$((gidNumber + 1))
   
@@ -58,7 +78,7 @@ function read_accounts() {
     echo "Escribiendo la información del usuario en el archivo base de usuarios..."
   
     # Escribir la estructura para cada usuario en el archivo base de usuarios
-    echo "dn: cn=$username,ou=People,dc=$domain,dc=$top_level" >> "$USERS_PATH"
+    echo "dn: cn=$username,ou=${GID_NAME//\"/},dc=$domain,dc=$top_level" >> "$USERS_PATH"
     echo "objectClass: top" >> "$USERS_PATH"
     echo "objectClass: account" >> "$USERS_PATH"
     echo "objectClass: posixAccount" >> "$USERS_PATH"
@@ -79,13 +99,14 @@ function read_accounts() {
     sudo useradd -u "$uidNumber" -g "$gidNumber" -s "$LOGIN_SHELL" -d "$MAIL_DIR/$domain/$username" -m "$alias"
     ((uidNumber++))
   done < <(grep -v '^$' "$MAIL_ACCOUNTS_PATH")
-  
   echo "Todas las cuentas de correo han sido copiadas."
+  cat /etc/passwd
 }
 # Función principal
 function make_accounts() {
   echo "***************MAKE ACCOUNTS***************"
-  read_gid
+  read_GID_NAME
+  read_GID
   read_accounts
   echo "***************ALL DONE***************"
 }
