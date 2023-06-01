@@ -18,7 +18,6 @@ POSTFIX_USER="postfix"
 POSTFIX_GROUP="postfix"
 CERTIFICADO="ssl-cert-snakeoil.pem" # default self-signed certificate that comes with Ubuntu
 CLAVE_PRIVADA="ssl-cert-snakeoil.key"
-auth_config_file="$DOVECOT_PATH/conf.d/10-auth.conf"
 mailbox_file_original="$DOVECOT_PATH/conf.d/10-mail.conf"
 mailbox_file_fake="$CURRENT_DIR/10-mail.conf"
 master_file_original="$DOVECOT_PATH/conf.d/10-master.conf"
@@ -113,16 +112,7 @@ function run_auth_script() {
   fi
   echo "Configurador '$AUTH_FILE' ejecutado."
 }
-function edit_auth_file_fake() {
-    # userdb {
-    if grep -q "# userdb {" "$auth_file_fake"; then
-        sudo sed -i "s|^# userdb {.*|userdb {\n    driver = static\n    args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n  \n}|" "$auth_file_fake" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_file_fake': # userdb { }"; exit 1; }
-    elif grep -q "userdb { }" "$auth_file_fake"; then
-        sudo sed -i "s|^userdb {.*|userdb {\n    driver = static\n    args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n  \n}|" "$auth_file_fake" || { echo "ERROR: Hubo un problema al configurar el archivo '$auth_file_fake': userdb { }"; exit 1; }
-    else
-         echo -e "userdb {\n    driver = static\n    args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n  \n}" >> "$auth_file_fake"
-    fi
-}
+
 # Función para crear una copia de seguridad del archivo de configuración
 function backup_original_files() {
     echo "Creando una copia de seguridad de los archivos de configuración..."
@@ -143,13 +133,6 @@ function backup_original_files() {
         echo "ERROR: El archivo de configuración '$auth_ldap_orginal' no existe. No se puede crear una copia de seguridad."
     fi
     
-    if [ -f "$auth_config_file" ]; then
-        echo "Creando copia de seguridad del archivo '$auth_config_file' ..."
-        sudo cp "$auth_config_file" "$auth_config_file".bak 
-        echo "Copia de seguridad creada en '$auth_config_file.bak'..."
-    else
-        echo "ERROR: El archivo de configuración '$auth_config_file' no existe. No se puede crear una copia de seguridad."
-    fi
 
     if [ -f "$mailbox_file_original" ]; then
         echo "Creando copia de seguridad del archivo '$mailbox_file_original' ..."
@@ -372,13 +355,12 @@ function restart_services() {
 # Función principal
 function dovecot_config() {
     echo "***************DOVECOT CONFIGURATOR***************"
+    backup_original_files
     read_GID
     read_MAIL_DIR
     validate_script
     run_script
     run_auth_script
-    edit_auth_file_fake
-    backup_original_files
     change_original_files
     edit_params
     #edit_protocols
