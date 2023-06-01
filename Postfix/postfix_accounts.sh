@@ -11,6 +11,7 @@ DOVECOT_PATH="/etc/dovecot"
 MAIL_DIR="/var/mail"
 GID="10000"
 GID_NAME="people"
+UID_NAME=${GID_NAME//\"/}
 # Función para crear al grupo $GID
 function group_add() {
     # crear al grupo $GID
@@ -18,12 +19,11 @@ function group_add() {
     sudo groupadd -g "$GID" "$GID_NAME"
     cat /etc/group
 }
-# Función para crear al usuario uidname:GID
+# Función para crear al usuario UID_NAME:GID
 function create_uidname_user() {
-  local uidname="vmail"
-  # crear al usuario uidname:GID
-  echo "Creando al usuario $uidname:${GID//\"/}..."
-  sudo useradd -u 1001 -g ${GID//\"/} -s /usr/bin/nologin -d ${MAIL_DIR//\"/} -m "$uidname"
+  # crear al usuario $UID_NAME:GID
+  echo "Creando al usuario $UID_NAME:${GID//\"/}..."
+  sudo useradd -u ${GID//\"/} -g ${GID//\"/} -s /usr/bin/nologin -d ${MAIL_DIR//\"/} -m "$UID_NAME"
   cat /etc/passwd
 }
 
