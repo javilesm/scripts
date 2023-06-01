@@ -153,7 +153,7 @@ function edit_auth_file() {
 
 userdb {
   driver = static
-  args = args = uid=${GID_NAME//\"/} gid=${GID_NAME//\"/} home=${MAIL_DIR//\"/}/%d/%n
+  args = uid=${GID_NAME//\"/} gid=${GID_NAME//\"/} home=${MAIL_DIR//\"/}/%d/%n
 }
 
 userdb {
