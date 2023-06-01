@@ -7,6 +7,8 @@ AUTH_LDAP_FILE="auth_ldap_gen.sh"
 AUTH_LDAP_PATH="$CURRENT_DIR/$AUTH_LDAP_FILE"
 AUTH_FILE="auth_gen.sh"
 AUTH_PATH="$CURRENT_DIR/$AUTH_FILE"
+DOVECOT_LDAP_FILE="dovecot_ldap_gen.sh"
+DOVECOT_LDAP_PATH="$CURRENT_DIR/DOVECOT_LDAP_FILE"
 CONFIG_FILE="dovecot.conf"
 DOVECOT_PATH="/etc/dovecot"
 CONFIG_PATH="$DOVECOT_PATH/$CONFIG_FILE"
@@ -112,7 +114,18 @@ function run_auth_script() {
   fi
   echo "Configurador '$AUTH_FILE' ejecutado."
 }
-
+# Función para ejecutar el configurador de Postfix
+function run_dovecot_ldap_script() {
+  echo "Ejecutar el configurador '$DOVECOT_LDAP_FILE'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$DOVECOT_LDAP_PATH"; then
+    echo "El archivo de configuración '$DOVECOT_LDAP_FILE' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$DOVECOT_LDAP_FILE'."
+    exit 1
+  fi
+  echo "Configurador '$DOVECOT_LDAP_FILE' ejecutado."
+}
 # Función para crear una copia de seguridad del archivo de configuración
 function backup_original_files() {
     echo "Creando una copia de seguridad de los archivos de configuración..."
@@ -361,6 +374,7 @@ function dovecot_config() {
     validate_script
     run_script
     run_auth_script
+    run_dovecot_ldap_script
     change_original_files
     edit_params
     #edit_protocols
