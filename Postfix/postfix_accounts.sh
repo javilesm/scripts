@@ -8,6 +8,7 @@ DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
 DOVECOT_PATH="/etc/dovecot"
+USERS_PATH="/etc/dovecot/users"
 MAIL_DIR="/var/mail"
 GID="10000"
 GID_NAME="people"
@@ -54,11 +55,11 @@ function validate_MAIL_DIR() {
 # Función para verificar si el archivo /etc/dovecot/users existe
 function validate_users_file() {
   echo "Verificando si el archivo de usuarios existe..."
-  if [ ! -f "$DOVECOT_PATH/users" ]; then
-    echo "Creando archivo '$DOVECOT_PATH/users'..."
-    sudo touch "$DOVECOT_PATH/users"
+  if [ ! -f "$USERS_PATH" ]; then
+    echo "Creando archivo '$USERS_PATH'..."
+    sudo touch "$USERS_PATH"
   fi
-  echo "El archivo '$DOVECOT_PATH/users' ha sido creado."
+  echo "El archivo '$USERS_PATH' ha sido creado."
 }
 # Función para leer la lista de direcciones de dominios y mapear  las direcciones y destinos
 function read_domains() {
@@ -111,8 +112,8 @@ function read_accounts() {
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual_alias_maps'"
       # agregar las cuentas de correo junto con sus contraseñas
       echo "Agregando las cuentas de correo junto con sus contraseñas..."
-      echo "$alias:{PLAIN}$password" | grep -v '^$' >> "$DOVECOT_PATH/users"
-      echo "Los datos del usuario '$username' han sido registrados en: '$DOVECOT_PATH/users'"
+      echo "$alias:{PLAIN}$password" | grep -v '^$' >> "$USERS_PATH"
+      echo "Los datos del usuario '$username' han sido registrados en: '$USERS_PATH'"
       echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$ACCOUNTS_PATH")
     echo "Todas las cuentas de correo han sido copiadas."
