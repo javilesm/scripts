@@ -165,8 +165,7 @@ userdb {
 userdb {
   driver = static
   args = uid=${GID//\"/} gid=${GID//\"/} home=${MAIL_DIR//\"/}/%d/%n
-}
-"
+}"
     # Escribir el contenido en el archivo
     echo "$contenido" | sudo tee "$AUTH_PATH" > /dev/null
 
