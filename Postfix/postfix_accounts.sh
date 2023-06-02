@@ -77,8 +77,8 @@ function read_domains() {
       sudo chmod +x "$MAIL_DIR/$host"
       sudo chmod o+w "$MAIL_DIR/$host"
       # cambiar la propiedad del directorio
-      echo "Cambiando la propiedad del directorio '$MAIL_DIR/$host'..."
-      sudo chown :"$GID" "$MAIL_DIR/$host"
+      echo "Cambiando la propiedad a '$GID:$GID' del directorio '$MAIL_DIR/$host'..."
+      sudo chown $GID:$GID "$MAIL_DIR/$host"
       sudo chmod g+w "$MAIL_DIR/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
@@ -102,11 +102,11 @@ function read_accounts() {
       echo "Creando subdirectorio del usuario '$username' del dominio '$domain'..."
       sudo mkdir -p "$MAIL_DIR/$domain/$username"
       # cambiar permisos al subdirectorio del usuario
-      echo "Cambiando permisos del subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo chmod +w "$MAIL_DIR/$domain/$username"
+      echo "Cambiando permisos '770' del subdirectorio '$MAIL_DIR/$domain/$username'..."
+      sudo chmod 770 "$MAIL_DIR/$domain/$username"
       # cambiar propiedad del subdirectorio del usuario
-      echo "Cambiando la propiedad del subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo chown :$GID "$MAIL_DIR/$domain/$username"
+      echo "Cambiando la propiedad a '$GID:$GID' del subdirectorio '$MAIL_DIR/$domain/$username'..."
+      sudo chown -R $GID:$GID "$MAIL_DIR/$domain/$username"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$alias $domain/$username" | grep -v '^$' >> "$POSTFIX_PATH/virtual_alias_maps"
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual_alias_maps'"
