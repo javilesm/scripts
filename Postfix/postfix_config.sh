@@ -18,6 +18,13 @@ LDAP_GROUPS_FILE="make_groups.sh"
 LDAP_GROUPS_PATH="$PARENT_DIR/LDAP/$LDAP_GROUPS_FILE"
 CERTS_FILE="generate_certs.sh"
 CERTS_PATH="$PARENT_DIR/Dovecot/$CERTS_FILE"
+LDAP_DIR="/etc/postfix/ldap"
+# Función para crear el directorio 'LDAP_DIR'
+function create_ldap_dir() {
+    # crear el directorio 'LDAP_DIR'
+    echo "crear el directorio '$LDAP_DIR'..."
+    sudo mkdir -p "$LDAP_DIR"
+}
 # Función para leer la variable KEY_PATH desde el script '$CERTS_PATH'
 function read_KEY_PATH() {
     # Verificar si el archivo existe
@@ -669,6 +676,7 @@ function run_script() {
 # Función principal
 function postfix_config() {
   echo "***************POSTFIX CONFIG***************"
+  create_ldap_dir
   read_KEY_PATH
   read_GID
   read_LDAP_USERS_PATH
