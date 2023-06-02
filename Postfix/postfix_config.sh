@@ -24,6 +24,8 @@ function create_ldap_dir() {
     # crear el directorio 'LDAP_DIR'
     echo "crear el directorio '$LDAP_DIR'..."
     sudo mkdir -p "$LDAP_DIR"
+    sudo chown postfix:postfix "$LDAP_DIR"
+    sudo chmod 0100 "$LDAP_DIR"
 }
 # Función para leer la variable KEY_PATH desde el script '$CERTS_PATH'
 function read_KEY_PATH() {
