@@ -286,10 +286,11 @@ function config_virtual_files() {
 # Función para leer la lista de dominios y configurar el archivo main.cf
 function config_postfix() {
     virtual_mailbox_domains=""
+    smtp_tls_CApath="/etc/ldap/tls/"
     #virtual_mailbox_maps="hash:/etc/postfix/virtual_alias_maps"
     virtual_mailbox_maps="ldap:$LDAP_USERS_PATH"
-    #virtual_alias_maps="hash:/etc/postfix/virtual_alias_maps"
-    virtual_alias_maps="ldap:$LDAP_ALIASES_PATH"
+    virtual_alias_maps="hash:/etc/postfix/virtual_alias_maps"
+    #virtual_alias_maps="ldap:$LDAP_ALIASES_PATH"
     virtual_mailbox_base="$MAIL_DIR"
     virtual_alias_domains="hash:/etc/postfix/virtual_domains"
     smtpd_tls_cert_file="$PEM_PATH"
@@ -297,6 +298,15 @@ function config_postfix() {
     while read -r domain; do
         virtual_mailbox_domains+="$domain, "
     done < <(sed -e '$a\' "$DOMAINS_PATH")
+    #smtp_tls_CApath
+    if grep -q "#smtp_tls_CApath" "$POSTFIX_MAIN"; then
+        sudo sed -i "s/^#smtp_tls_CApath =.*/smtp_tls_CApath=${smtp_tls_CApath//\"/}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtp_tls_CApath"; exit 1; }
+    elif grep -q "smtp_tls_CApath" "$POSTFIX_MAIN"; then
+        sudo sed -i "s/^smtp_tls_CApath =.*/smtp_tls_CApath=${smtp_tls_CApath//\"/}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtp_tls_CApath"; exit 1; }
+    else
+        echo "smtp_tls_CApath=${smtp_tls_CApath//\"/}" >> "$POSTFIX_MAIN"
+    fi
+    echo "smtp_tls_CApath=${smtp_tls_CApath//\"/}" >> "$CURRENT_DIR/test.txt"
     #virtual_mailbox_domains
     if grep -q "#virtual_mailbox_domains" "$POSTFIX_MAIN"; then
         sudo sed -i "s/^#virtual_mailbox_domains =.*/virtual_mailbox_domains = ${virtual_mailbox_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_domains"; exit 1; }
