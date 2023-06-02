@@ -12,8 +12,8 @@ KEY_PATH="$CERTS_PATH/$KEY_FILE"
 CSR_PATH="$CERTS_PATH/$CSR_FILE"
 CRT_PATH="$CERTS_PATH/$CRT_FILE"
 PEM_PATH="$CERTS_PATH/$PEM_FILE"
-CA_KEY_PATH="$CERTS_PATH/CA.key"
-CA_PEM_PATH="$CERTS_PATH/CA.pem"
+CA_KEY_PATH="/etc/ldap/tls/CA.key"
+CA_PEM_PATH="/etc/ldap/tls/CA.pem"
 
 # Función para crear el directorio para almacenar los certificados
 function create_cert_directory() {
