@@ -12,6 +12,8 @@ KEY_PATH="$CERTS_PATH/$KEY_FILE"
 CSR_PATH="$CERTS_PATH/$CSR_FILE"
 CRT_PATH="$CERTS_PATH/$CRT_FILE"
 PEM_PATH="$CERTS_PATH/$PEM_FILE"
+CA_KEY_PATH="$CERTS_PATH/CA.key"
+CA_PEM_PATH="$CERTS_PATH/CA.pem"
 
 # Función para crear el directorio para almacenar los certificados
 function create_cert_directory() {
@@ -33,12 +35,12 @@ function create_cert_directory() {
 function generate_ca_key() {
   # generar la llave privada
   echo "Generando la llave privada..."
-  sudo openssl genrsa -out "$CERTS_PATH/CA.key" 8192 && sudo chmod 400 "$CERTS_PATH/CA.key"
-  echo "La llave privada '$CERTS_PATH/CA.key' hasido generada."
+  sudo openssl genrsa -out "$CA_KEY_PATH" 8192 && sudo chmod 400 "$CA_KEY_PATH"
+  echo "La llave privada '$CA_KEY_PATH' hasido generada."
   #  Genera una solicitud de certificado 
   echo "Generando una solicitud de certificado..."
-  sudo openssl req -new -x509 -nodes -key "$CERTS_PATH/CA.key" -days 3650 -out "$CERTS_PATH/CA.pem" -subj "/CN=${DOMAIN}"
-  echo "El certificado '$CERTS_PATH/CA.pem' ha sido generado."
+  sudo openssl req -new -x509 -nodes -key "$CA_KEY_PATH" -days 3650 -out "$CA_PEM_PATH" -subj "/CN=${DOMAIN}"
+  echo "El certificado '$CA_PEM_PATH' ha sido generado."
 }
 # Función para generar la llave privada y el requerimiento
 function generate_key() {
@@ -64,7 +66,7 @@ function generate_certificate() {
     fi
     # generar el certificado
     echo "Generando el certificado..."
-    if sudo openssl x509 -req -in "$CSR_PATH" -CA "$CERTS_PATH/CA.pem" -CAkey "$CERTS_PATH/CA.key"  -CAcreateserial -out "$CRT_PATH" -days 365; then
+    if sudo openssl x509 -req -in "$CSR_PATH" -CA "$CA_PEM_PATH" -CAkey "$CA_KEY_PATH"  -CAcreateserial -out "$CRT_PATH" -days 365; then
         echo "Se ha creado el certificado: $CRT_PATH para el dominio: ${DOMAIN}"
     else
         echo "ERROR:Error al generar el certificado '$CRT_PATH'."
@@ -79,7 +81,7 @@ function change_mod() {
     sudo chmod 101 "$CERTS_PATH"
     sudo chmod -R 400 "$CERTS_PATH"
     echo "Cambiando permisos del archivo '$CRT_PATH'..."
-    sudo chmod 404 "$CERTS_PATH/CA.pem"
+    sudo chmod 404 "$CA_PEM_PATH"
     echo "Los permisos fueron cambiados."
 }
 # Función principal
