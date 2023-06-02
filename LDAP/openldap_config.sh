@@ -6,6 +6,8 @@ MAKEACCOUNTS_SCRIPT="make_accounts.sh"
 MAKEACCOUNTS_PATH="$CURRENT_DIR/$MAKEACCOUNTS_SCRIPT"
 MAKEGROUPS_SCRIPT="make_groups.sh"
 MAKEGROUPS_PATH="$CURRENT_DIR/$MAKEGROUPS_SCRIPT"
+GENERATE_CERTS_SCRIPT="generate_certs.sh"
+GENERATE_CERTS_PATH="$CURRENT_DIR/$GENERATE_CERTS_SCRIPT"
 SLAPD_CONFIG_FILE="slapd.conf.ldif"
 SLAPD_CONFIG_PATH="$CURRENT_DIR/$SLAPD_CONFIG_FILE"
 GROUPS_FILE="grupos.ldif"
@@ -34,6 +36,50 @@ LDAP_CONFIG="/etc/ldap/ldap.conf"
 
 export DEBIAN_FRONTEND=noninteractive
 export SLAPD_NO_CONFIGURATION=true
+# Función para leer la variable CA_KEY_PATH desde el script '$GENERATE_CERTS_PATH
+function read_CA_KEY_PATH() {
+    # Leer la variable CA_KEY_PATH desde el script '$GENERATE_CERTS_PATH
+    echo "Leyendo la variable CA_KEY_PATH desde el script '$GENERATE_CERTS_PATH..."
+    
+    # Verificar si el archivo existe
+    if [ -f "$GENERATE_CERTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable CA_KEY_PATH
+            if [[ "$line" =~ ^CA_KEY_PATH= ]]; then
+                # Extraer el valor de la variable GID
+                CA_KEY_PATH=$(echo "$line" | cut -d'=' -f2)
+                export CA_KEY_PATH
+                break
+            fi
+        done < "$GENERATE_CERTS_PATH"
+    else
+      echo "El archivo '$GENERATE_CERTS_PATH no existe."
+    fi
+    echo "El valor de CA_KEY_PATH es: ${CA_KEY_PATH//\"/}"
+}
+# Función para leer la variable CA_PEM_PATH desde el script '$GENERATE_CERTS_PATH
+function read_CA_PEM_PATH() {
+    # Leer la variable CA_PEM_PATH desde el script '$GENERATE_CERTS_PATH
+    echo "Leyendo la variable CA_PEM_PATH desde el script '$GENERATE_CERTS_PATH..."
+    
+    # Verificar si el archivo existe
+    if [ -f "$GENERATE_CERTS_PATH" ]; then
+        # Leer el archivo línea por línea
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # Buscar la línea que define la variable CA_PEM_PATH
+            if [[ "$line" =~ ^CA_PEM_PATH= ]]; then
+                # Extraer el valor de la variable GID
+                CA_PEM_PATH=$(echo "$line" | cut -d'=' -f2)
+                export CA_PEM_PATH
+                break
+            fi
+        done < "$GENERATE_CERTS_PATH"
+    else
+        echo "El archivo '$GENERATE_CERTS_PATH no existe."
+    fi
+    echo "El valor de CA_PEM_PATH es: ${CA_PEM_PATH//\"/}"
+}
 # Funciones
 function install_slapd() {
   # Verificar si el usuario actual es root
@@ -137,11 +183,16 @@ sudo ldapsearch -x -LLL -b dc=$SUBDOMAIN,dc=$TOPLEVEL
 }
 
 function update_ldap_conf() {
+  # Eliminar configuración existente
+  sudo sed -i '/^BASE/d' "$LDAP_CONFIG"
+  sudo sed -i '/^URI/d' "$LDAP_CONFIG"
+  sudo sed -i '/^TLS_CACERT/d' "$LDAP_CONFIG"
+
   # Actualizar parametro BASE
   echo "Actualizando parametro BASE..."
    #BASE
   if grep -q "#BASE" "$LDAP_CONFIG"; then
-    sudo sed -i "s|^#BASE*|BASE dc=avilesworks,dc=com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #BASE"; exit 1; }
+    sudo sed -i "s|^#BASE.*|BASE dc=avilesworks,dc=com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #BASE"; exit 1; }
   elif grep -q "BASE" "$SLAP_CONFIG"; then
     sudo sed -i "s|^BASE.*|BASE dc=avilesworks,dc=com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': BASE"; exit 1; }
   else
@@ -151,7 +202,7 @@ function update_ldap_conf() {
   echo "Actualizando parametro URI..."
    #URI
   if grep -q "#URI" "$LDAP_CONFIG"; then
-    sudo sed -i "s|^#URI*|URI ldap://ldap.avilesworks.com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #URI"; exit 1; }
+    sudo sed -i "s|^#URI.*|URI ldap://ldap.avilesworks.com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #URI"; exit 1; }
   elif grep -q "URI" "$SLAP_CONFIG"; then
     sudo sed -i "s|^URI.*|URI ldap://ldap.avilesworks.com|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': URI"; exit 1; }
   else
@@ -161,11 +212,11 @@ function update_ldap_conf() {
   echo "Actualizando parametro TLS_CACERT..."
    #TLS_CACERT
   if grep -q "#TLS_CACERT" "$LDAP_CONFIG"; then
-    sudo sed -i "s|^#TLS_CACERT*|TLS_CACERT /etc/ldap/tls/CA.pem|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #TLS_CACERT"; exit 1; }
+    sudo sed -i "s|^#TLS_CACERT.*|TLS_CACERT ${CA_PEM_PATH//\"/}|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': #TLS_CACERT"; exit 1; }
   elif grep -q "TLS_CACERT" "$SLAP_CONFIG"; then
-    sudo sed -i "s|^TLS_CACERT.*|TLS_CACERT /etc/ldap/tls/CA.pem|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': TLS_CACERT"; exit 1; }
+    sudo sed -i "s|^TLS_CACERT.*|TLS_CACERT ${CA_PEM_PATH//\"/}|" "$LDAP_CONFIG" || { echo "ERROR: Hubo un problema al configurar el archivo '$LDAP_CONFIG': TLS_CACERT"; exit 1; }
   else
-    echo "TLS_CACERT  /etc/ldap/tls/CA.pem" >> "$LDAP_CONFIG"
+    echo "TLS_CACERT  ${CA_PEM_PATH//\"/}" >> "$LDAP_CONFIG"
   fi
 }
 
@@ -308,6 +359,8 @@ function run_groups_script() {
 }
 # Funcion principal
 function openldap_config() {
+  read_CA_KEY_PATH
+  read_CA_PEM_PATH
   install_slapd
   set_hostname
   add_hostname_config
@@ -318,7 +371,7 @@ function openldap_config() {
   run_accounts_script
   add_accounts
   update_ldap_conf
-  #add_templates
+  add_templates
   configurar_interfaces_red
   restart_service
   install_phpldapadmin
