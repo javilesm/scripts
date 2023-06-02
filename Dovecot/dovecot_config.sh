@@ -39,6 +39,8 @@ POSTFIX_ACCOUNTS_SCRIPT="postfix_accounts.sh"
 POSTFIX_ACCOUNTS_PATH="$PARENT_DIR/Postfix/$POSTFIX_ACCOUNTS_SCRIPT"
 LDAP_GROUPS_FILE="make_groups.sh"
 LDAP_GROUPS_PATH="$PARENT_DIR/LDAP/$LDAP_GROUPS_FILE"
+dovecot_ldap_original="$DOVECOT_PATH/dovecot-ldap.conf.ext"
+dovecot_ldap_fake="$CURRENT_DIR/dovecot-ldap.conf.ext"
 # Función para leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
 function read_GID() {
     # Leer la variable GID desde el script '$POSTFIX_ACCOUNTS_PATH'
@@ -138,6 +140,14 @@ function backup_original_files() {
         echo "ERROR: El archivo de configuración '$CONFIG_FILE' no existe. No se puede crear una copia de seguridad."
     fi
 
+    if [ -f "$dovecot_ldap_original" ]; then
+        echo "Creando copia de seguridad del archivo '$dovecot_ldap_original' ..."
+        sudo cp "$dovecot_ldap_original" "$dovecot_ldap_original".bak 
+        echo "Copia de seguridad creada en '$dovecot_ldap_original.bak'..."
+    else
+        echo "ERROR: El archivo de configuración '$dovecot_ldap_original no existe. No se puede crear una copia de seguridad."
+    fi
+    
     if [ -f "$auth_ldap_orginal" ]; then
         echo "Creando copia de seguridad del archivo '$auth_ldap_orginal' ..."
         sudo cp "$auth_ldap_orginal" "$auth_ldap_orginal".bak 
@@ -145,7 +155,6 @@ function backup_original_files() {
     else
         echo "ERROR: El archivo de configuración '$auth_ldap_orginal' no existe. No se puede crear una copia de seguridad."
     fi
-    
 
     if [ -f "$mailbox_file_original" ]; then
         echo "Creando copia de seguridad del archivo '$mailbox_file_original' ..."
@@ -199,6 +208,14 @@ function backup_original_files() {
 function change_original_files() {
     # reemplazar los archivos de configuración originales
     echo "Reemplazando los archivos de configuración originales..."
+    # reemplazar el archivo dovecot_ldap_original
+    echo "Reemplazando el archivo '$dovecot_ldap_original' ..."
+    if [ -f "$dovecot_ldap_original" ]; then
+        sudo mv "$dovecot_ldap_fake" "$dovecot_ldap_original"
+        echo "El archivo '$dovecot_ldap_original' fue reemplazado por '$dovecot_ldap_fake'"
+    else
+        echo "ERROR: El archivo de configuración '$master_file_original' no existe. No se puede reemplazar."
+    fi
     # reemplazar el archivo auth_ldap_orginal
     echo "Reemplazando el archivo '$auth_ldap_orginal' ..."
     if [ -f "$auth_ldap_orginal" ]; then
