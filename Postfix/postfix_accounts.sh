@@ -98,15 +98,17 @@ function read_accounts() {
       echo "Dominio: $domain"
       local top_level="${alias##*.}"
       echo "Top level: $top_level"
+      local usermail_path="$MAIL_DIR/$domain/$username"
       # crear subdirectorio del usuario
-      echo "Creando subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo mkdir -p "$MAIL_DIR/$domain/$username"
+      echo "Creando subdirectorio '$usermail_path'..."
+      sudo mkdir -p "$usermail_path"
       # cambiar permisos al subdirectorio del usuario
-      echo "Cambiando permisos del subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo chmod +w "$MAIL_DIR/$domain/$username"
+      echo "Cambiando permisos del subdirectorio '$usermail_path'..."
+      sudo chmod 777 "$usermail_path"
+      sudo chmod +w "$usermail_path"
       # cambiar propiedad del subdirectorio del usuario
-      echo "Cambiando la propiedad del subdirectorio del usuario '$username' del dominio '$domain'..."
-      sudo chown :$GID "$MAIL_DIR/$domain/$username"
+      echo "Cambiando la propiedad del subdirectorio '$usermail_path''..."
+      sudo chown :$GID "$usermail_path"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$alias" "$username"| grep -v '^$' >> "$POSTFIX_PATH/virtual_alias_maps"
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual_alias_maps'"
