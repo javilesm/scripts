@@ -9,7 +9,7 @@ POSTFIX_ACCOUNTS_PATH="$CURRENT_DIR/$POSTFIX_ACCOUNTS_SCRIPT"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
-POSTFIX_MAIN="$POSTFIX_PATH/main.cf"
+POSTFIX_MAIN="$CURRENT_DIR/main.cf"
 VIRTUAL_DOMAINS_CF="$POSTFIX_PATH/virtual_domains.cf"
 VIRTUAL_MAILBOX_CF="$POSTFIX_PATH/virtual_mailbox.cf"
 VIRTUAL_ALIAS_CF="$POSTFIX_PATH/virtual_alias.cf"
@@ -18,7 +18,7 @@ LDAP_GROUPS_FILE="make_groups.sh"
 LDAP_GROUPS_PATH="$PARENT_DIR/LDAP/$LDAP_GROUPS_FILE"
 CERTS_FILE="generate_certs.sh"
 CERTS_PATH="$PARENT_DIR/Dovecot/$CERTS_FILE"
-LDAP_DIR="/etc/postfix/ldap"
+LDAP_DIR="$POSTFIX_PATH/ldap"
 # Función para crear el directorio 'LDAP_DIR'
 function create_ldap_dir() {
     # crear el directorio 'LDAP_DIR'
@@ -300,18 +300,18 @@ function config_postfix() {
     done < <(sed -e '$a\' "$DOMAINS_PATH")
     #smtp_tls_CApath
     if grep -q "#smtp_tls_CApath" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#smtp_tls_CApath =.*/smtp_tls_CApath=${smtp_tls_CApath//\"/}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtp_tls_CApath"; exit 1; }
+        sudo sed -i "s|^#smtp_tls_CApath=.*|smtp_tls_CApath=${smtp_tls_CApath//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #smtp_tls_CApath"; exit 1; }
     elif grep -q "smtp_tls_CApath" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^smtp_tls_CApath =.*/smtp_tls_CApath=${smtp_tls_CApath//\"/}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtp_tls_CApath"; exit 1; }
+        sudo sed -i "s|^smtp_tls_CApath=.*|smtp_tls_CApath=${smtp_tls_CApath//\"/}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': smtp_tls_CApath"; exit 1; }
     else
         echo "smtp_tls_CApath=${smtp_tls_CApath//\"/}" >> "$POSTFIX_MAIN"
     fi
     echo "smtp_tls_CApath=${smtp_tls_CApath//\"/}" >> "$CURRENT_DIR/test.txt"
     #virtual_mailbox_domains
     if grep -q "#virtual_mailbox_domains" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^#virtual_mailbox_domains =.*/virtual_mailbox_domains = ${virtual_mailbox_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_domains"; exit 1; }
+        sudo sed -i "s|^#virtual_mailbox_domains =.*|virtual_mailbox_domains = ${virtual_mailbox_domains::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': #virtual_mailbox_domains"; exit 1; }
     elif grep -q "virtual_mailbox_domains" "$POSTFIX_MAIN"; then
-        sudo sed -i "s/^virtual_mailbox_domains =.*/virtual_mailbox_domains = ${virtual_mailbox_domains::-1}/" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_domains"; exit 1; }
+        sudo sed -i "s|^virtual_mailbox_domains =.*|virtual_mailbox_domains = ${virtual_mailbox_domains::-1}|" "$POSTFIX_MAIN" || { echo "ERROR: Hubo un problema al configurar el archivo '$POSTFIX_MAIN': virtual_mailbox_domains"; exit 1; }
     else
         echo "virtual_mailbox_domains = ${virtual_mailbox_domains::-1}" >> "$POSTFIX_MAIN"
     fi
@@ -642,6 +642,9 @@ function config_postfix() {
     fi
     echo "mailbox_command = /usr/lib/dovecot/deliver" >> "$CURRENT_DIR/test.txt"
 }
+function change_main() {
+    sudo mv "$POSTFIX_MAIN" "$POSTFIX_PATH/main.cf"
+}
 # Función para comprobar la configuracion de Postfix
 function postfix_check() {
     # comprobar la configuracion de Postfix
@@ -700,6 +703,7 @@ function postfix_config() {
   create_domains_path
   config_virtual_files
   config_postfix
+  change_main
   postfix_check
   restart_services
   validate_script
