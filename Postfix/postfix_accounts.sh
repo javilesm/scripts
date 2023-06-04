@@ -40,20 +40,20 @@ function validate_accounts_file() {
 }
 # Función para verificar si la ruta virtual existe
 function validate_MAIL_DIR() {
-  echo "Verificando si la ruta '$MAIL_DIR' existe..."
+  echo "Verificando si el directorio padre '$MAIL_DIR' existe..."
   if [ ! -d "$MAIL_DIR" ]; then
     # crear directorio
     echo "Creando el directorio: '$MAIL_DIR'..."
     sudo mkdir -p "$MAIL_DIR"
+    else
+    echo "El directorio padre '$MAIL_DIR' ya existe."
+  fi
     # cambiar permisos del directorio padre
     echo "Cambiando los permisos del directorio padre '$MAIL_DIR'..."
     sudo chmod +w "$MAIL_DIR"
     # cambiar la propiedad del directorio padre
     echo "Cambiando la propiedad del directorio '$MAIL_DIR'..."
-      sudo chown :"$GID" "$MAIL_DIR"
-  else
-    echo "La ruta '$MAIL_DIR' ya existe."
-  fi
+    sudo chown :"$GID" "$MAIL_DIR"
 }
 # Función para verificar si el archivo /etc/dovecot/users existe
 function validate_users_file() {
@@ -73,7 +73,7 @@ function read_domains() {
       host="${host%%.*}"
       echo "Hostname: $host"
       # crear subdirectorios para cada dominio
-      echo "Cambiando los permisos del directorio padre '$MAIL_DIR'..."
+      echo "Creando el subdirectorio: '$MAIL_DIR'..."
       sudo mkdir -p "$MAIL_DIR/$host"
       # cambiar permisos del subdirectorio
       echo "Cambiando los permisos del subdirectorio '$MAIL_DIR/$host'..."
@@ -81,7 +81,7 @@ function read_domains() {
       sudo chmod o+w "$MAIL_DIR/$host"
       # cambiar la propiedad del directorio
       echo "Cambiando la propiedad del directorio '$MAIL_DIR/$host'..."
-      sudo chown :"$GID" "$MAIL_DIR/$host"
+      sudo chown :$GID "$MAIL_DIR/$host"
       sudo chmod g+w "$MAIL_DIR/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
