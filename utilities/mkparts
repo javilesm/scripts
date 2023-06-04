@@ -1,6 +1,8 @@
 #!/bin/bash
 # mkparts.sh
-
+# Variables
+CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
 # Obtener la unidad a particionar y el número de particiones del usuario
 function get_dev() {
   echo "Unidades de disco disponibles:"
@@ -8,46 +10,49 @@ function get_dev() {
   echo "--------------------------------------------------"
 
   read -p "Ingrese el nombre de la unidad a particionar (ejemplo: sda, xvdf): " unidad
-  sleep 1
-  read -p "Ingrese el número de particiones a crear: " num_particiones
-  sleep 1
-
   # Validar la unidad ingresada
   if ! [ -b "/dev/$unidad" ]; then
     echo "La unidad especificada no existe."
     exit 1
   fi
-
+  read -p "Ingrese el número de particiones a crear: " num_particiones
   # Validar el número de particiones ingresado
   if ! [[ "$num_particiones" =~ ^[0-9]+$ ]] || [ "$num_particiones" -lt 1 ]; then
     echo "El número de particiones ingresado no es válido."
     exit 1
   fi
 
-  # Mostrar la información ingresada y solicitar confirmación al usuario
-  echo "Se procederá a particionar la siguiente unidad: /dev/$unidad"
-  sleep 1
-  echo "Se crearán $num_particiones particiones en esta unidad."
 }
 
 
 function confirm() {
-  source ./confirm.sh # Incluye el archivo confirmacion.sh
+    # Mostrar la información ingresada y solicitar confirmación al usuario
+  echo "Se crearán $num_particiones particiones en la unidad: '/dev/$unidad'."
+  source "$CONFIRM_SCRIPT" # Incluye el archivo confirmacion.sh
   # Pide confirmación al usuario
-  if confirm "¿Está seguro de que desea ejecutar la acción?"; then
-  echo "El usuario confirmó la ejecución."
-  # Coloca aquí las acciones a realizar si el usuario confirma
+  if confirm " ¿Está seguro de que desea ejecutar la acción?"; then
+    echo "El usuario confirmó la ejecución."
+    # Coloca aquí las acciones a realizar si el usuario confirma
+    split_dev
+    make_partitions
+    format_parts
+    get_mounting
+    mount_partition
+    edit_fstab
   else  
-  echo "El usuario canceló la ejecución."
-  # Coloca aquí las acciones a realizar si el usuario cancela
-  exit 1
+    echo "El usuario canceló la ejecución."
+    # Coloca aquí las acciones a realizar si el usuario cancela
+    exit 1
   fi
 }
 
 # Calcular el tamaño de cada partición en base al tamaño de la unidad y el número de particiones
 function split_dev() {
+  echo "Calculando el tamaño de cada partición en base al tamaño de la unidad y el número de particiones..."
   tamanio_unidad=$(sudo blockdev --getsize64 "/dev/$unidad")
-  tamanio_particion=$(($tamanio_unidad / $num_particiones / 1024 / 1024)) # en MB
+  tamanio_particion=$((tamanio_unidad / num_particiones / 1024 / 1024)) # en MB
+  echo "El tamaño de la unidad es: $tamanio_unidad bytes"
+  echo "El tamaño de cada partición es: $tamanio_particion MB"
 
   # Validar que el tamaño de la partición sea al menos 1MB
   if [ "$tamanio_particion" -lt 1 ]; then
@@ -58,13 +63,17 @@ function split_dev() {
 
 # Crear las particiones
 function make_partitions() {
-  sudo fdisk "/dev/$unidad" <<EOF
-g
-$(for i in "$(seq $num_particiones)"; do echo "n"; echo ""; echo "+${tamanio_particion}M"; done)"
-w
-EOF
-}
+  echo "Creando las particiones..."
+  sudo parted "/dev/$unidad" mklabel gpt
+  start_sector=2048
+  end_sector=$((tamanio_particion * 2048 - 1))
 
+  for i in $(seq $num_particiones); do
+    sudo parted "/dev/$unidad" mkpart primary ext4 ${start_sector}s ${end_sector}s
+    start_sector=$((end_sector + 1))
+    end_sector=$((end_sector + tamanio_particion * 2048))
+  done
+}
 
 # Formatear las particiones con el formato especificado por el usuario
 function format_parts() {
@@ -140,11 +149,5 @@ function edit_fstab() {
 function mkparts() {
   get_dev
   confirm
-  split_dev
-  make_partitions
-  format_parts
-  get_mounting
-  mount_partition
-  edit_fstab
 }
 mkparts
