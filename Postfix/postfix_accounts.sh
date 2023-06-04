@@ -47,7 +47,10 @@ function validate_MAIL_DIR() {
     sudo mkdir -p "$MAIL_DIR"
     # cambiar permisos del directorio padre
     echo "Cambiando los permisos del directorio padre '$MAIL_DIR'..."
-    sudo chmod 777 "$MAIL_DIR"
+    sudo chmod +w "$MAIL_DIR"
+    # cambiar la propiedad del directorio padre
+    echo "Cambiando la propiedad del directorio '$MAIL_DIR'..."
+      sudo chown :"$GID" "$MAIL_DIR"
   else
     echo "La ruta '$MAIL_DIR' ya existe."
   fi
