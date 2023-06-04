@@ -1,65 +1,150 @@
 #!/bin/bash
 # mkparts.sh
-# Incluye el archivo confirmacion.sh
-source ./confirm.sh
-
-# Descripcion
-echo "***Script para particionar unidades***"
 
 # Obtener la unidad a particionar y el número de particiones del usuario
-echo "A continuacion, ingrese la ruta de la unidad a particionar y el número de particiones a crear (ejemplo: /dev/xvdf)"
-sleep 2
-read -p "/dev/ " unidad
-read -p "Ingrese el número de particiones a crear: " num_particiones
+function get_dev() {
+  echo "Unidades de disco disponibles:"
+  lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -e '^NAME' -e 'disk' | awk '{print $1, $2}'
+  echo "--------------------------------------------------"
 
-# Mostrar la información ingresada y solicitar confirmación al usuario
-echo "Se procederá a particionar la siguiente unidad: /dev/$unidad"
-echo "Se crearán $num_particiones particiones en esta unidad."
+  read -p "Ingrese el nombre de la unidad a particionar (ejemplo: sda, xvdf): " unidad
+  sleep 1
+  read -p "Ingrese el número de particiones a crear: " num_particiones
+  sleep 1
 
-# Pide confirmación al usuario
-if confirm "¿Está seguro de que desea ejecutar la acción?"; then
+  # Validar la unidad ingresada
+  if ! [ -b "/dev/$unidad" ]; then
+    echo "La unidad especificada no existe."
+    exit 1
+  fi
+
+  # Validar el número de particiones ingresado
+  if ! [[ "$num_particiones" =~ ^[0-9]+$ ]] || [ "$num_particiones" -lt 1 ]; then
+    echo "El número de particiones ingresado no es válido."
+    exit 1
+  fi
+
+  # Mostrar la información ingresada y solicitar confirmación al usuario
+  echo "Se procederá a particionar la siguiente unidad: /dev/$unidad"
+  sleep 1
+  echo "Se crearán $num_particiones particiones en esta unidad."
+}
+
+
+function confirm() {
+  source ./confirm.sh # Incluye el archivo confirmacion.sh
+  # Pide confirmación al usuario
+  if confirm "¿Está seguro de que desea ejecutar la acción?"; then
   echo "El usuario confirmó la ejecución."
   # Coloca aquí las acciones a realizar si el usuario confirma
-else
+  else  
   echo "El usuario canceló la ejecución."
   # Coloca aquí las acciones a realizar si el usuario cancela
   exit 1
-fi
-fi
-
-# Verificar que la unidad exista
-if ! [ -b "/dev$unidad" ]; then
-  echo "La unidad especificada no existe."
-  exit 1
-fi
+  fi
+}
 
 # Calcular el tamaño de cada partición en base al tamaño de la unidad y el número de particiones
-tamanio_unidad=$(sudo blockdev --getsize64 "/dev$unidad")
-tamanio_particion=$((tamanio_unidad / num_particiones / 1024 / 1024)) # en MB
+function split_dev() {
+  tamanio_unidad=$(sudo blockdev --getsize64 "/dev/$unidad")
+  tamanio_particion=$(($tamanio_unidad / $num_particiones / 1024 / 1024)) # en MB
+
+  # Validar que el tamaño de la partición sea al menos 1MB
+  if [ "$tamanio_particion" -lt 1 ]; then
+    echo "El tamaño de la partición calculado es menor a 1MB. Ajusta el número de particiones o la unidad a particionar."
+    exit 1
+  fi
+}
 
 # Crear las particiones
-sudo fdisk "/dev$unidad" <<EOF
+function make_partitions() {
+  sudo fdisk "/dev/$unidad" <<EOF
 g
-$(for i in $(seq $num_particiones); do echo "n"; echo ""; echo "+${tamanio_particion}M"; done)
+$(for i in "$(seq $num_particiones)"; do echo "n"; echo ""; echo "+${tamanio_particion}M"; done)"
 w
 EOF
+}
 
-# Formatear las particiones como ext4
-for i in $(seq $num_particiones); do
-  sudo mkfs.ext4 "/dev${unidad}${i}"
-done
 
-# Crear directorios de montaje
-for i in $(seq $num_particiones); do
-  sudo mkdir "/data/$unidad$i"
-done
+# Formatear las particiones con el formato especificado por el usuario
+function format_parts() {
+  echo "Seleccione el formato de las particiones:"
+  echo "1. ext2"
+  echo "2. ext3"
+  echo "3. ext4 (predeterminado)"
+  read -p "Ingrese el número de formato deseado [1-3]: " opcion
 
-# Montar las particiones en los directorios de montaje
-for i in $(seq $num_particiones); do
-  sudo mount "/dev${unidad}${i}" "/data/$unidad$i"
-done
+  case $opcion in
+    1) formato="ext2";;
+    2) formato="ext3";;
+    *) formato="ext4";;
+  esac
+
+  for i in $(seq $num_particiones); do
+    sudo mkfs.$formato "/dev/${unidad}${i}"
+  done
+}
+# Obtener el punto de montaje
+function get_mounting() {
+  echo "A continuación, ingrese el punto de montaje deseado para la partición '/dev/$unidad'"
+  sleep 1
+  read -p "Ingrese el punto de montaje deseado para la partición '/dev/$unidad': " mounting_path
+
+  # Validar si se ha proporcionado un punto de montaje válido
+  if [[ -z "$mounting_path" ]]; then
+    echo "El punto de montaje no puede estar vacío. Por favor, ingrese un punto de montaje válido."
+    get_mounting  # Volver a solicitar al usuario que ingrese un punto de montaje válido
+    return
+  fi
+
+  echo "El punto de montaje especificado es: $mounting_path"
+
+}
+
+# Montar la particion en el punto de montaje
+function mount_partition() {
+  for i in $(seq $num_particiones); do
+    partition_path="/dev/${unidad}${i}"
+    mount_path="$mounting_path/$unidad$i"
+
+    # Verificar si el punto de montaje ya está siendo utilizado
+    if mountpoint -q "$mount_path"; then
+      echo "El punto de montaje '$mount_path' ya está en uso."
+      read -p "¿Desea seleccionar un nuevo punto de montaje? (y/n): " change_mount
+      if [[ "$change_mount" != "y" && "$change_mount" != "Y" ]]; then
+        continue  # Pasar a la siguiente partición sin montarla
+      else
+        get_mounting  # Volver a solicitar al usuario que ingrese un nuevo punto de montaje
+      fi
+    fi
+
+    # Montar la partición
+    if sudo mount "$partition_path" "$mount_path"; then
+      echo "Partición '$partition_path' montada en '$mount_path'."
+    else
+      echo "Error al montar la partición '$partition_path' en '$mount_path'."
+      echo "Asegúrese de que la partición exista y el punto de montaje esté disponible."
+      echo "Revise los permisos y la configuración del sistema."
+    fi
+  done
+}
+
 
 # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-for i in $(seq $num_particiones); do
-  echo "/dev${unidad}${i} /data/$unidad$i ext4 defaults 0 0" | sudo tee -a /etc/fstab
-done
+function edit_fstab() {
+  for i in $(seq $num_particiones); do
+    echo "$partition_path $mount_path $formato defaults 0 0" | sudo tee -a /etc/fstab
+  done
+}
+
+function mkparts() {
+  get_dev
+  confirm
+  split_dev
+  make_partitions
+  format_parts
+  get_mounting
+  mount_partition
+  edit_fstab
+}
+mkparts
