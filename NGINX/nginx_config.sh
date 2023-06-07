@@ -58,7 +58,7 @@ function read_domains() {
       sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/html"
       # Copiar plantilla index
       echo "Copiando plantilla index..."
-      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html/$INDEX_PATH"
+      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html/"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -113,7 +113,7 @@ function nginx_config() {
   mkdir
   read_domains
   validate_script
-  run_script
+  #run_script
   create_nginx_configs
   echo "*************ALL DONE**************"
 }
