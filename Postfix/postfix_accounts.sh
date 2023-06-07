@@ -65,27 +65,6 @@ function validate_script() {
   fi
   echo "El archivo '$PARTITIONS_SCRIPT' existe."
 }
-# Función para ejecutar el configurador de Postfix
-function run_script() {
-  echo "Ejecutar el configurador '$PARTITIONS_SCRIPT'..."
-    # Intentar ejecutar el archivo de configuración de Postfix
-  if sudo bash "$PARTITIONS_PATH"; then
-    echo "El archivo '$PARTITIONS_SCRIPT' se ha ejecutado correctamente."
-  else
-    echo "ERROR: No se pudo ejecutar el archivo '$PARTITIONS_SCRIPT'."
-    exit 1
-  fi
-  echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
-}
-# Función para verificar si el archivo /etc/dovecot/users existe
-function validate_users_file() {
-  echo "Verificando si el archivo de usuarios existe..."
-  if [ ! -f "$USERS_PATH" ]; then
-    echo "Creando archivo '$USERS_PATH'..."
-    sudo touch "$USERS_PATH"
-  fi
-  echo "El archivo '$USERS_PATH' ha sido creado."
-}
 # Función para leer la lista de direcciones de dominios y mapear  las direcciones y destinos
 function read_domains() {
     # leer la lista de dominios
@@ -107,6 +86,27 @@ function read_domains() {
       sudo chmod g+w "$MAIL_DIR/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
+}
+# Función para ejecutar el configurador de Postfix
+function run_script() {
+  echo "Ejecutar el configurador '$PARTITIONS_SCRIPT'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$PARTITIONS_PATH"; then
+    echo "El archivo '$PARTITIONS_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo '$PARTITIONS_SCRIPT'."
+    exit 1
+  fi
+  echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
+}
+# Función para verificar si el archivo /etc/dovecot/users existe
+function validate_users_file() {
+  echo "Verificando si el archivo de usuarios existe..."
+  if [ ! -f "$USERS_PATH" ]; then
+    echo "Creando archivo '$USERS_PATH'..."
+    sudo touch "$USERS_PATH"
+  fi
+  echo "El archivo '$USERS_PATH' ha sido creado."
 }
 # Función para leer la lista de direcciones de correo
 function read_accounts() {
@@ -166,10 +166,10 @@ function postfix_accounts() {
   create_uidname_user
   validate_accounts_file
   validate_MAIL_DIR
+  read_domains
   validate_script
   run_script
   validate_users_file
-  read_domains
   read_accounts
   restart_services
   echo "***************ALL DONE***************"
