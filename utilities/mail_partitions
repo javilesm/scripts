@@ -48,7 +48,6 @@ function confirm() {
     make_partitions
     format_parts
     iteration
-    edit_fstab
   else  
     echo "El usuario canceló la ejecución."
     # Coloca aquí las acciones a realizar si el usuario cancela
@@ -129,6 +128,8 @@ function iteration() {
     fi
     lsblk --paths | grep $unidad
     sleep 3
+    # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+    echo "${particion//\"/} ${mounting_point//\"/} ${formato//\"/} defaults 0 0" | sudo tee -a /etc/fstab
     echo "-------------------------------------------------------------------------"
   done
   lsblk --paths | grep $unidad
