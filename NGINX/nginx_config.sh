@@ -84,6 +84,7 @@ function run_script() {
   echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
 }
 function create_nginx_configs() {
+  local sites_enabled="/etc/nginx/sites-enabled/"
   echo "Creando archivos de configuración de Nginx..."
   
   while read -r hostname; do
@@ -103,9 +104,22 @@ function create_nginx_configs() {
 }" | sudo tee "$config_path" > /dev/null
     
     echo "Archivo de configuración creado: $config_path"
+    # create a symbolic link of the site configuration file in the sites-enabled directory.
+    echo "Creando un vínculo simbólico del archivo '$config_path' y el archivo '$sites_enabled'..."
+    sudo ln -s $config_path $sites_enabled
   done < <(grep -v '^$' "$DOMAINS_PATH")
   echo "Todos los archivos de configuración de Nginx han sido creados."
-  sudo nginx -t
+
+}
+function test_config() {
+  # Comprobar la configuración de Nginx
+  echo "Comprobando la configuración de Nginx..."
+  if sudo nginx -t; then
+    echo "Nginx se ha configurado correctamente."
+  else
+    echo "ERROR: Hubo un problema con la configuración de Nginx."
+    exit 1
+  fi
 }
 # Función principal
 function nginx_config() {
@@ -113,8 +127,9 @@ function nginx_config() {
   mkdir
   read_domains
   validate_script
-  #run_script
+  run_script
   create_nginx_configs
+  test_config
   echo "*************ALL DONE**************"
 }
 # Llamar a la funcion princial
