@@ -56,15 +56,6 @@ function validate_MAIL_DIR() {
     echo "Cambiando la propiedad del directorio '$MAIL_DIR'..."
     sudo chown :${GID//\"/} "$MAIL_DIR"
 }
-# Función para verificar si el archivo de configuración existe
-function validate_script() {
-  echo "Verificando si el archivo de configuración existe..."
-  if [ ! -f "$PARTITIONS_PATH" ]; then
-    echo "ERROR: El archivo '$PARTITIONS_SCRIPT' no se puede encontrar en la ruta '$PARTITIONS_PATH'."
-    exit 1
-  fi
-  echo "El archivo '$PARTITIONS_SCRIPT' existe."
-}
 # Función para leer la lista de direcciones de dominios y mapear  las direcciones y destinos
 function read_domains() {
     # leer la lista de dominios
@@ -98,6 +89,15 @@ function run_script() {
     exit 1
   fi
   echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
+}
+# Función para verificar si el archivo de configuración existe
+function validate_script() {
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$PARTITIONS_PATH" ]; then
+    echo "ERROR: El archivo '$PARTITIONS_SCRIPT' no se puede encontrar en la ruta '$PARTITIONS_PATH'."
+    exit 1
+  fi
+  echo "El archivo '$PARTITIONS_SCRIPT' existe."
 }
 # Función para verificar si el archivo /etc/dovecot/users existe
 function validate_users_file() {
