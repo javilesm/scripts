@@ -137,7 +137,7 @@ function mysql_config() {
     set_mysql_file_permissions
     check_mysql_config_file
     backup_mysql_config_file
-    modify_mysql_config_file(
+    modify_mysql_config_file
     set_mysql_socket
     start_mysql
     validate_mysql_scripts
