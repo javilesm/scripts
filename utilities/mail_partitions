@@ -24,7 +24,6 @@ function get_dev() {
 
 }
 
-
 function confirm() {
     # Mostrar la información ingresada y solicitar confirmación al usuario
   echo "Se crearán $num_particiones particiones en la unidad: '/dev/$unidad'."
