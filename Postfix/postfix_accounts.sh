@@ -78,6 +78,15 @@ function read_domains() {
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
+# Función para verificar si el archivo de configuración existe
+function validate_script() {
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$PARTITIONS_PATH" ]; then
+    echo "ERROR: El archivo '$PARTITIONS_SCRIPT' no se puede encontrar en la ruta '$PARTITIONS_PATH'."
+    exit 1
+  fi
+  echo "El archivo '$PARTITIONS_SCRIPT' existe."
+}
 # Función para ejecutar el configurador de Postfix
 function run_script() {
   echo "Ejecutar el configurador '$PARTITIONS_SCRIPT'..."
@@ -89,15 +98,6 @@ function run_script() {
     exit 1
   fi
   echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
-}
-# Función para verificar si el archivo de configuración existe
-function validate_script() {
-  echo "Verificando si el archivo de configuración existe..."
-  if [ ! -f "$PARTITIONS_PATH" ]; then
-    echo "ERROR: El archivo '$PARTITIONS_SCRIPT' no se puede encontrar en la ruta '$PARTITIONS_PATH'."
-    exit 1
-  fi
-  echo "El archivo '$PARTITIONS_SCRIPT' existe."
 }
 # Función para verificar si el archivo /etc/dovecot/users existe
 function validate_users_file() {
