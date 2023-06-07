@@ -42,7 +42,13 @@ function read_domains() {
       host="${host%%.*}"
       echo "Hostname: $host"
       # crear subdirectorios para cada dominio
-      echo "Creando el subdirectorio: '$HTML_PATH/$host/html'..."
+      echo "Creando el subdirectorio: '$HTML_PATH/$host'..."
+      sudo mkdir -p "$HTML_PATH/$host"
+      # cambiar permisos del subdirectorio
+      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host'..."
+      sudo chmod -R 755 "$HTML_PATH/$host"
+       # crear directorio web
+      echo "Creando el directorio web: '$HTML_PATH/$host/html'..."
       sudo mkdir -p "$HTML_PATH/$host/html"
       # cambiar permisos del subdirectorio
       echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/html'..."
