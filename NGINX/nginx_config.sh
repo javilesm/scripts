@@ -11,8 +11,8 @@ PARTITIONS_PATH="$CURRENT_DIR/$PARTITIONS_SCRIPT"
 INDEX_SAMPLE="index.html"
 INDEX_PATH="$CURRENT_DIR/$INDEX_SAMPLE"
 GID="10000"
-GID_NAME="$USER"
-UID_NAME="$USER"
+GID_NAME="www-data"
+UID_NAME="www-data"
 # Función para crear el directorio principal de Nginx
 function mkdir() {
   # Verificar si el directorio ya existe
