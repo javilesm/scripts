@@ -1,15 +1,6 @@
 #!/bin/bash
 # nodejs_install.sh
 set -e
-# Comprueba si Node.js ya está instalado
-function node_is_installed() {
-  echo "Comprobabdo si Node.js ya esta instalado..."
-  if command -v node > /dev/null; then
-    return 0
-  else
-    return 1
-  fi
-}
 function get_latest_node_version() {
   echo "Obteniendo la última versión de Node.js..."
   version=$(curl -sL https://nodejs.org/dist/index.json | jq -r '.[0].version')
@@ -123,7 +114,6 @@ function add_to_bashrc() {
 # función principal
 function install_node() {
   echo "*******NODE.JS INSTALL******"
-  node_is_installed
   get_latest_node_version
   download_latest_node_version $version
   verify_node_integrity
