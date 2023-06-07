@@ -2,7 +2,25 @@
 # mkparts.sh
 # Variables
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
+DOMAINS_FILE="domains.txt"
+DOMAINS_PATH="$PARENT_DIR/Postfix/$DOMAINS_FILE"
+# Función para leer la lista de dominios y contar cuantos dominios existen
+function count_domains() {
+  # Leer la lista de dominios
+  echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
+  local contador=0
+  
+  while read -r hostname; do
+    local host="${hostname#*@}"
+    host="${host%%.*}"
+    echo "Hostname: $host"
+    contador=$((contador + 1))
+  done < <(grep -v '^$' "$DOMAINS_PATH")
+  
+  echo "El archivo '$DOMAINS_PATH' tiene '$contador' elementos."
+}
 # Obtener la unidad a particionar y el número de particiones del usuario
 function get_dev() {
   echo "Unidades de disco disponibles:"
@@ -15,18 +33,12 @@ function get_dev() {
     echo "La unidad especificada no existe."
     exit 1
   fi
-  read -p "Ingrese el número de particiones a crear: " num_particiones
-  # Validar el número de particiones ingresado
-  if ! [[ "$num_particiones" =~ ^[0-9]+$ ]] || [ "$num_particiones" -lt 1 ]; then
-    echo "El número de particiones ingresado no es válido."
-    exit 1
-  fi
-
 }
 
 function confirm() {
-    # Mostrar la información ingresada y solicitar confirmación al usuario
-  echo "Se crearán $num_particiones particiones en la unidad: '/dev/$unidad'."
+  num_particiones=$contador
+   # Mostrar la información ingresada y solicitar confirmación al usuario
+  echo "Se crearán '$num_particiones' particiones, una para cada dominio en la unidad: '/dev/$unidad'."
   source "$CONFIRM_SCRIPT" # Incluye el archivo confirmacion.sh
   # Pide confirmación al usuario
   if confirm " ¿Está seguro de que desea ejecutar la acción?"; then
@@ -35,7 +47,6 @@ function confirm() {
     split_dev
     make_partitions
     format_parts
-    get_mounting
     mount_partition
     edit_fstab
   else  
@@ -76,36 +87,27 @@ function make_partitions() {
 
 # Formatear las particiones con el formato especificado por el usuario
 function format_parts() {
-  echo "Seleccione el formato de las particiones:"
-  echo "1. ext2"
-  echo "2. ext3"
-  echo "3. ext4 (predeterminado)"
-  read -p "Ingrese el número de formato deseado [1-3]: " opcion
-
-  case $opcion in
-    1) formato="ext2";;
-    2) formato="ext3";;
-    *) formato="ext4";;
-  esac
+  echo "Procediendo a formatear las particiones creadas."
+  formato="ext4"
 
   for i in $(seq $num_particiones); do
     sudo mkfs.$formato "/dev/${unidad}${i}"
   done
+  echo "Las particiones creadas fueron formateadas exitosamente."
 }
-# Obtener el punto de montaje
-function get_mounting() {
-  echo "A continuación, ingrese el punto de montaje deseado para la partición '/dev/$unidad'"
-  sleep 1
-  read -p "Ingrese el punto de montaje deseado para la partición '/dev/$unidad': " mounting_path
 
-  # Validar si se ha proporcionado un punto de montaje válido
-  if [[ -z "$mounting_path" ]]; then
-    echo "El punto de montaje no puede estar vacío. Por favor, ingrese un punto de montaje válido."
-    get_mounting  # Volver a solicitar al usuario que ingrese un punto de montaje válido
-    return
-  fi
-
+function mount_domains() {
+  mounting_path="/var/mail"
   echo "El punto de montaje especificado es: $mounting_path"
+  # Leer la lista de dominios
+  echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
+  
+  while read -r hostname; do
+    local host="${hostname#*@}"
+    host="${host%%.*}"
+    echo "Hostname: $host"
+    
+  done < <(grep -v '^$' "$DOMAINS_PATH")
 
 }
 
@@ -146,6 +148,7 @@ function edit_fstab() {
 }
 
 function mkparts() {
+  count_domains
   get_dev
   confirm
 }
