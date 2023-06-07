@@ -77,12 +77,37 @@ function run_script() {
   fi
   echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
 }
+function create_nginx_configs() {
+  echo "Creando archivos de configuración de Nginx..."
+  
+  while read -r hostname; do
+    local host="${hostname#*@}"
+    host="${host%%.*}"
+    
+    echo "Creando archivo de configuración para el dominio: $host"
+    config_path="/etc/nginx/sites-available/$host"
+    site_root="$HTML_PATH/$host/html"
+    
+    # Crear el archivo de configuración
+    echo "server {
+    listen 80;
+    server_name $host;
+    root $site_root;
+    index index.html;
+}" | sudo tee "$config_path" > /dev/null
+    
+    echo "Archivo de configuración creado: $config_path"
+  done < <(grep -v '^$' "$DOMAINS_PATH")
+  echo "Todos los archivos de configuración de Nginx han sido creados."
+  sudo nginx -t
+}
 # Función principal
 function nginx_config() {
   echo "**********NGINX CONFIG***********"
   mkdir
   validate_script
   run_script
+  create_nginx_configs
   echo "*************ALL DONE**************"
 }
 # Llamar a la funcion princial
