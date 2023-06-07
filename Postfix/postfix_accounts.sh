@@ -4,11 +4,13 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 ACCOUNTS_FILE="mail_users.csv"
 ACCOUNTS_PATH="$CURRENT_DIR/$ACCOUNTS_FILE"
+PARTITIONS_SCRIPT="mail_partitions.sh"
+PARTITIONS_PATH="$CURRENT_DIR/$PARTITIONS_SCRIPT"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$CURRENT_DIR/$DOMAINS_FILE"
 POSTFIX_PATH="/etc/postfix"
 DOVECOT_PATH="/etc/dovecot"
-USERS_PATH="/etc/dovecot/users"
+USERS_PATH="$DOVECOT_PATH/users"
 MAIL_DIR="/var/mail"
 GID="10000"
 GID_NAME="people"
@@ -17,7 +19,7 @@ UID_NAME=${GID_NAME//\"/}
 function group_add() {
     # crear al grupo $GID
     echo "Creando al grupo '$GID'..."
-    sudo groupadd -g "$GID" "$GID_NAME"
+    sudo groupadd -g ${GID//\"/} "$GID_NAME"
     cat /etc/group
 }
 # Función para crear al usuario UID_NAME:GID
@@ -27,7 +29,6 @@ function create_uidname_user() {
   sudo useradd -u ${GID//\"/} -g ${GID//\"/} -s /usr/bin/nologin -d ${MAIL_DIR//\"/} -m "$UID_NAME"
   cat /etc/passwd
 }
-
 # Función para verificar si el archivo de cuentas de usuario existe
 function validate_accounts_file() {
     # verificar si el archivo de dominios existe
@@ -53,7 +54,28 @@ function validate_MAIL_DIR() {
     sudo chmod +w "$MAIL_DIR"
     # cambiar la propiedad del directorio padre
     echo "Cambiando la propiedad del directorio '$MAIL_DIR'..."
-    sudo chown :"$GID" "$MAIL_DIR"
+    sudo chown :${GID//\"/} "$MAIL_DIR"
+}
+# Función para verificar si el archivo de configuración existe
+function validate_script() {
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$PARTITIONS_PATH" ]; then
+    echo "ERROR: El archivo '$PARTITIONS_SCRIPT' no se puede encontrar en la ruta '$PARTITIONS_PATH'."
+    exit 1
+  fi
+  echo "El archivo '$PARTITIONS_SCRIPT' existe."
+}
+# Función para ejecutar el configurador de Postfix
+function run_script() {
+  echo "Ejecutar el configurador '$PARTITIONS_SCRIPT'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$PARTITIONS_PATH"; then
+    echo "El archivo '$PARTITIONS_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo '$PARTITIONS_SCRIPT'."
+    exit 1
+  fi
+  echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
 }
 # Función para verificar si el archivo /etc/dovecot/users existe
 function validate_users_file() {
@@ -81,7 +103,7 @@ function read_domains() {
       sudo chmod o+w "$MAIL_DIR/$host"
       # cambiar la propiedad del directorio
       echo "Cambiando la propiedad del directorio '$MAIL_DIR/$host'..."
-      sudo chown :$GID "$MAIL_DIR/$host"
+      sudo chown :${GID//\"/} "$MAIL_DIR/$host"
       sudo chmod g+w "$MAIL_DIR/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
@@ -110,8 +132,8 @@ function read_accounts() {
       sudo chmod 777 "$usermail_path"
       sudo chmod +w "$usermail_path"
       # cambiar propiedad del subdirectorio del usuario
-      echo "Cambiando la propiedad del subdirectorio '$usermail_path''..."
-      sudo chown :$GID "$usermail_path"
+      echo "Cambiando la propiedad del subdirectorio '$usermail_path'..."
+      sudo chown :${GID//\"/} "$usermail_path"
       # Escribir una entrada en el archivo de buzones virtuales para el usuario y el dominio
       echo "$alias" "$username"| grep -v '^$' >> "$POSTFIX_PATH/virtual_alias_maps"
       echo "Los datos del usuario '$username' han sido registrados en: '$POSTFIX_PATH/virtual_alias_maps'"
@@ -125,7 +147,6 @@ function read_accounts() {
     # mapear  las direcciones y destinos
     echo "Mapeando las direcciones y usuarios..."
     sudo postmap "$POSTFIX_PATH/virtual_alias_maps" || { echo "Error: Failure while executing postmap on: '$POSTFIX_PATH/virtual_alias_maps'"; return 1; }
-
 }
 # Función para reiniciar el servicio de Postfix y el servicio de Dovecot
 function restart_services() {
@@ -136,8 +157,7 @@ function restart_services() {
     # reiniciar el servicio de Dovecot
     echo "Restarting Dovecot service..."
     sudo service dovecot restart || { echo "Error: Failed to restart Dovecot service."; return 1; }
-    echo "Dovecot service restarted successfully."
-    
+    echo "Dovecot service restarted successfully." 
 }
 # Función principal
 function postfix_accounts() {
@@ -146,6 +166,8 @@ function postfix_accounts() {
   create_uidname_user
   validate_accounts_file
   validate_MAIL_DIR
+  validate_script
+  run_script
   validate_users_file
   read_domains
   read_accounts
