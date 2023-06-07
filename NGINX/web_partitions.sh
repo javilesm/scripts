@@ -39,8 +39,9 @@ function confirm() {
   num_particiones=$contador
    # Mostrar la información ingresada y solicitar confirmación al usuario
   echo "Se crearán '$num_particiones' particiones, una para cada dominio en la unidad: '/dev/$unidad'."
-  echo "Importando '$CONFIRM_SCRIPT'..."
+  echo "¿Desea proceder?"
   source "$CONFIRM_SCRIPT" # Incluye el archivo confirmacion.sh
+  echo "Importando '$CONFIRM_SCRIPT'..."
   # Pide confirmación al usuario
   if confirm " ¿Está seguro de que desea ejecutar la acción?"; then
     echo "El usuario confirmó la ejecución."
