@@ -97,7 +97,7 @@ function create_nginx_configs() {
     # Crear el archivo de configuración
     echo "server {
     listen 80;
-    server_name $host;
+    server_name $hostname www.$hostname;
     root $site_root;
     index index.html;
 }" | sudo tee "$config_path" > /dev/null
