@@ -111,6 +111,7 @@ function create_nginx_configs() {
 function nginx_config() {
   echo "**********NGINX CONFIG***********"
   mkdir
+  read_domains
   validate_script
   run_script
   create_nginx_configs
