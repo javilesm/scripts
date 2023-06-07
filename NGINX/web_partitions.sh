@@ -98,7 +98,7 @@ function format_parts() {
 }
 
 function iteration() {
-  target_dir="/var/html"
+  target_dir="/var/www"
   # Leer la lista de dominios
   IFS=$'\n' read -d '' -r -a dominios < "$DOMAINS_PATH"
   
