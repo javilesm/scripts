@@ -200,6 +200,8 @@ function restart_services() {
 function nextcloud_config() {
   echo "**********NEXTCLOUD CONFIGURATOR***********"
   read_KEY_PATH
+  validate_script
+  run_script
   uninstall_apache2
   restart_nginx
   #configure_nginx
