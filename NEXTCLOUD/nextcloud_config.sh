@@ -141,7 +141,7 @@ function create_nginx_configs() {
   listen 80;
   server_name 3.220.58.75;
   root $site_root;
-  index index.html index.php;
+  index index.php;
 }" | sudo tee "$NGINX_NEXTCLOUD_CONFIG" > /dev/null
 
 }
