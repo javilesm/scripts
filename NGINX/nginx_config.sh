@@ -57,8 +57,8 @@ function read_domains() {
       echo "Cambiando la propiedad del directorio '$HTML_PATH/$host/html'..."
       sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/html"
       # Copiar plantilla index
-      echo "Copiando plantilla index..."
-      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html/"
+      echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/html'..."
+      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
