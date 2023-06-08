@@ -48,10 +48,7 @@ function confirm() {
 function format_parts() {
   echo "Procediendo a formatear las particiones creadas."
   formato="ext4"
-
-  for i in $(seq $num_particiones); do
-    sudo mkfs.$formato "/dev/${unidad}${i}"
-  done
+  sudo mkfs.$formato "/dev/${unidad}"
   echo "Las particiones creadas fueron formateadas exitosamente."
   echo "Filtrando la unidad de disco xvdf:"
   lsblk --paths | grep $unidad
