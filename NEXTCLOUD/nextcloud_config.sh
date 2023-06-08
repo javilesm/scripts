@@ -4,10 +4,23 @@
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="nextcloud_nginx.conf"
 CONFIG_PATH="$CURRENT_PATH/$NGINX_CONFIG_FILE"
-DOMAIN="localhost"
-NGINX_NEXTCLOUD_CONFIG="/etc/nginx/sites-available/nextcloud"
+
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled/"
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available/"
+HTML_PATH="/var/www"
+PARENT_DIR="$( dirname "$CURRENT_PATH" )" # Get the parent directory of the current directory
+function uninstall_apache2() {
+  echo "Desintalando apache2 del sistema...."
+  sudo systemctl stop apache2
+  sudo apt-get remove apache2
+  sudo apt-get purge apache2
+  echo "Apache2 ha sido desintalado del sistema."
+}
+
+function restart_nginx() {
+  echo "Reiniciando servicio Nginx..."
+  sudo service nginx restart
+}
 # Funcion para remover el archivo de configuracion
 function remove_default_config() {
   # remover el archivo de configuracion
@@ -17,16 +30,7 @@ function remove_default_config() {
 # Funcion para configurar Nginx
 function configure_nginx() {
   echo "Configurando NGINX..."
-  if ! sudo touch "$NGINX_NEXTCLOUD_CONFIG"; then
-    echo "Error: No se pudo crear el archivo de configuración de NGINX."
-    return 1
-  fi
-
-  if ! sudo ln -s "$NGINX_NEXTCLOUD_CONFIG" "$NGINX_SITES_ENABLED"; then
-    echo "Error: No se pudo crear el enlace simbólico para el archivo de configuración de NGINX."
-    return 1
-  fi
-
+  
   if ! sudo tee "$NGINX_NEXTCLOUD_CONFIG" >/dev/null <<EOF
   server {
     listen 80;
@@ -77,18 +81,46 @@ EOF
     echo "Error: No se pudo escribir la configuración de NGINX en el archivo."
     return 1
   fi
-
-  if ! sudo nginx -t; then
-    echo "Error: La configuración de NGINX es inválida."
-    return 1
-  fi
-
-  if ! sudo systemctl reload nginx; then
-    echo "Error: No se pudo recargar la configuración de NGINX."
-    return 1
-  fi
-
   echo "Configuración de NGINX exitosa."
+}
+function create_nginx_configs() {
+  host="nextcloud"
+  NGINX_NEXTCLOUD_CONFIG="/etc/nginx/sites-available/$host"
+  site_root="$HTML_PATH/$host/html"
+  # Crear el archivo de configuración
+  echo "Creando archivos de configuración para el dominio: $host..."
+  if ! sudo touch "$NGINX_NEXTCLOUD_CONFIG"; then
+    echo "Error: No se pudo crear el archivo de configuración de NGINX."
+    return 1
+  fi
+  
+  # Editar el archivo de configuración
+  echo "Editando el archivo de configuración..."
+  echo "server {
+  listen 80;
+  server_name $hostname;
+  root $site_root;
+  index index.html;
+}" | sudo tee "$NGINX_NEXTCLOUD_CONFIG" > /dev/null
+    
+  echo "Archivo de configuración creado: $NGINX_NEXTCLOUD_CONFIG"
+  # create a symbolic link of the site configuration file in the sites-enabled directory.
+  echo "Creando un vínculo simbólico del archivo '$NGINX_NEXTCLOUD_CONFIG' y el archivo '$NGINX_SITES_ENABLED'..."
+  if ! sudo ln -s "$NGINX_NEXTCLOUD_CONFIG" "$NGINX_SITES_ENABLED"; then
+    echo "Error: No se pudo crear el enlace simbólico para el archivo de configuración de NGINX."
+    return 1
+  fi
+}
+function test_config() {
+  # Comprobar la configuración de Nginx
+  echo "Comprobando la configuración de Nginx..."
+  if sudo nginx -t; then
+    echo "Nginx se ha configurado correctamente."
+    sudo service nginx reload
+  else
+    echo "ERROR: Hubo un problema con la configuración de Nginx."
+    exit 1
+  fi
 }
 # Función para configurar Nextcloud
 function configure_nextcloud() {
@@ -117,7 +149,11 @@ function restart_services() {
 # Función principal
 function nextcloud_config() {
   echo "**********NEXTCLOUD CONFIGURATOR***********"
-  configure_nginx
+  uninstall_apache2
+  restart_nginx
+  #configure_nginx
+  create_nginx_configs
+  test_config
   configure_nextcloud
   restart_services
   echo "**********ALL DONE***********"
