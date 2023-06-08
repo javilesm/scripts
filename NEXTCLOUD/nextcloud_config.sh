@@ -102,7 +102,7 @@ function create_nginx_configs() {
   echo "Editando el archivo de configuración..."
   echo "server {
   listen 80;
-  server_name $hostname;
+  server_name localhost;
   root $site_root;
   index index.html;
 }" | sudo tee "$NGINX_NEXTCLOUD_CONFIG" > /dev/null
