@@ -15,7 +15,25 @@ site_root="$HTML_PATH/$host/html"
 GID="10000"
 GID_NAME="www-data"
 UID_NAME="www-data"
+CERTS_FILE="generate_certs.sh"
+CERTS_PATH="$PARENT_DIR/Dovecot/$CERTS_FILE"
+# Función para leer la variable KEY_PATH desde el script '$CERTS_PATH'
+function read_KEY_PATH() {
+    # Verificar si el archivo existe
+    if [ -f "$CERTS_PATH" ]; then
+        # Cargar el contenido del archivo 'generate_certs.sh' en una variable
+        file_contents=$(<"$CERTS_PATH")
 
+        # Evaluar la cadena para expandir las variables
+        eval "$file_contents"
+
+        # Imprimir el valor actual de la variable KEY_PATH
+        echo "El valor del KEY_PATH definido es: $KEY_PATH"
+        echo "El valor del PEM_PATH definido es: $PEM_PATH"
+    else
+        echo "El archivo '$CERTS_PATH' no existe."
+    fi
+}
 function uninstall_apache2() {
   echo "Desintalando apache2 del sistema...."
   sudo systemctl stop apache2
@@ -102,9 +120,9 @@ function create_nginx_configs() {
   echo "Editando el archivo de configuración..."
   echo "server {
   listen 80;
-  server_name localhost;
+  server_name 3.220.58.75;
   root $site_root;
-  index index.html;
+  index index.html index.php;
 }" | sudo tee "$NGINX_NEXTCLOUD_CONFIG" > /dev/null
 
 }
@@ -171,6 +189,7 @@ function restart_services() {
 # Función principal
 function nextcloud_config() {
   echo "**********NEXTCLOUD CONFIGURATOR***********"
+  read_KEY_PATH
   uninstall_apache2
   restart_nginx
   #configure_nginx
