@@ -9,18 +9,19 @@ NEXTCLOUD_DIR="nextcloud"
 NEXTCLOUD_HTML_PATH="$HTML_PATH/$NEXTCLOUD_DIR"
 # Funcion para descargar Nextcloud
 function download_nextcloud() {
-    local version="26.0.1"
-    local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
-    echo "Descargando '$NEXTCLOUD_DIR' en su versión : $version en el directorio '$HTML_PATH' ..."
-    if sudo wget -q "$url" -O "$HTML_PATH/$NEXTCLOUD_DIR.zip"; then
-        sleep 5
-        echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito en el directorio '$HTML_PATH'."
-        echo "$HTML_PATH:"
-        ls "$HTML_PATH"
-    else
-        echo "ERROR: Ha ocurrido un error al descargar $NEXTCLOUD_DIR-$version."
-        return 1
-    fi
+  sudo mkdir -p "$NEXTCLOUD_HTML_PATH"
+  local version="26.0.1"
+  local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
+  echo "Descargando '$NEXTCLOUD_DIR' en su versión : $version en el directorio '$HTML_PATH' ..."
+  if sudo wget -q "$url" -O "$HTML_PATH/$NEXTCLOUD_DIR.zip"; then
+    sleep 5
+    echo "$NEXTCLOUD_DIR-$version se ha descargado con éxito en el directorio '$HTML_PATH'."
+    echo "$HTML_PATH:"
+    ls "$HTML_PATH"
+  else
+    echo "ERROR: Ha ocurrido un error al descargar $NEXTCLOUD_DIR-$version."
+    return 1
+  fi
 }
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
@@ -30,14 +31,9 @@ function unpack_nextcloud() {
         echo "ERROR: Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
-    echo "Verificando el directorio '$NEXTCLOUD_HTML_PATH'..."
-    if [[ ! -d "$NEXTCLOUD_HTML_PATH" ]]; then
-        echo "ERROR: No se ha encontrado el directorio '$NEXTCLOUD_HTML_PATH' después de desempaquetar $NEXTCLOUD_DIR.zip."
-        return 1
-    fi
-    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$NEXTCLOUD_HTML_PATH'."
-    echo "$NEXTCLOUD_HTML_PATH:"
-    ls "$NEXTCLOUD_HTML_PATH"
+    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$HTML_PATH'."
+    echo "$HTML_PATH:"
+    ls "$HTML_PATH"
 }
 function rm_zip() {
    # Eliminar el archivo de descarga
@@ -51,6 +47,7 @@ function rm_zip() {
   echo "$HTML_PATH:"
   ls "$HTML_PATH"
 }
+
 # Función para darle al directorio de Nextcloud los permisos necesarios
 function set_nextcloud_permissions() {
     echo "Dando al directorio '$NEXTCLOUD_HTML_PATH' los permisos necesarios..."
