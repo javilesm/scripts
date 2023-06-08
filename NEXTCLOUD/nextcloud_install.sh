@@ -7,9 +7,35 @@ CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 HTML_PATH="/var/www"
 NEXTCLOUD_DIR="nextcloud"
 NEXTCLOUD_HTML_PATH="$HTML_PATH/$NEXTCLOUD_DIR"
+PARTITIONS_SCRIPT="nextcloud_partitions.sh"
+PARTITIONS_PATH="$CURRENT_PATH/$PARTITIONS_SCRIPT"
+
+function make_root_dir() {
+  sudo mkdir -p "$NEXTCLOUD_HTML_PATH"
+}
+# Función para verificar si el archivo de configuración existe
+function validate_script() {
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$PARTITIONS_PATH" ]; then
+    echo "ERROR: El archivo '$PARTITIONS_SCRIPT' no se puede encontrar en la ruta '$PARTITIONS_PATH'."
+    exit 1
+  fi
+  echo "El archivo '$PARTITIONS_SCRIPT' existe."
+}
+# Función para ejecutar el configurador de Postfix
+function run_script() {
+  echo "Ejecutar el configurador '$PARTITIONS_SCRIPT'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$PARTITIONS_PATH"; then
+    echo "El archivo '$PARTITIONS_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo '$PARTITIONS_SCRIPT'."
+    exit 1
+  fi
+  echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
+}
 # Funcion para descargar Nextcloud
 function download_nextcloud() {
-  sudo mkdir -p "$NEXTCLOUD_HTML_PATH"
   local version="26.0.1"
   local url="https://download.nextcloud.com/server/releases/nextcloud-$version.zip"
   echo "Descargando '$NEXTCLOUD_DIR' en su versión : $version en el directorio '$HTML_PATH' ..."
@@ -25,9 +51,8 @@ function download_nextcloud() {
 }
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
-    echo "Desempaquetando el archivo descargado..."
-    cd "$HTML_PATH"
-    if ! unzip -q "$NEXTCLOUD_DIR.zip"; then
+    echo "Desempaquetando el archivo descargado '$HTML_PATH/$NEXTCLOUD_DIR.zip' en el directorio '$NEXTCLOUD_HTML_PATH'..."
+    if ! unzip "$HTML_PATH/$NEXTCLOUD_DIR.zip" -d "$NEXTCLOUD_HTML_PATH"; then
         echo "ERROR: Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
@@ -82,6 +107,7 @@ function nextcloud_config() {
 # Función principal
 function nextcloud_install() {
   echo "**********NEXTCLOUD INSTALL***********"
+  make_root_dir
   download_nextcloud
   unpack_nextcloud
   rm_zip
