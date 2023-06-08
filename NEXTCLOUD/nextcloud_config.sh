@@ -4,11 +4,18 @@
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="nextcloud_nginx.conf"
 CONFIG_PATH="$CURRENT_PATH/$NGINX_CONFIG_FILE"
-
+INDEX_SAMPLE="index.html"
+INDEX_PATH="$CURRENT_PATH/$INDEX_SAMPLE"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled/"
-NGINX_SITES_AVAILABLE="/etc/nginx/sites-available/"
 HTML_PATH="/var/www"
 PARENT_DIR="$( dirname "$CURRENT_PATH" )" # Get the parent directory of the current directory
+host="nextcloud"
+NGINX_NEXTCLOUD_CONFIG="/etc/nginx/sites-available/$host"
+site_root="$HTML_PATH/$host/html"
+GID="10000"
+GID_NAME="www-data"
+UID_NAME="www-data"
+
 function uninstall_apache2() {
   echo "Desintalando apache2 del sistema...."
   sudo systemctl stop apache2
@@ -84,16 +91,13 @@ EOF
   echo "Configuración de NGINX exitosa."
 }
 function create_nginx_configs() {
-  host="nextcloud"
-  NGINX_NEXTCLOUD_CONFIG="/etc/nginx/sites-available/$host"
-  site_root="$HTML_PATH/$host/html"
   # Crear el archivo de configuración
   echo "Creando archivos de configuración para el dominio: $host..."
   if ! sudo touch "$NGINX_NEXTCLOUD_CONFIG"; then
     echo "Error: No se pudo crear el archivo de configuración de NGINX."
     return 1
   fi
-  
+  echo "Archivo de configuración creado: $NGINX_NEXTCLOUD_CONFIG"
   # Editar el archivo de configuración
   echo "Editando el archivo de configuración..."
   echo "server {
@@ -102,14 +106,7 @@ function create_nginx_configs() {
   root $site_root;
   index index.html;
 }" | sudo tee "$NGINX_NEXTCLOUD_CONFIG" > /dev/null
-    
-  echo "Archivo de configuración creado: $NGINX_NEXTCLOUD_CONFIG"
-  # create a symbolic link of the site configuration file in the sites-enabled directory.
-  echo "Creando un vínculo simbólico del archivo '$NGINX_NEXTCLOUD_CONFIG' y el archivo '$NGINX_SITES_ENABLED'..."
-  if ! sudo ln -s "$NGINX_NEXTCLOUD_CONFIG" "$NGINX_SITES_ENABLED"; then
-    echo "Error: No se pudo crear el enlace simbólico para el archivo de configuración de NGINX."
-    return 1
-  fi
+
 }
 function test_config() {
   # Comprobar la configuración de Nginx
@@ -120,6 +117,31 @@ function test_config() {
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
+  fi
+}
+function webset() {
+  echo "Creando el subdirectorio: '$HTML_PATH/$host'..."
+  sudo mkdir -p "$HTML_PATH/$host"
+  # cambiar permisos del subdirectorio
+  echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host'..."
+  sudo chmod -R 755 "$HTML_PATH/$host"
+  # crear directorio web
+  echo "Creando el directorio web: '$HTML_PATH/$host/html'..."
+  sudo mkdir -p "$HTML_PATH/$host/html"
+  # cambiar permisos del subdirectorio
+  echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/html'..."
+  sudo chmod -R 755 "$HTML_PATH/$host/html"
+  # cambiar la propiedad del directorio
+  echo "Cambiando la propiedad del directorio '$HTML_PATH/$host/html'..."
+  sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/html"
+  # Copiar plantilla index
+  echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/html'..."
+  sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html"
+  # create a symbolic link of the site configuration file in the sites-enabled directory.
+  echo "Creando un vínculo simbólico del archivo '$NGINX_NEXTCLOUD_CONFIG' y el archivo '$NGINX_SITES_ENABLED'..."
+  if ! sudo ln -s "$NGINX_NEXTCLOUD_CONFIG" "$NGINX_SITES_ENABLED"; then
+    echo "Error: No se pudo crear el enlace simbólico para el archivo de configuración de NGINX."
+    return 1
   fi
 }
 # Función para configurar Nextcloud
@@ -154,6 +176,7 @@ function nextcloud_config() {
   #configure_nginx
   create_nginx_configs
   test_config
+  webset
   configure_nextcloud
   restart_services
   echo "**********ALL DONE***********"
