@@ -15,6 +15,8 @@ GID_NAME="www-data"
 UID_NAME="www-data"
 CERTS_FILE="generate_certs.sh"
 CERTS_PATH="$PARENT_DIR/Dovecot/$CERTS_FILE"
+PARTITIONS_SCRIPT="nextcloud_partitions.sh"
+PARTITIONS_PATH="$CURRENT_PATH/$PARTITIONS_SCRIPT"
 # Función para leer la variable KEY_PATH desde el script '$CERTS_PATH'
 function read_KEY_PATH() {
     # Verificar si el archivo existe
@@ -31,6 +33,27 @@ function read_KEY_PATH() {
     else
         echo "El archivo '$CERTS_PATH' no existe."
     fi
+}
+# Función para verificar si el archivo de configuración existe
+function validate_script() {
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$PARTITIONS_PATH" ]; then
+    echo "ERROR: El archivo '$PARTITIONS_SCRIPT' no se puede encontrar en la ruta '$PARTITIONS_PATH'."
+    exit 1
+  fi
+  echo "El archivo '$PARTITIONS_SCRIPT' existe."
+}
+# Función para ejecutar el configurador de Postfix
+function run_script() {
+  echo "Ejecutar el configurador '$PARTITIONS_SCRIPT'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$PARTITIONS_PATH"; then
+    echo "El archivo '$PARTITIONS_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo '$PARTITIONS_SCRIPT'."
+    exit 1
+  fi
+  echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
 }
 function uninstall_apache2() {
   echo "Desintalando apache2 del sistema...."
