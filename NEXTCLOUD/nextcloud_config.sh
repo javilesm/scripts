@@ -2,8 +2,6 @@
 # nextcloud_config.sh
 # Variables
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
-CONFIG_FILE="nextcloud_nginx.conf"
-CONFIG_PATH="$CURRENT_PATH/$NGINX_CONFIG_FILE"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled/"
 HTML_PATH="/var/www"
 PARENT_DIR="$( dirname "$CURRENT_PATH" )" # Get the parent directory of the current directory
