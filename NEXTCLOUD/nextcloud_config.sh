@@ -4,14 +4,12 @@
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="nextcloud_nginx.conf"
 CONFIG_PATH="$CURRENT_PATH/$NGINX_CONFIG_FILE"
-INDEX_SAMPLE="index.html"
-INDEX_PATH="$CURRENT_PATH/$INDEX_SAMPLE"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled/"
 HTML_PATH="/var/www"
 PARENT_DIR="$( dirname "$CURRENT_PATH" )" # Get the parent directory of the current directory
 host="nextcloud"
 NGINX_NEXTCLOUD_CONFIG="/etc/nginx/sites-available/$host"
-site_root="$HTML_PATH/$host/html"
+site_root="$HTML_PATH/$host"
 GID="10000"
 GID_NAME="www-data"
 UID_NAME="www-data"
@@ -138,23 +136,12 @@ function test_config() {
   fi
 }
 function webset() {
-  echo "Creando el subdirectorio: '$HTML_PATH/$host'..."
-  sudo mkdir -p "$HTML_PATH/$host"
   # cambiar permisos del subdirectorio
-  echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host'..."
-  sudo chmod -R 755 "$HTML_PATH/$host"
-  # crear directorio web
-  echo "Creando el directorio web: '$HTML_PATH/$host/html'..."
-  sudo mkdir -p "$HTML_PATH/$host/html"
-  # cambiar permisos del subdirectorio
-  echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/html'..."
-  sudo chmod -R 755 "$HTML_PATH/$host/html"
+  echo "Cambiando los permisos del subdirectorio '$site_root'..."
+  sudo chmod -R 755 "$site_root"
   # cambiar la propiedad del directorio
-  echo "Cambiando la propiedad del directorio '$HTML_PATH/$host/html'..."
-  sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/html"
-  # Copiar plantilla index
-  echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/html'..."
-  sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html"
+  echo "Cambiando la propiedad del directorio '$site_root'..."
+  sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$site_root"
   # create a symbolic link of the site configuration file in the sites-enabled directory.
   echo "Creando un vínculo simbólico del archivo '$NGINX_NEXTCLOUD_CONFIG' y el archivo '$NGINX_SITES_ENABLED'..."
   if ! sudo ln -s "$NGINX_NEXTCLOUD_CONFIG" "$NGINX_SITES_ENABLED"; then
