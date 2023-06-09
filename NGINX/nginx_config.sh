@@ -144,11 +144,6 @@ function create_nginx_configs() {
   local sites_enabled="/etc/nginx/sites-enabled/"
   echo "Creando archivos de configuración de Nginx..."
 
-  if [ -z "$version_number" ]; then
-    echo "No se pudo obtener la versión de PHP-FPM."
-    return
-  fi
-
   while read -r hostname; do
     local host="${hostname#*@}"
     host="${host%%.*}"
@@ -209,13 +204,8 @@ function test_config() {
     echo "Reiniciando el servicio nginx..."
     sudo service nginx restart
     echo "Reiniciando el servicio php$version_number-fpm..."
-    local version_number=$(get_php_fpm_version)
-
-    if [ -z "$version_number" ]; then
-        echo "No se pudo obtener la versión de PHP-FPM."
-        return
-    fi
-    sudo service php"$version_number"-fpm restart
+    sudo service php"$version_number"-fpm stop
+    sudo service php"$version_number"-fpm start
     sudo service php"$version_number"-fpm status
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
