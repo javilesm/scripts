@@ -119,11 +119,27 @@ function create_webdirs() {
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
-function get_php_version() {
-    php_version=$(php -r "echo PHP_VERSION;")
-    version_number=$(echo "$php_version" | cut -d '.' -f 1,2)
-    echo "PHP version: $version_number"
+function get_php_fpm_version() {
+    # Buscar la ubicación del binario de php-fpm
+    php_fpm_path=$(whereis -b php-fpm | awk '{print $2}')
+
+    if [ -z "$php_fpm_path" ]; then
+        echo "PHP-FPM no encontrado en el sistema."
+        return
+    fi
+
+    # Obtener la versión de PHP-FPM
+    version_output=$("$php_fpm_path" -v 2>&1)
+    regex="PHP ([0-9]+\.[0-9]+)"
+
+    if [[ $version_output =~ $regex ]]; then
+        version_number="${BASH_REMATCH[1]}"
+        echo "Versión de PHP-FPM: $version_number"
+    else
+        echo "No se pudo obtener la versión de PHP-FPM."
+    fi
 }
+
 
 function create_nginx_configs() {
   local sites_enabled="/etc/nginx/sites-enabled/"
@@ -139,23 +155,32 @@ function create_nginx_configs() {
     
     # Crear el archivo de configuración
     echo "server {
-    listen 80;
-    server_name $hostname *.$hostname;
-    root $site_root;
-    index index.php;
+  listen 80;
+  server_name $hostname *.$hostname;
+  root $site_root;
+  index index.php;
 
-    location / {
-    try_files $uri $uri/ /index.php?q=$uri&$args;
+location / {
+  try_files $uri $uri/ /index.php?q=$uri&$args;
 }
 
-    location ~ \.php$ {
-    include snippets/fastcgi-php.conf;
-    fastcgi_pass unix:/var/run/php/php$version_number-fpm.sock;
+location ~ \.php$ {
+  include snippets/fastcgi-php.conf;
+  fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
 }
 
-    location ~ /\.ht {
-    deny all;
+location = /favicon.ico { 
+  log_not_found off; access_log off; 
 }
+
+location = /robots.txt {
+  access_log off; log_not_found off; 
+}
+
+location ~ /\.ht {
+  deny all;access_log off; log_not_found off;
+}
+
 
 }" | sudo tee "$config_path" > /dev/null
     
@@ -175,6 +200,7 @@ function test_config() {
     sudo service apache2 stop
     sudo service nginx restart
     sudo service php"$version_number"-fpm restart
+    sudo service php"$version_number"-fpm status
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
@@ -188,7 +214,7 @@ function nginx_config() {
   validate_script
   run_script
   create_webdirs
-  get_php_version
+  get_php_fpm_version
   create_nginx_configs
   test_config
   echo "*************ALL DONE**************"
