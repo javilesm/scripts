@@ -134,71 +134,88 @@ function get_php_fpm_version() {
 
     if [[ $version_output =~ $regex ]]; then
         version_number="${BASH_REMATCH[1]}"
-        echo "Versión de PHP-FPM: $version_number"
+        echo "Version de PHP-FPM instalada: $version_number"
     else
         echo "No se pudo obtener la versión de PHP-FPM."
     fi
 }
 
-
 function create_nginx_configs() {
-  local sites_enabled="/etc/nginx/sites-enabled/"
-  echo "Creando archivos de configuración de Nginx..."
-  
-  while read -r hostname; do
-    local host="${hostname#*@}"
-    host="${host%%.*}"
-    
-    echo "Creando archivo de configuración para el dominio: $host"
-    config_path="/etc/nginx/sites-available/$host"
-    site_root="$HTML_PATH/$host/html"
-    
-    # Crear el archivo de configuración
-    echo "server {
-  listen 80;
-  server_name $hostname *.$hostname;
-  root $site_root;
-  index index.php;
+    local sites_enabled="/etc/nginx/sites-enabled/"
+    echo "Creando archivos de configuración de Nginx..."
 
-location / {
-  try_files $uri $uri/ /index.php?q=$uri&$args;
+    local version_number=$(get_php_fpm_version)
+
+    if [ -z "$version_number" ]; then
+        echo "No se pudo obtener la versión de PHP-FPM."
+        return
+    fi
+
+    while read -r hostname; do
+        local host="${hostname#*@}"
+        host="${host%%.*}"
+
+        echo "Creando archivo de configuración para el dominio: $host"
+        config_path="/etc/nginx/sites-available/$host"
+        site_root="$HTML_PATH/$host/html"
+
+        # Crear el archivo de configuración
+        echo "server {
+        listen 80;
+        server_name $hostname *.$hostname;
+        root $site_root;
+        index index.php;
+
+        location / {
+            try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
+        }
+
+        location ~ \.php$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
+        }
+
+        location = /favicon.ico {
+            log_not_found off;
+            access_log off;
+        }
+
+        location = /robots.txt {
+            access_log off;
+            log_not_found off;
+        }
+
+        location ~ /\.ht {
+            deny all;
+            access_log off;
+            log_not_found off;
+        }
+        }" | sudo tee "$config_path" > /dev/null
+
+        echo "Archivo de configuración creado: $config_path"
+        echo "Creando un vínculo simbólico del archivo '$config_path' y el archivo '$sites_enabled'..."
+        sudo ln -s "$config_path" "$sites_enabled"
+    done < <(grep -v '^$' "$DOMAINS_PATH")
+
+    echo "Todos los archivos de configuración de Nginx han sido creados."
 }
 
-location ~ \.php$ {
-  include snippets/fastcgi-php.conf;
-  fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
-}
-
-location = /favicon.ico { 
-  log_not_found off; access_log off; 
-}
-
-location = /robots.txt {
-  access_log off; log_not_found off; 
-}
-
-location ~ /\.ht {
-  deny all;access_log off; log_not_found off;
-}
-
-
-}" | sudo tee "$config_path" > /dev/null
-    
-    echo "Archivo de configuración creado: $config_path"
-    # create a symbolic link of the site configuration file in the sites-enabled directory.
-    echo "Creando un vínculo simbólico del archivo '$config_path' y el archivo '$sites_enabled'..."
-    sudo ln -s $config_path $sites_enabled
-  done < <(grep -v '^$' "$DOMAINS_PATH")
-  echo "Todos los archivos de configuración de Nginx han sido creados."
-
-}
 function test_config() {
   # Comprobar la configuración de Nginx
   echo "Comprobando la configuración de Nginx..."
   if sudo nginx -t; then
     echo "Nginx se ha configurado correctamente."
+    echo "Deteniendo el servicio apache2..."
     sudo service apache2 stop
+    echo "Reiniciando el servicio nginx..."
     sudo service nginx restart
+    echo "Reiniciando el servicio php$version_number-fpm..."
+    local version_number=$(get_php_fpm_version)
+
+    if [ -z "$version_number" ]; then
+        echo "No se pudo obtener la versión de PHP-FPM."
+        return
+    fi
     sudo service php"$version_number"-fpm restart
     sudo service php"$version_number"-fpm status
   else
