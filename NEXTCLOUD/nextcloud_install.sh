@@ -52,7 +52,7 @@ function download_nextcloud() {
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
     echo "Desempaquetando el archivo descargado '$HTML_PATH/$NEXTCLOUD_DIR.zip' en el directorio '$NEXTCLOUD_HTML_PATH'..."
-    if ! unzip -j "$HTML_PATH/$NEXTCLOUD_DIR.zip" -d "$NEXTCLOUD_HTML_PATH"; then
+    if ! unzip -joq "$HTML_PATH/$NEXTCLOUD_DIR.zip" -d "$NEXTCLOUD_HTML_PATH"; then
         echo "ERROR: Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
@@ -60,6 +60,7 @@ function unpack_nextcloud() {
     echo "$HTML_PATH:"
     ls "$HTML_PATH"
 }
+
 function rm_zip() {
    # Eliminar el archivo de descarga
   echo "Eliminando el archivo de descarga..."
@@ -108,6 +109,8 @@ function nextcloud_config() {
 function nextcloud_install() {
   echo "**********NEXTCLOUD INSTALL***********"
   make_root_dir
+  validate_script
+  run_script
   download_nextcloud
   unpack_nextcloud
   rm_zip
