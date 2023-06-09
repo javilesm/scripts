@@ -56,7 +56,7 @@ function unpack_nextcloud() {
         echo "ERROR: Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
-    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$HTML_PATH'."
+    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$NEXTCLOUD_HTML_PATH."
     echo "$HTML_PATH:"
     ls "$HTML_PATH"
 }
@@ -85,7 +85,7 @@ function set_nextcloud_permissions() {
     fi
 }
 # Función para verificar si el archivo de configuración existe
-function validate_config_file() {
+function validate_script2() {
   echo "Verificando si el archivo de configuración existe..."
   if [ ! -f "$CONFIG_PATH" ]; then
     echo "ERROR: El archivo de configuración de Nextcloud no se puede encontrar."
@@ -94,7 +94,7 @@ function validate_config_file() {
   echo "El archivo de configuración de Nextcloud existe."
 }
 # Función para ejecutar el configurador de Nextcloud
-function nextcloud_config() {
+function run_script2() {
   echo "Ejecutar el configurador de Nextcloud..."
     # Intentar ejecutar el archivo de configuración de Nextcloud
   if sudo bash "$CONFIG_PATH"; then
@@ -115,8 +115,8 @@ function nextcloud_install() {
   unpack_nextcloud
   rm_zip
   set_nextcloud_permissions
-  validate_config_file
-  nextcloud_config
+  validate_script2
+  run_script2
   echo "*************ALL DONE**************"
 }
 # Llamar a la función principal
