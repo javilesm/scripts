@@ -135,7 +135,7 @@ function create_nginx_configs() {
     listen 80;
     server_name $hostname www.$hostname;
     root $site_root;
-    index index.html;
+    index index.php;
 }" | sudo tee "$config_path" > /dev/null
     
     echo "Archivo de configuración creado: $config_path"
@@ -166,7 +166,7 @@ function nginx_config() {
   validate_script
   run_script
   create_webdirs
-  #create_nginx_configs
+  create_nginx_configs
   test_config
   echo "*************ALL DONE**************"
 }
