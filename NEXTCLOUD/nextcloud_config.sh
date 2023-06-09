@@ -6,8 +6,8 @@ NGINX_SITES_ENABLED="/etc/nginx/sites-enabled/"
 HTML_PATH="/var/www"
 PARENT_DIR="$( dirname "$CURRENT_PATH" )" # Get the parent directory of the current directory
 host="nextcloud"
-$server_ip="3.220.58.75"
-NGINX_NEXTCLOUD_CONFIG="/etc/nginx/sites-available/$host"
+server_ip="3.220.58.75"
+config_path="/etc/nginx/sites-available/$host"
 site_root="$HTML_PATH/$host"
 GID="10000"
 GID_NAME="www-data"
@@ -36,8 +36,8 @@ function read_KEY_PATH() {
 function uninstall_apache2() {
   echo "Desintalando apache2 del sistema...."
   sudo systemctl stop apache2
-  sudo apt-get remove apache2
-  sudo apt-get purge apache2
+  sudo apt-get remove apache2 -y
+  sudo apt-get purge apache2 -y
   echo "Apache2 ha sido desintalado del sistema."
 }
 
@@ -70,7 +70,7 @@ function get_php_fpm_version() {
 function configure_nginx() {
   echo "Configurando NGINX..."
   
-  if ! sudo tee "$NGINX_NEXTCLOUD_CONFIG" >/dev/null <<EOF
+  if ! sudo tee "$config_path" >/dev/null <<EOF
   server {
     listen 80;
     server_name '$DOMAIN';
@@ -125,137 +125,92 @@ EOF
 function create_nginx_configs() {
   # Crear el archivo de configuración
   echo "Creando archivos de configuración para el dominio: $host..."
-  if ! sudo touch "$NGINX_NEXTCLOUD_CONFIG"; then
+  if ! sudo touch "$config_path"; then
     echo "Error: No se pudo crear el archivo de configuración de NGINX."
     return 1
   fi
-  echo "Archivo de configuración creado: $NGINX_NEXTCLOUD_CONFIG"
-  # Editar el archivo de configuración
+  echo "Archivo de configuración creado: $config_path"
   echo "Editando el archivo de configuración..."
+  # Editar el archivo de configuración
+  
   echo "server {
-    listen 80;
-    listen [::]:80;
+  listen 80;
+  server_name $server_ip;
+  root $site_root;
+  index index.php;
+  #return 301 https://\$server_name\$request_uri;
+}
+
+server {
+    listen 443 ssl;
     server_name $server_ip;
 
-    # Add headers to serve security related headers
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Robots-Tag none;
-    add_header X-Download-Options noopen;
-    add_header X-Permitted-Cross-Domain-Policies none;
-    add_header Referrer-Policy no-referrer;
+    # Configura los certificados SSL
+    ssl_certificate $PEM_PATH;
+    ssl_certificate_key $KEY_PATH;
 
-    #I found this header is needed on Ubuntu, but not on Arch Linux. 
-    add_header X-Frame-Options "SAMEORIGIN";
-
-    # Path to the root of your installation
+    # Configura la ubicación de los archivos de Nextcloud
     root $site_root;
+    index index.php;
 
-    access_log /var/log/nginx/nextcloud.access;
-    error_log /var/log/nginx/nextcloud.error;
+    # Configura las reglas de reescritura de URL
+    rewrite ^/.well-known/carddav /remote.php/dav/ permanent;
+    rewrite ^/.well-known/caldav /remote.php/dav/ permanent;
+    rewrite ^(/core/doc/[^\/]+/)$ \$1/index.html;
 
+    # Configura la ubicación de los archivos de registro
+    access_log /var/log/nginx/nextcloud.access.log;
+    error_log /var/log/nginx/nextcloud.error.log;  
+
+    # Configura la ubicación de los archivos de caché
 location = /robots.txt {
-        allow all;
-        log_not_found off;
-        access_log off;
+  allow all;
+  log_not_found off;
+  access_log off;
 }
 
-    # The following 2 rules are only needed for the user_webfinger app.
-    # Uncomment it if you're planning to use this app.
-    #rewrite ^/.well-known/host-meta /public.php?service=host-meta last;
-    #rewrite ^/.well-known/host-meta.json /public.php?service=host-meta-json
-    # last;
-
-location = /.well-known/carddav {
-        return 301 $scheme://$host/remote.php/dav;
-}
-    
-location = /.well-known/caldav {
-       return 301 $scheme://$host/remote.php/dav;
+    # Configura la ubicación de los archivos de caché
+location ~ ^/(?:\.htaccess|data|config|db_structure\.xml|README) {
+  deny all;
 }
 
-location ~ /.well-known/acme-challenge {
-      allow all;
+    # Configura las reglas de reescritura de URL para PHP
+location ~ ^\/(?:index|remote|public|cron|core\/ajax\/update|status|ocs\/v[12]|updater\/.+|oc[ms]-provider\/.+)\.php(?:$|\/) {
+  fastcgi_split_path_info ^(.+\.php)(\/.+)$;
+  fastcgi_pass unix:/var/run/php/php$version_number-fpm.sock;
+  fastcgi_index index.php;
+  include fastcgi_params;
+  fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+  fastcgi_param PATH_INFO \$fastcgi_path_info;
+  fastcgi_param HTTPS on;
 }
 
-    # set max upload size
-    client_max_body_size 512M;
-    fastcgi_buffers 64 4K;
-
-    # Disable gzip to avoid the removal of the ETag header
-    gzip off;
-
-    # Uncomment if your server is build with the ngx_pagespeed module
-    # This module is currently not supported.
-    #pagespeed off;
-
-    error_page 403 /core/templates/403.php;
-    error_page 404 /core/templates/404.php;
-
-location / {
-       rewrite ^ /index.php;
+ # Configura las reglas de reescritura de URL para otros archivos PHP
+location ~ ^\/(?:updater|oc[ms]-provider)(?:$|\/) {
+  try_files \$uri/ =404;
+  index index.php;
 }
 
-location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)/ {
-       deny all;
+  # Configura las reglas de reescritura de URL para otros archivos
+location ~ \.(?:css|js|svg|gif|png|html|ttf|woff|ico|jpg|jpeg)$ {
+  try_files \$uri /index.php\$request_uri;
+  expires 30d;
+  access_log off;
 }
 
-location ~ ^/(?:\.|autotest|occ|issue|indie|db_|console) {
-       deny all;
- }
+}" | sudo tee "$config_path" > /dev/null
 
-location ~ ^/(?:index|remote|public|cron|core/ajax/update|status|ocs/v[12]|updater/.+|ocs-provider/.+|core/templates/40[34])\.php(?:$|/) {
-       include fastcgi_params;
-       fastcgi_split_path_info ^(.+\.php)(/.*)$;
-       try_files $fastcgi_script_name =404;
-       fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-       fastcgi_param PATH_INFO $fastcgi_path_info;
-       #Avoid sending the security headers twice
-       fastcgi_param modHeadersAvailable true;
-       fastcgi_param front_controller_active true;
-       fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
-       fastcgi_intercept_errors on;
-       fastcgi_request_buffering off;
+  echo "Archivo de configuración creado: $config_path"
 }
 
-location ~ ^/(?:updater|ocs-provider)(?:$|/) {
-       try_files $uri/ =404;
-       index index.php;
-}
-
-    # Adding the cache control header for js and css files
-    # Make sure it is BELOW the PHP block
-location ~* \.(?:css|js)$ {
-        try_files $uri /index.php$uri$is_args$args;
-        add_header Cache-Control "public, max-age=7200";
-        # Add headers to serve security related headers (It is intended to
-        # have those duplicated to the ones above)
-        add_header X-Content-Type-Options nosniff;
-        add_header X-XSS-Protection "1; mode=block";
-        add_header X-Robots-Tag none;
-        add_header X-Download-Options noopen;
-        add_header X-Permitted-Cross-Domain-Policies none;
-        add_header Referrer-Policy no-referrer;
-        # Optional: Don't log access to assets
-        access_log off;
- }
-
-location ~* \.(?:svg|gif|png|html|ttf|woff|ico|jpg|jpeg)$ {
-        try_files $uri /index.php$uri$is_args$args;
-        # Optional: Don't log access to other assets
-        access_log off;
-}
-   
-}" | sudo tee "$NGINX_NEXTCLOUD_CONFIG" > /dev/null
-
-}
 function test_config() {
   # Comprobar la configuración de Nginx
   echo "Comprobando la configuración de Nginx..."
   if sudo nginx -t; then
     echo "Nginx se ha configurado correctamente."
     sudo service nginx reload
-    sudo service php"$version_number"-fpm restart
+    udo service php"$version_number"-fpm stop
+    sudo service php"$version_number"-fpm start
     sudo service php"$version_number"-fpm status
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
@@ -270,8 +225,8 @@ function webset() {
   echo "Cambiando la propiedad del directorio '$site_root'..."
   sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$site_root"
   # create a symbolic link of the site configuration file in the sites-enabled directory.
-  echo "Creando un vínculo simbólico del archivo '$NGINX_NEXTCLOUD_CONFIG' y el archivo '$NGINX_SITES_ENABLED'..."
-  if ! sudo ln -s "$NGINX_NEXTCLOUD_CONFIG" "$NGINX_SITES_ENABLED"; then
+  echo "Creando un vínculo simbólico del archivo '$config_path' y el archivo '$NGINX_SITES_ENABLED'..."
+  if ! sudo ln -s "$config_path" "$NGINX_SITES_ENABLED"; then
     echo "Error: No se pudo crear el enlace simbólico para el archivo de configuración de NGINX."
     return 1
   fi
@@ -293,12 +248,18 @@ function restart_services() {
     echo "Error al reiniciar el servicio nginx."
     return 1
   fi
-  if ! sudo service snap.nextcloud.nginx reload; then
+  if ! sudo service php"$version_number"-fpm restart; then
+    echo "Error al reiniciar el servicio php"$version_number"-fpm ."
+    return 1
+  fi
+    if ! sudo service snap.nextcloud.nginx reload; then
     echo "Error al recargar el servicio de Nextcloud."
     return 1
   fi
   echo "Servicios reiniciados correctamente."
   return 0
+  sudo service nginx status
+  sudo service php"$version_number"-fpm status
 }
 # Función principal
 function nextcloud_config() {
