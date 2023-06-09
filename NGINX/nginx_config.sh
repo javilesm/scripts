@@ -140,7 +140,7 @@ function create_nginx_configs() {
     # Crear el archivo de configuración
     echo "server {
     listen 80;
-    server_name $hostname;
+    server_name $hostname *.$hostname;
     root $site_root;
     index index.php;
 
@@ -148,12 +148,12 @@ function create_nginx_configs() {
     try_files $uri $uri/ /index.php?q=$uri&$args;
 }
 
-location ~ \.php$ {
+    location ~ \.php$ {
     include snippets/fastcgi-php.conf;
     fastcgi_pass unix:/var/run/php/php$version_number-fpm.sock;
 }
 
-location ~ /\.ht {
+    location ~ /\.ht {
     deny all;
 }
 
