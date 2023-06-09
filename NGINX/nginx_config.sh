@@ -97,7 +97,7 @@ function create_webdirs() {
       sudo cp "$WORDPRESS" "$HTML_PATH/$host"
       # Desempaquietar WordPress
       echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host/html'..."
-      if ! unzip -j "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host/html"; then
+      if ! unzip -joq "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host/html"; then
           echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
           return 1
       fi
@@ -141,63 +141,62 @@ function get_php_fpm_version() {
 }
 
 function create_nginx_configs() {
-    local sites_enabled="/etc/nginx/sites-enabled/"
-    echo "Creando archivos de configuración de Nginx..."
+  local sites_enabled="/etc/nginx/sites-enabled/"
+  echo "Creando archivos de configuración de Nginx..."
 
-    local version_number=$(get_php_fpm_version)
+  if [ -z "$version_number" ]; then
+    echo "No se pudo obtener la versión de PHP-FPM."
+    return
+  fi
 
-    if [ -z "$version_number" ]; then
-        echo "No se pudo obtener la versión de PHP-FPM."
-        return
-    fi
+  while read -r hostname; do
+    local host="${hostname#*@}"
+    host="${host%%.*}"
 
-    while read -r hostname; do
-        local host="${hostname#*@}"
-        host="${host%%.*}"
+    echo "Creando archivo de configuración para el dominio: $host"
+    config_path="/etc/nginx/sites-available/$host"
+    site_root="$HTML_PATH/$host/html"
 
-        echo "Creando archivo de configuración para el dominio: $host"
-        config_path="/etc/nginx/sites-available/$host"
-        site_root="$HTML_PATH/$host/html"
+    # Crear el archivo de configuración
+    echo "server {
+  listen 80;
+  server_name $hostname *.$hostname;
+  root $site_root;
+  index index.php;
 
-        # Crear el archivo de configuración
-        echo "server {
-        listen 80;
-        server_name $hostname *.$hostname;
-        root $site_root;
-        index index.php;
+location / {
+  try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
+}
 
-        location / {
-            try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
-        }
+location ~ \.php$ {
+  include snippets/fastcgi-php.conf;
+  fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
+}
 
-        location ~ \.php$ {
-            include snippets/fastcgi-php.conf;
-            fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
-        }
+location = /favicon.ico {
+  log_not_found off;
+  access_log off;
+}
 
-        location = /favicon.ico {
-            log_not_found off;
-            access_log off;
-        }
+location = /robots.txt {
+  access_log off;
+  log_not_found off;
+}
 
-        location = /robots.txt {
-            access_log off;
-            log_not_found off;
-        }
+location ~ /\.ht {
+  deny all;
+  access_log off;
+  log_not_found off;
+}
+    
+}" | sudo tee "$config_path" > /dev/null
 
-        location ~ /\.ht {
-            deny all;
-            access_log off;
-            log_not_found off;
-        }
-        }" | sudo tee "$config_path" > /dev/null
+    echo "Archivo de configuración creado: $config_path"
+    echo "Creando un vínculo simbólico del archivo '$config_path' y el archivo '$sites_enabled'..."
+    sudo ln -s "$config_path" "$sites_enabled"
+  done < <(grep -v '^$' "$DOMAINS_PATH")
 
-        echo "Archivo de configuración creado: $config_path"
-        echo "Creando un vínculo simbólico del archivo '$config_path' y el archivo '$sites_enabled'..."
-        sudo ln -s "$config_path" "$sites_enabled"
-    done < <(grep -v '^$' "$DOMAINS_PATH")
-
-    echo "Todos los archivos de configuración de Nginx han sido creados."
+  echo "Todos los archivos de configuración de Nginx han sido creados."
 }
 
 function test_config() {
