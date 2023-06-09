@@ -117,6 +117,11 @@ function create_webdirs() {
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
+function get_php_version() {
+    php_version=$(php -r "echo PHP_VERSION;")
+    version_number=$(echo "$php_version" | cut -d '.' -f 1,2)
+    echo "PHP version: $version_number"
+}
 
 function create_nginx_configs() {
   local sites_enabled="/etc/nginx/sites-enabled/"
@@ -133,9 +138,23 @@ function create_nginx_configs() {
     # Crear el archivo de configuración
     echo "server {
     listen 80;
-    server_name $hostname www.$hostname;
+    server_name $hostname;
     root $site_root;
     index index.php;
+
+    location / {
+    try_files $uri $uri/ /index.php?q=$uri&$args;
+}
+
+location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/var/run/php/php$version_number-fpm.sock;
+}
+
+location ~ /\.ht {
+    deny all;
+}
+
 }" | sudo tee "$config_path" > /dev/null
     
     echo "Archivo de configuración creado: $config_path"
@@ -166,6 +185,7 @@ function nginx_config() {
   validate_script
   run_script
   create_webdirs
+  get_php_version
   create_nginx_configs
   test_config
   echo "*************ALL DONE**************"
