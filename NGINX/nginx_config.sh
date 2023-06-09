@@ -114,6 +114,8 @@ function create_webdirs() {
       fi
       echo "$HTML_PATH/$host:"
       ls "$HTML_PATH/$host"
+      cd "$HTML_PATH/$host/html"
+      sudo mv wp-config-sample.php wp-config.php
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
