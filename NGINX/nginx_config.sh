@@ -171,7 +171,8 @@ function test_config() {
   if sudo nginx -t; then
     echo "Nginx se ha configurado correctamente."
     sudo service apache2 stop
-    sudo service nginx start
+    sudo service nginx restart
+    sudo service php"$version_number"-fpm restart
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
