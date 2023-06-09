@@ -47,18 +47,6 @@ function read_domains() {
       # cambiar permisos del subdirectorio
       echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host'..."
       sudo chmod -R 755 "$HTML_PATH/$host"
-       # crear directorio web
-      echo "Creando el directorio web: '$HTML_PATH/$host/html'..."
-      sudo mkdir -p "$HTML_PATH/$host/html"
-      # cambiar permisos del subdirectorio
-      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/html'..."
-      sudo chmod -R 755 "$HTML_PATH/$host/html"
-      # cambiar la propiedad del directorio
-      echo "Cambiando la propiedad del directorio '$HTML_PATH/$host/html'..."
-      sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/html"
-      # Copiar plantilla index
-      echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/html'..."
-      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -82,6 +70,29 @@ function run_script() {
     exit 1
   fi
   echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
+}
+# Función para leer la lista de direcciones de dominios y mapear  las direcciones y destinos
+function create_webdirs() {
+    # leer la lista de dominios
+    echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
+    while read -r hostname; do
+      local host="${hostname#*@}"
+      host="${host%%.*}"
+      echo "Hostname: $host"
+       # crear directorio web
+      echo "Creando el directorio web: '$HTML_PATH/$host/html'..."
+      sudo mkdir -p "$HTML_PATH/$host/html"
+      # cambiar permisos del subdirectorio
+      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/html'..."
+      sudo chmod -R 755 "$HTML_PATH/$host/html"
+      # cambiar la propiedad del directorio
+      echo "Cambiando la propiedad del directorio '$HTML_PATH/$host/html'..."
+      sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/html"
+      # Copiar plantilla index
+      echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/html'..."
+      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html"
+    done < <(grep -v '^$' "$DOMAINS_PATH")
+    echo "Todas los permisos y propiedades han sido actualizados."
 }
 function create_nginx_configs() {
   local sites_enabled="/etc/nginx/sites-enabled/"
@@ -130,6 +141,7 @@ function nginx_config() {
   read_domains
   validate_script
   run_script
+  create_webdirs
   create_nginx_configs
   test_config
   echo "*************ALL DONE**************"
