@@ -13,6 +13,7 @@ INDEX_PATH="$CURRENT_DIR/$INDEX_SAMPLE"
 GID="10000"
 GID_NAME="www-data"
 UID_NAME="www-data"
+WORDPRESS="$CURRENT_DIR/latest.zip"
 # Función para crear el directorio principal de Nginx
 function mkdir() {
   # Verificar si el directorio ya existe
@@ -91,9 +92,32 @@ function create_webdirs() {
       # Copiar plantilla index
       echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/html'..."
       sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html"
+      # Copiar WordPress
+      echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
+      sudo cp "$WORDPRESS" "$HTML_PATH/$host"
+      # Desempaquietar WordPress
+      echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host/html'..."
+      if ! unzip -j "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host/html"; then
+          echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
+          return 1
+      fi
+      echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$HTML_PATH/$host'."
+      echo "$HTML_PATH/$host:"
+      ls "$HTML_PATH/$host"
+      # Eliminar el archivo comprimido
+      echo "Eliminando el archivo comprimido '$HTML_PATH/$host/latest.zip'..."
+      if sudo rm "$HTML_PATH/$host/latest.zip"; then
+        echo "El archivo comprimido '$HTML_PATH/$host/latest.zip' se eliminó correctamente."
+      else
+        echo "ERROR: Error al eliminar el archivo comprimido '$HTML_PATH/$host/latest.zip'."
+        return
+      fi
+      echo "$HTML_PATH/$host:"
+      ls "$HTML_PATH/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
+
 function create_nginx_configs() {
   local sites_enabled="/etc/nginx/sites-enabled/"
   echo "Creando archivos de configuración de Nginx..."
@@ -142,7 +166,7 @@ function nginx_config() {
   validate_script
   run_script
   create_webdirs
-  create_nginx_configs
+  #create_nginx_configs
   test_config
   echo "*************ALL DONE**************"
 }
