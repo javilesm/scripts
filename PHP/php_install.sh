@@ -224,7 +224,7 @@ function php_install() {
     echo "*******PHP INSTALL******"
     #validate_php
     #install_php
-    install_comp
+    #install_comp
     validate_php_modules_file
     validate_php_virtuals_file
     validate_php_packages_file
