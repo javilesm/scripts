@@ -15,14 +15,12 @@ export DEBIAN_FRONTEND=noninteractive
 function wait_for_automatic_updates() {
   while ps aux | grep -q '[u]nattended-upgr'; do
     echo "Esperando a que finalicen las actualizaciones automáticas..."
+    sudo killall unattended-upgr
     sleep 10
   done
 }
 
 function packages_install() {
-  # Esperar a que finalicen las actualizaciones automáticas
-  wait_for_automatic_updates
-
   # Iteramos sobre la lista de paquetes
   for ((i = 0; i < ${#lista_paquetes[@]}; i++))
   do
@@ -42,7 +40,7 @@ function read_packages_file() {
       echo "Intentando instalar el paquete '$package_item' de la lista '$PACKAGES_PATH'."
       # Intentar instalar el paquete
       install_and_restart $package_item
-      sleep 1
+      wait_for_automatic_updates
     done < <(grep -v '^$' "$PACKAGES_PATH")
     echo "Todos los paquetes de la lista '$PACKAGES_PATH' han sido leidos."
 }
