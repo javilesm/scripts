@@ -47,25 +47,18 @@ function restart_nginx() {
 }
 
 function get_php_fpm_version() {
-    # Buscar la ubicación del binario de php-fpm
-    php_fpm_path=$(whereis -b php-fpm | awk '{print $2}')
-
-    if [ -z "$php_fpm_path" ]; then
-        echo "PHP-FPM no encontrado en el sistema."
-        return
-    fi
-
     # Obtener la versión de PHP-FPM
-    version_output=$("$php_fpm_path" -v 2>&1)
+    version_output=$(php -v 2>&1)
     regex="PHP ([0-9]+\.[0-9]+)"
 
     if [[ $version_output =~ $regex ]]; then
         version_number="${BASH_REMATCH[1]}"
-        echo "Versión de PHP-FPM: $version_number"
+        echo "Versión de PHP-FPM instalada: $version_number"
     else
         echo "No se pudo obtener la versión de PHP-FPM."
     fi
 }
+
 # Funcion para configurar Nginx
 function configure_nginx() {
   echo "Configurando NGINX..."
