@@ -11,6 +11,14 @@ PHP_VIRTUALS_PATH="$CURRENT_PATH/$PHP_VIRTUALS_FILE"
 PHP_PACKAGES_PATH="$CURRENT_PATH/$PHP_PACKAGES_FILE"
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
 
+function wait_for_automatic_updates() {
+  while ps aux | grep -q '[u]nattended-upgr'; do
+    echo "Esperando a que finalicen las actualizaciones automáticas..."
+    sudo killall unattended-upgr
+    sleep 10
+  done
+}
+
 # Función para validar si PHP está instalado y obtener la versión instalada
 function validate_php() {
   echo "Validando si PHP está instalado..."
@@ -100,6 +108,7 @@ function install_php_modules() {
         php -m | grep ${module}
       fi
     fi
+    wait_for_automatic_updates
   done < <(sed -e '$a\' "$PHP_MODULES_PATH")
 }
 function get_php_version() {
