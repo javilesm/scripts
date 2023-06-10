@@ -181,8 +181,8 @@ function test_config() {
   if sudo nginx -t; then
     echo "Nginx se ha configurado correctamente."
     restart_services
-    install_wp
-    edit_wp_config
+    #install_wp
+    #edit_wp_config
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
