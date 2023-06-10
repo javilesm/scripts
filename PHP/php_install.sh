@@ -10,7 +10,7 @@ PHP_MODULES_PATH="$CURRENT_PATH/$PHP_MODULES_FILE" # Define la ruta del archivo 
 PHP_VIRTUALS_PATH="$CURRENT_PATH/$PHP_VIRTUALS_FILE"
 PHP_PACKAGES_PATH="$CURRENT_PATH/$PHP_PACKAGES_FILE"
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
-PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
+
 # Función para validar si PHP está instalado y obtener la versión instalada
 function validate_php() {
   echo "Validando si PHP está instalado..."
@@ -23,6 +23,7 @@ function validate_php() {
     return 0
   fi
 }
+
 # Función para instalar PHP
 function install_php() {
    if sudo apt install php -y; then
@@ -40,6 +41,7 @@ function install_php() {
     return 1
   fi
 }
+
 # Función para instalar los paquetes necesarios para compilar los módulos de PHP
 function install_comp() {
    # Instalar los paquetes necesarios para compilar los módulos de PHP
@@ -90,7 +92,7 @@ function install_php_modules() {
       echo "El módulo '$module_name' ya está instalado."
     else
       echo "*****Instalando módulo: '$module_name'..."
-      if ! sudo apt-get install "$module_name" -y; then
+      if ! sudo apt-get install $module_name -y; then
         echo "ERROR: No se pudo instalar el módulo '$module' como '$module_name'."
         failed_modules+=("$module")
       else
@@ -99,6 +101,11 @@ function install_php_modules() {
       fi
     fi
   done < <(sed -e '$a\' "$PHP_MODULES_PATH")
+}
+function get_php_version() {
+    php_version=$(php -r "echo PHP_VERSION;")
+    PHP_VERSION=$(echo "$php_version" | cut -d '.' -f 1,2)
+    echo "PHP version: $PHP_VERSION"
 }
 # Función para instalar los módulos virtuales PHP del archivo php_virtuals.txt
 function install_php_virtuals() {
@@ -215,15 +222,16 @@ function report() {
 # Función principal
 function php_install() {
     echo "*******PHP INSTALL******"
-    validate_php
-    install_php
+    #validate_php
+    #install_php
     install_comp
     validate_php_modules_file
     validate_php_virtuals_file
     validate_php_packages_file
     install_php_modules
+	  get_php_version
     install_php_virtuals
-    #install_php_packages
+    install_php_packages
     validate_config_file
     php_config
     report
@@ -231,4 +239,3 @@ function php_install() {
 }
 # Llamar a la funcion principal
 php_install
-
