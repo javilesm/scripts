@@ -13,7 +13,7 @@ define( 'AUTH_SALT',        'put your unique phrase here' );
 define( 'SECURE_AUTH_SALT', 'put your unique phrase here' );
 define( 'LOGGED_IN_SALT',   'put your unique phrase here' );
 define( 'NONCE_SALT',       'put your unique phrase here' );
-$table_prefix = '2ubdnxr_';
+$table_prefix = '2ubd0njincp91wpunmo52zaoq7ijexr_';
 define( 'WP_DEBUG', false );
 /* Add any custom values between this line and the "stop editing" line. */
 /** Bypass FTP */
