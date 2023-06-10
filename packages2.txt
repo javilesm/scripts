@@ -12,6 +12,9 @@ jq
 fail2ban
 postgresql
 postgresql-contrib
+sqlite3
+libsqlite3-dev
+mysql-server
 dovecot-core
 dovecot-lmtpd
 dovecot-dev
