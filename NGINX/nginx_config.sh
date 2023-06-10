@@ -101,25 +101,18 @@ function create_webdirs() {
     echo "Todas los permisos y propiedades han sido actualizados."
 }
 function get_php_fpm_version() {
-    # Buscar la ubicación del binario de php-fpm
-    php_fpm_path=$(whereis -b php-fpm | awk '{print $2}')
-
-    if [ -z "$php_fpm_path" ]; then
-        echo "PHP-FPM no encontrado en el sistema."
-        return
-    fi
-
     # Obtener la versión de PHP-FPM
-    version_output=$("$php_fpm_path" -v 2>&1)
+    version_output=$(php -v 2>&1)
     regex="PHP ([0-9]+\.[0-9]+)"
 
     if [[ $version_output =~ $regex ]]; then
         version_number="${BASH_REMATCH[1]}"
-        echo "Version de PHP-FPM instalada: $version_number"
+        echo "Versión de PHP-FPM instalada: $version_number"
     else
         echo "No se pudo obtener la versión de PHP-FPM."
     fi
 }
+
 # Función para leer la lista de dominios y crear archivos de configuracion nginx
 function create_nginx_configs() {
   local sites_enabled="/etc/nginx/sites-enabled/"
@@ -181,8 +174,8 @@ function test_config() {
   if sudo nginx -t; then
     echo "Nginx se ha configurado correctamente."
     restart_services
-    #install_wp
-    #edit_wp_config
+    install_wp
+    edit_wp_config
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
@@ -282,6 +275,10 @@ function restart_services() {
   echo "Reiniciando el servicio php$version_number-fpm..."
   sudo service php"$version_number"-fpm stop
   sudo service php"$version_number"-fpm start
+  echo "Reiniciando el servicio mysql..."
+  sudo service mysql restart
+  sudo service nginx status
+  sudo service mysql status
   sudo service php"$version_number"-fpm status
 }
 # Función principal
