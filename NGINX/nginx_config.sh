@@ -196,7 +196,7 @@ function install_wp() {
       local host="${hostname#*@}"
       host="${host%%.*}"
       echo "Hostname: $host"
-      sudo rm "$HTML_PATH/$host/$WEB_DIR/$INDEX_PATH"
+      sudo rm "$HTML_PATH/$host/$WEB_DIR/$INDEX_SAMPLE"
       # Copiar WordPress
       echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
       sudo cp "$WORDPRESS" "$HTML_PATH/$host"
@@ -227,36 +227,51 @@ function install_wp() {
 }
 # Función para leer la lista de dominios y editar el archivo wp-config.php de cada sitio
 function edit_wp_config() {
-    # leer la lista de dominios
-    echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
-    contador=0
-    while read -r dominio; do
-        local host="${dominio#*@}"
-        host="${host%%.*}"
-        echo "Dominio: $host"
-        contador=$((contador + 1))
-        # Copiar plantilla wp-config.php
-        echo "Copiando plantilla '$WP_CONFIG_PATH' a '$HTML_PATH/$host/$WEB_DIR'..."
-        sudo cp "$WP_CONFIG_PATH" "$HTML_PATH/$host/$WEB_DIR"
+  target_dir="$HTML_PATH"
+  # Leer la lista de dominios
+  IFS=$'\n' read -d '' -r -a dominios < "$DOMAINS_PATH"
 
-        # Leer el archivo de usuarios de MySQL y obtener los datos correspondientes al dominio actual
-        while IFS="," read -r username password mysql_host database privileges; do
-            if [ "$host" == "$mysql_host" ]; then
-                echo "User: $username"
-                echo "Password: $password"
-                echo "MySQL Host: $mysql_host"
-                echo "Database: $database"
-                 # Configurar wp-config.php
-                echo "Configurando '$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE' para el dominio $host..."
-                sudo sed -i "s/database_name_here/$databases/g" "$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE"
-                sudo sed -i "s/username_here/$username/g" "$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE"
-                sudo sed -i "s/password_here/$password/g" "$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE"
-                sudo sed -i "s/localhost/$mysql_host/g" "$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE"
-                break
-            fi
-        done < "$MYSQL_USERS_PATH"
-    done < <(grep -v '^$' "$DOMAINS_PATH")
-    echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada en '$contador' directorios."
+  # Leer el archivo de usuarios de MySQL
+  IFS=$'\n' read -d '' -r -a usuarios < "$MYSQL_USERS_PATH"
+
+  # Iterar sobre la lista de dominios y usuarios
+  contador=0
+  for ((i=0; i<${#dominios[@]}; i++)); do
+    dominio="${dominios[i]}"
+    host="${dominio%%.*}"
+    mounting_point="$target_dir/$host"
+
+    # Verificar que el dominio tenga un usuario correspondiente
+    if (( i >= ${#usuarios[@]} )); then
+      echo "No hay suficientes usuarios de MySQL disponibles para todos los dominios."
+      break
+    fi
+
+    # Obtener los datos del usuario de MySQL correspondiente al dominio actual
+    usuario="${usuarios[i]}"
+    IFS=',' read -r username password mysql_host database privileges <<< "$usuario"
+
+    echo "Dominio: $host"
+    echo "User: $username"
+    echo "Password: $password"
+    echo "MySQL Host: $mysql_host"
+    echo "Database: $database"
+
+    # Copiar plantilla wp-config.php
+    echo "Copiando plantilla '$WP_CONFIG_PATH' a '$mounting_point/$WEB_DIR/$WP_CONFIG_FILE'..."
+    sudo cp "$WP_CONFIG_PATH" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
+
+    # Configurar wp-config.php
+    echo "Configurando '$mounting_point/$WEB_DIR/$WP_CONFIG_FILE' para el dominio $host..."
+    sudo sed -i "s/database_name_here/$database/g" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
+    sudo sed -i "s/username_here/$username/g" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
+    sudo sed -i "s/password_here/$password/g" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
+    sudo sed -i "s/localhost/$mysql_host/g" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
+
+    contador=$((contador + 1))
+  done
+
+  echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada en '$contador' directorios."
 }
 
 function restart_services() {
