@@ -9,6 +9,7 @@ dnsutils
 zip
 snapd
 jq
+fail2ban
 postgresql
 postgresql-contrib
 dovecot-core
