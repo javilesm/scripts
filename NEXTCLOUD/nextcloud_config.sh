@@ -209,7 +209,7 @@ function test_config() {
   if sudo nginx -t; then
     echo "Nginx se ha configurado correctamente."
     sudo service nginx reload
-    udo service php"$version_number"-fpm stop
+    sudo service php"$version_number"-fpm stop
     sudo service php"$version_number"-fpm start
     sudo service php"$version_number"-fpm status
   else
