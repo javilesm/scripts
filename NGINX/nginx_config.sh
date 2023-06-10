@@ -2,6 +2,7 @@
 # nginx_config.sh
 # Variables
 HTML_PATH="/var/www"
+WEB_DIR="html"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 DOMAINS_FILE="domains.txt"
@@ -14,6 +15,10 @@ GID="10000"
 GID_NAME="www-data"
 UID_NAME="www-data"
 WORDPRESS="$CURRENT_DIR/latest.zip"
+WP_CONFIG_FILE="wp-config.php"
+WP_CONFIG_PATH="$CURRENT_DIR/$WP_CONFIG_FILE"
+MYSQL_USERS_FILE="mysql_users.csv"
+MYSQL_USERS_PATH="$PARENT_DIR/MySQL/$MYSQL_USERS_FILE"
 # Función para crear el directorio principal de Nginx
 function mkdir() {
   # Verificar si el directorio ya existe
@@ -72,7 +77,7 @@ function run_script() {
   fi
   echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
 }
-# Función para leer la lista de direcciones de dominios y mapear  las direcciones y destinos
+# Función para leer la lista de dominios y crear los directorios web
 function create_webdirs() {
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
@@ -81,41 +86,17 @@ function create_webdirs() {
       host="${host%%.*}"
       echo "Hostname: $host"
        # crear directorio web
-      echo "Creando el directorio web: '$HTML_PATH/$host/html'..."
-      sudo mkdir -p "$HTML_PATH/$host/html"
+      echo "Creando el directorio web: '$HTML_PATH/$host/$WEB_DIR'..."
+      sudo mkdir -p "$HTML_PATH/$host/$WEB_DIR"
       # cambiar permisos del subdirectorio
-      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/html'..."
-      sudo chmod -R 755 "$HTML_PATH/$host/html"
+      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/$WEB_DIR'..."
+      sudo chmod -R 755 "$HTML_PATH/$host/$WEB_DIR"
       # cambiar la propiedad del directorio
-      echo "Cambiando la propiedad del directorio '$HTML_PATH/$host/html'..."
-      sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/html"
+      echo "Cambiando la propiedad del directorio '$HTML_PATH/$host/$WEB_DIR'..."
+      sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/$WEB_DIR"
       # Copiar plantilla index
-      echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/html'..."
-      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/html"
-      # Copiar WordPress
-      echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
-      sudo cp "$WORDPRESS" "$HTML_PATH/$host"
-      # Desempaquietar WordPress
-      echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host/html'..."
-      if ! unzip -joq "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host/html"; then
-          echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
-          return 1
-      fi
-      echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$HTML_PATH/$host'."
-      echo "$HTML_PATH/$host:"
-      ls "$HTML_PATH/$host"
-      # Eliminar el archivo comprimido
-      echo "Eliminando el archivo comprimido '$HTML_PATH/$host/latest.zip'..."
-      if sudo rm "$HTML_PATH/$host/latest.zip"; then
-        echo "El archivo comprimido '$HTML_PATH/$host/latest.zip' se eliminó correctamente."
-      else
-        echo "ERROR: Error al eliminar el archivo comprimido '$HTML_PATH/$host/latest.zip'."
-        return
-      fi
-      echo "$HTML_PATH/$host:"
-      ls "$HTML_PATH/$host"
-      cd "$HTML_PATH/$host/html"
-      sudo mv wp-config-sample.php wp-config.php
+      echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/$WEB_DIR'..."
+      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/$WEB_DIR"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -139,7 +120,7 @@ function get_php_fpm_version() {
         echo "No se pudo obtener la versión de PHP-FPM."
     fi
 }
-
+# Función para leer la lista de dominios y crear archivos de configuracion nginx
 function create_nginx_configs() {
   local sites_enabled="/etc/nginx/sites-enabled/"
   echo "Creando archivos de configuración de Nginx..."
@@ -150,14 +131,14 @@ function create_nginx_configs() {
 
     echo "Creando archivo de configuración para el dominio: $host"
     config_path="/etc/nginx/sites-available/$host"
-    site_root="$HTML_PATH/$host/html"
+    site_root="$HTML_PATH/$host/$WEB_DIR"
 
     # Crear el archivo de configuración
     echo "server {
   listen 80;
   server_name $hostname *.$hostname;
   root $site_root;
-  index index.php;
+  index index.html index.php;
 
 location / {
   try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
@@ -199,18 +180,93 @@ function test_config() {
   echo "Comprobando la configuración de Nginx..."
   if sudo nginx -t; then
     echo "Nginx se ha configurado correctamente."
-    echo "Deteniendo el servicio apache2..."
-    sudo service apache2 stop
-    echo "Reiniciando el servicio nginx..."
-    sudo service nginx restart
-    echo "Reiniciando el servicio php$version_number-fpm..."
-    sudo service php"$version_number"-fpm stop
-    sudo service php"$version_number"-fpm start
-    sudo service php"$version_number"-fpm status
+    restart_services
+    install_wp
+    edit_wp_config
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
   fi
+}
+# Función para leer la lista de dominios e instalar wordpress en cada sitio
+function install_wp() {
+    # leer la lista de dominios
+    echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
+    while read -r hostname; do
+      local host="${hostname#*@}"
+      host="${host%%.*}"
+      echo "Hostname: $host"
+      sudo rm "$HTML_PATH/$host/$WEB_DIR/$INDEX_PATH"
+      # Copiar WordPress
+      echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
+      sudo cp "$WORDPRESS" "$HTML_PATH/$host"
+      # Desempaquietar WordPress
+      echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host/$WEB_DIR'..."
+      if ! unzip -joq "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host/$WEB_DIR"; then
+          echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
+          return 1
+      fi
+      echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$HTML_PATH/$host/$WEB_DIR'."
+      echo "$HTML_PATH/$host:"
+      ls "$HTML_PATH/$host"
+      # Eliminar el archivo comprimido
+      echo "Eliminando el archivo comprimido '$HTML_PATH/$host/latest.zip'..."
+      if sudo rm "$HTML_PATH/$host/latest.zip"; then
+        echo "El archivo comprimido '$HTML_PATH/$host/latest.zip' se eliminó correctamente."
+      else
+        echo "ERROR: Error al eliminar el archivo comprimido '$HTML_PATH/$host/latest.zip'."
+        return
+      fi
+      echo "$HTML_PATH/$host:"
+      ls "$HTML_PATH/$host"
+    done < <(grep -v '^$' "$DOMAINS_PATH")
+    echo "Todas los permisos y propiedades han sido actualizados."
+}
+# Función para leer la lista de dominios y editar el archivo wp-config.php de cada sitio
+function edit_wp_config() {
+    # leer la lista de dominios
+    echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
+    contador=0
+    while read -r dominio; do
+        local host="${dominio#*@}"
+        host="${host%%.*}"
+        echo "Dominio: $host"
+        contador=$((contador + 1))
+        # Copiar plantilla wp-config.php
+        echo "Copiando plantilla '$WP_CONFIG_PATH' a '$HTML_PATH/$host/$WEB_DIR'..."
+        sudo cp "$WP_CONFIG_PATH" "$HTML_PATH/$host/$WEB_DIR"
+
+        # Leer el archivo de usuarios de MySQL y obtener los datos correspondientes al dominio actual
+        while IFS="," read -r username password mysql_host database privileges; do
+            if [ "$host" == "$mysql_host" ]; then
+                echo "User: $username"
+                echo "Password: $password"
+                echo "MySQL Host: $mysql_host"
+                echo "Database: $database"
+                 # Configurar wp-config.php
+                echo "Configurando '$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE' para el dominio $host..."
+                sudo sed -i "s/database_name_here/$databases/g" "$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE"
+                sudo sed -i "s/username_here/$username/g" "$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE"
+                sudo sed -i "s/password_here/$password/g" "$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE"
+                sudo sed -i "s/localhost/$mysql_host/g" "$HTML_PATH/$host/$WEB_DIR/$WP_CONFIG_FILE"
+                break
+            fi
+        done < "$MYSQL_USERS_PATH"
+    done < <(grep -v '^$' "$DOMAINS_PATH")
+    echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada en '$contador' directorios."
+}
+
+edit_wp_config
+
+function restart_services() {
+  echo "Deteniendo el servicio apache2..."
+  sudo service apache2 stop
+  echo "Reiniciando el servicio nginx..."
+  sudo service nginx restart
+  echo "Reiniciando el servicio php$version_number-fpm..."
+  sudo service php"$version_number"-fpm stop
+  sudo service php"$version_number"-fpm start
+  sudo service php"$version_number"-fpm status
 }
 # Función principal
 function nginx_config() {
@@ -223,6 +279,7 @@ function nginx_config() {
   get_php_fpm_version
   create_nginx_configs
   test_config
+  restart_services
   echo "*************ALL DONE**************"
 }
 # Llamar a la funcion princial
