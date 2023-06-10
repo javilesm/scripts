@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 # packages_install.sh
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 
@@ -12,7 +12,17 @@ lista_paquetes=(
 # Exportar la variable DEBIAN_FRONTEND para evitar problemas con debconf
 export DEBIAN_FRONTEND=noninteractive
 
+function wait_for_automatic_updates() {
+  while ps aux | grep -q '[u]nattended-upgr'; do
+    echo "Esperando a que finalicen las actualizaciones automáticas..."
+    sleep 10
+  done
+}
+
 function packages_install() {
+  # Esperar a que finalicen las actualizaciones automáticas
+  wait_for_automatic_updates
+
   # Iteramos sobre la lista de paquetes
   for ((i = 0; i < ${#lista_paquetes[@]}; i++))
   do
@@ -22,6 +32,7 @@ function packages_install() {
     read_packages_file
   done
 }
+
 # Función para leer la lista de paquetes e intentar instalar el paquete
 function read_packages_file() {
     # leer la lista de dominios
@@ -35,6 +46,7 @@ function read_packages_file() {
     done < <(grep -v '^$' "$PACKAGES_PATH")
     echo "Todos los paquetes de la lista '$PACKAGES_PATH' han sido leidos."
 }
+
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
   local package="$1"
@@ -79,5 +91,6 @@ function install_and_restart() {
   echo "El paquete '$package' se instaló correctamente."
   return 0
 }
+
 # Función principal
 packages_install
