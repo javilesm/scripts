@@ -31,6 +31,7 @@ function read_packages_file() {
       echo "Intentando instalar el paquete '$package_item' de la lista '$PACKAGES_PATH'."
       # Intentar instalar el paquete
       install_and_restart $package_item
+      sleep 1
     done < <(grep -v '^$' "$PACKAGES_PATH")
     echo "Todos los paquetes de la lista '$PACKAGES_PATH' han sido leidos."
 }
@@ -77,7 +78,6 @@ function install_and_restart() {
     fi
   echo "El paquete '$package' se instaló correctamente."
   return 0
-  sleep 5
 }
 # Función principal
 packages_install
