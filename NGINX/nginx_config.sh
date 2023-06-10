@@ -209,6 +209,9 @@ function install_wp() {
       echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$HTML_PATH/$host/$WEB_DIR'."
       echo "$HTML_PATH/$host:"
       ls "$HTML_PATH/$host"
+      # cambiar permisos del subdirectorio
+      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/$WEB_DIR'..."
+      sudo chmod -R a=r,u+w,a+X "$HTML_PATH/$host/$WEB_DIR"
       # Eliminar el archivo comprimido
       echo "Eliminando el archivo comprimido '$HTML_PATH/$host/latest.zip'..."
       if sudo rm "$HTML_PATH/$host/latest.zip"; then
@@ -255,8 +258,6 @@ function edit_wp_config() {
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada en '$contador' directorios."
 }
-
-edit_wp_config
 
 function restart_services() {
   echo "Deteniendo el servicio apache2..."
