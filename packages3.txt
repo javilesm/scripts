@@ -1,8 +1,5 @@
 clamav
 clamav-daemon
-sqlite3
-libsqlite3-dev
-mysql-server
 python3-certbot-nginx
 transmission-gtk 
 transmission-cli 
