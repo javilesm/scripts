@@ -85,7 +85,7 @@ function install_php_modules() {
   failed_modules=()
 
   while read module; do
-    local module_name="php-${module}"
+    local module_name="${module}"
     # Verificar si el módulo ya está instalado
     echo "Verificando si el módulo '${module}' ya está instalado..."
     if dpkg -l | grep -q "^ii.*$module_name"; then
@@ -229,9 +229,9 @@ function php_install() {
     validate_php_virtuals_file
     validate_php_packages_file
     install_php_modules
-	  get_php_version
-    install_php_virtuals
-    install_php_packages
+    get_php_version
+    #install_php_virtuals
+    #install_php_packages
     validate_config_file
     php_config
     report
