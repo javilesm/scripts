@@ -23,25 +23,28 @@ function count_domains() {
 }
 # Obtener la unidad a particionar y el número de particiones del usuario
 function get_dev() {
-  echo "Unidades de disco disponibles:"
-  lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -e '^NAME' -e 'disk' | awk '{print $1, $2}'
-  echo "--------------------------------------------------"
-
-  read -p "Ingrese el nombre de la unidad a particionar (ejemplo: sda, xvdf): " unidad
+  unidades=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -e '^NAME' -e 'disk' | awk '{print $1, $2}')
+  unidad=$(dialog --stdout --menu "Seleccione la unidad a particionar:" 10 50 0 $unidades)
   # Validar la unidad ingresada
   if ! [ -b "/dev/$unidad" ]; then
     echo "La unidad especificada no existe."
     exit 1
   fi
+
+  # Comprobar si la unidad ha sido montada previamente
+  if lsblk -o MOUNTPOINT | grep -q "^/dev/$unidad"; then
+    echo "La unidad seleccionada ya está montada. No se puede particionar."
+    exit 1
+  fi
+
 }
 
 function confirm() {
   num_particiones=$contador
-   # Mostrar la información ingresada y solicitar confirmación al usuario
-  echo "Se crearán '$num_particiones' particiones, una para cada dominio en la unidad: '/dev/$unidad'."
-  source "$CONFIRM_SCRIPT" # Incluye el archivo confirmacion.sh
-  # Pide confirmación al usuario
-  if confirm " ¿Está seguro de que desea ejecutar la acción?"; then
+  # Mostrar la información ingresada y solicitar confirmación al usuario
+  dialog --yesno "Se crearán '$num_particiones' particiones, una para cada dominio en la unidad: '/dev/$unidad'. ¿Desea proceder?" 10 50
+  response=$?
+  if [ $response -eq 0 ]; then
     echo "El usuario confirmó la ejecución."
     # Coloca aquí las acciones a realizar si el usuario confirma
     split_dev
@@ -57,15 +60,14 @@ function confirm() {
 
 # Calcular el tamaño de cada partición en base al tamaño de la unidad y el número de particiones
 function split_dev() {
-  echo "Calculando el tamaño de cada partición en base al tamaño de la unidad y el número de particiones..."
   tamanio_unidad=$(sudo blockdev --getsize64 "/dev/$unidad")
   tamanio_particion=$((tamanio_unidad / num_particiones / 1024 / 1024)) # en MB
-  echo "El tamaño de la unidad es: $tamanio_unidad bytes"
-  echo "El tamaño de cada partición es: $tamanio_particion MB"
+
+  dialog --msgbox "Se ha calculado el tamaño de cada partición.\n\nTamaño de la unidad: $tamanio_unidad bytes\nTamaño de cada partición: $tamanio_particion MB" 10 50
 
   # Validar que el tamaño de la partición sea al menos 1MB
   if [ "$tamanio_particion" -lt 1 ]; then
-    echo "El tamaño de la partición calculado es menor a 1MB. Ajusta el número de particiones o la unidad a particionar."
+    dialog --msgbox "El tamaño de la partición calculado es menor a 1MB. Ajusta el número de particiones o la unidad a particionar." 10 50
     exit 1
   fi
 }
