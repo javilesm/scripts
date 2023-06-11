@@ -137,13 +137,6 @@ function iteration() {
   lsblk --paths | grep $unidad
 }
 
-# Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-function edit_fstab() {
-  for i in $(seq $num_particiones); do
-    echo "$partition_path $mount_path $formato defaults 0 0" | sudo tee -a /etc/fstab
-  done
-}
-
 function web_partitions() {
   echo "****************WEB PARTITIONS****************"
   count_domains
