@@ -131,7 +131,7 @@ function create_nginx_configs() {
   listen 80;
   server_name $hostname *.$hostname;
   root $site_root;
-  index index.php;
+  index index.html index.php;
 
   if (!-e \$request_filename) {
                 rewrite /wp-admin$ \$scheme://\$host\$uri/ permanent;         
