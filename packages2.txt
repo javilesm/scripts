@@ -1,4 +1,5 @@
 tree
+dialog
 expect
 telnet
 net-tools
