@@ -79,6 +79,7 @@ function run_script() {
 }
 # Función para leer la lista de dominios y crear los directorios web
 function create_webdirs() {
+  site_root="$HTML_PATH/$host/$WEB_DIR"
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
     while read -r hostname; do
@@ -86,17 +87,17 @@ function create_webdirs() {
       host="${host%%.*}"
       echo "Hostname: $host"
        # crear directorio web
-      echo "Creando el directorio web: '$HTML_PATH/$host/$WEB_DIR'..."
-      sudo mkdir -p "$HTML_PATH/$host/$WEB_DIR"
+      echo "Creando el directorio web: '$site_root'..."
+      sudo mkdir -p "$site_root"
       # cambiar permisos del subdirectorio
-      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/$WEB_DIR'..."
-      sudo chmod -R 755 "$HTML_PATH/$host/$WEB_DIR"
+      echo "Cambiando los permisos del subdirectorio '$site_root'..."
+      sudo chmod -R 755 "$site_root"
       # cambiar la propiedad del directorio
-      echo "Cambiando la propiedad del directorio '$HTML_PATH/$host/$WEB_DIR'..."
-      sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$HTML_PATH/$host/$WEB_DIR"
+      echo "Cambiando la propiedad del directorio '$site_root'..."
+      sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$site_root"
       # Copiar plantilla index
-      echo "Copiando plantilla '$INDEX_PATH' al directorio web '$HTML_PATH/$host/$WEB_DIR'..."
-      sudo cp "$INDEX_PATH" "$HTML_PATH/$host/$WEB_DIR"
+      echo "Copiando plantilla '$INDEX_PATH' al directorio web '$site_root'..."
+      sudo cp "$INDEX_PATH" "$site_root"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -124,40 +125,46 @@ function create_nginx_configs() {
 
     echo "Creando archivo de configuración para el dominio: $host"
     config_path="/etc/nginx/sites-available/$host"
-    site_root="$HTML_PATH/$host/$WEB_DIR"
-
     # Crear el archivo de configuración
     echo "server {
   listen 80;
   server_name $hostname *.$hostname;
   root $site_root;
-  index index.html index.php;
+  index index.php;
 
-location / {
-  try_files \$uri \$uri/ /index.php?q=\$uri&\$args;
-}
+  if (!-e \$request_filename) {
+                rewrite /wp-admin$ \$scheme://\$host\$uri/ permanent;         
+                rewrite ^/wordpress(/[^/]+)?(/wp-.*) /wordpress\$2 last;      
+                rewrite ^/wordpress(/[^/]+)?(/.*\.php)$ /wordpress\$2 last;
+  }
 
-location ~ \.php$ {
-  include snippets/fastcgi-php.conf;
-  fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
-}
+  location / {
+	  try_files \$uri \$uri/ /index.php\$is_args\$args;
+  }
 
-location = /favicon.ico {
-  log_not_found off;
-  access_log off;
-}
+  location ~ \.php$ {
+    fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
+    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    include fastcgi_params;
+    fastcgi_read_timeout 300;
+    include snippets/fastcgi-php.conf;
+  } 
 
-location = /robots.txt {
-  access_log off;
-  log_not_found off;
-}
+  location = /favicon.ico { log_not_found off; access_log off; 
+  }
 
-location ~ /\.ht {
-  deny all;
-  access_log off;
-  log_not_found off;
-}
-    
+  location = /robots.txt { access_log off; log_not_found off; 
+  }
+
+  location ~ /\. { deny all; access_log off; log_not_found off; 
+  }
+
+  location ~* \.(js|css|png|jpg|jpeg|gif|ico|eot|otf|ttf|woff)$ {
+    add_header Access-Control-Allow-Origin *;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    access_log off; log_not_found off;
+  }
+  
 }" | sudo tee "$config_path" > /dev/null
 
     echo "Archivo de configuración creado: $config_path"
@@ -189,22 +196,22 @@ function install_wp() {
       local host="${hostname#*@}"
       host="${host%%.*}"
       echo "Hostname: $host"
-      sudo rm "$HTML_PATH/$host/$WEB_DIR/$INDEX_SAMPLE"
+      sudo rm "$site_root/$INDEX_SAMPLE"
       # Copiar WordPress
       echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
       sudo cp "$WORDPRESS" "$HTML_PATH/$host"
       # Desempaquietar WordPress
-      echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host/$WEB_DIR'..."
-      if ! unzip -joq "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host/$WEB_DIR"; then
+      echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$site_root'..."
+      if ! unzip -joq "$HTML_PATH/$host/latest.zip" -d "$site_root"; then
           echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
           return 1
       fi
-      echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$HTML_PATH/$host/$WEB_DIR'."
+      echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$site_root'."
       echo "$HTML_PATH/$host:"
       ls "$HTML_PATH/$host"
       # cambiar permisos del subdirectorio
-      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host/$WEB_DIR'..."
-      sudo chmod -R a=r,u+w,a+X "$HTML_PATH/$host/$WEB_DIR"
+      echo "Cambiando los permisos del subdirectorio '$site_root'..."
+      sudo chmod -R a=r,u+w,a+X "$site_root"
       # Eliminar el archivo comprimido
       echo "Eliminando el archivo comprimido '$HTML_PATH/$host/latest.zip'..."
       if sudo rm "$HTML_PATH/$host/latest.zip"; then
@@ -220,7 +227,6 @@ function install_wp() {
 }
 # Función para leer la lista de dominios y editar el archivo wp-config.php de cada sitio
 function edit_wp_config() {
-  target_dir="$HTML_PATH"
   # Leer la lista de dominios
   IFS=$'\n' read -d '' -r -a dominios < "$DOMAINS_PATH"
 
@@ -232,8 +238,7 @@ function edit_wp_config() {
   for ((i=0; i<${#dominios[@]}; i++)); do
     dominio="${dominios[i]}"
     host="${dominio%%.*}"
-    mounting_point="$target_dir/$host"
-
+    
     # Verificar que el dominio tenga un usuario correspondiente
     if (( i >= ${#usuarios[@]} )); then
       echo "No hay suficientes usuarios de MySQL disponibles para todos los dominios."
@@ -251,20 +256,20 @@ function edit_wp_config() {
     echo "Database: $database"
 
     # Copiar plantilla wp-config.php
-    echo "Copiando plantilla '$WP_CONFIG_PATH' a '$mounting_point/$WEB_DIR/$WP_CONFIG_FILE'..."
-    sudo cp "$WP_CONFIG_PATH" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
+    echo "Copiando plantilla '$WP_CONFIG_PATH' a '$site_root/$WP_CONFIG_FILE'..."
+    sudo cp "$WP_CONFIG_PATH" "$site_root/$WP_CONFIG_FILE"
 
     # Configurar wp-config.php
-    echo "Configurando '$mounting_point/$WEB_DIR/$WP_CONFIG_FILE' para el dominio $host..."
-    sudo sed -i "s/database_name_here/$database/g" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
-    sudo sed -i "s/username_here/$username/g" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
-    sudo sed -i "s/password_here/$password/g" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
-    sudo sed -i "s/localhost/$mysql_host/g" "$mounting_point/$WEB_DIR/$WP_CONFIG_FILE"
+    echo "Configurando '$site_root/$WP_CONFIG_FILE' para el dominio $host..."
+    sudo sed -i "s/database_name_here/$database/g" "$site_root/$WP_CONFIG_FILE"
+    sudo sed -i "s/username_here/$username/g" "$site_root/$WP_CONFIG_FILE"
+    sudo sed -i "s/password_here/$password/g" "$site_root/$WP_CONFIG_FILE"
+    sudo sed -i "s/localhost/$mysql_host/g" "$site_root/$WP_CONFIG_FILE"
 
     contador=$((contador + 1))
   done
 
-  echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada en '$contador' directorios."
+  echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada y configurada en '$contador' directorios."
 }
 
 function restart_services() {
