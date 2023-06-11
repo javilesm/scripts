@@ -297,7 +297,7 @@ function nginx_config() {
   mkdir
   read_domains
   validate_script
- # run_script
+  run_script
   create_webdirs
   get_php_fpm_version
   create_nginx_configs
