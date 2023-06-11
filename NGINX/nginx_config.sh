@@ -278,8 +278,14 @@ function restart_services() {
   echo "Reiniciando el servicio mysql..."
   sudo service mysql restart
   sudo service nginx status
+  sleep 2
+  clear
   sudo service mysql status
+  sleep 2
+  clear
   sudo service php"$version_number"-fpm status
+  sleep 2
+  clear
 }
 # Función principal
 function nginx_config() {
