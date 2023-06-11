@@ -1,10 +1,11 @@
-bluesapphire,VC7C(lthT~+ZJb#i*^]DO0PZrH)tSiM52M}\n!NCS_X_tTK97iOL*Q^7(cEfLuwN,localhost,tangy_carbon,ALL PRIVILEGES
-greenfluorite,I=F>1qJF^QgCGLa>NrQ{ezhD~I?t~&T[i*r~L3|5\%~3C+eRgs3?{jt5&=Er<dpW,localhost,sour_gold,ALL PRIVILEGES
-redhematite,V6)=pZ5E0?$XV[1)>ewY{Azz!<iIO*(KmW%6%MIPFY>yo{*S~HV$>qh9#Zc@d(%Q,localhost,metallic_titanium,ALL PRIVILEGES
-greenmalachite,9q&$k>wswIvls{V?2mhviZp8&P&4zll9w>aox%l]3{qgR&ltD|dIyHqJE%0n}d=L,localhost,earthly_platinum,ALL PRIVILEGES
-purpleamethyst,*|a#oV=G8ZU&%?S>Jr{QI[j|gp&s+dk\QYD@s8I}85J}5((99\Ey=opZ&4]#ZV}z,localhost,sweet_helium,ALL PRIVILEGES
-pinktourmaline,Vhh!$F^W>ASA}I=+hj#p9L95c6Zr8=?0{#aB\%\[K!h\&n7\X(]^Es+eUtl@S|Z=,localhost,bitter_lithium,ALL PRIVILEGES
-darkobsidian,GY+pwDTb1Zr[{G!\ju+(*]^Fb_BS3l+o1EHa%b~JjYppmhwH=lN%@*P9B7i\vNqq,localhost,smoky_silicon,ALL PRIVILEGES
-clearquartz,&?}?XOIXF#y}\BtokyX]k=<<I<@w7^+\mE&*aYUk<Y(eWxycSzlB#}L@wg+4X~U\,localhost,pure_iron,ALL PRIVILEGES
-yellowtopaz,&JpJ>V30]YTND5h0u4CUY[6om}j>V%NwCqvGZ_{7jA^>9)R=0V[XkyYJ^4%]N}>+,localhost,spicy_sodium,ALL PRIVILEGES
-whiteopal,2977]S\aJH7VB%)l1_&t@$2xw2w<Q4_2$5MeWm$zHmWUe&#vfRml8[NQoupJ<5N#,localhost,delicate_mercury,ALL PRIVILEGES
+bluesapphire,bluesapphire,localhost,tangy_carbon,ALL PRIVILEGES
+greenfluorite,greenfluorite,localhost,sour_gold,ALL PRIVILEGES
+redhematite,redhematite,localhost,metallic_titanium,ALL PRIVILEGES
+greenmalachite,greenmalachite,localhost,earthly_platinum,ALL PRIVILEGES
+purpleamethyst,purpleamethyst,localhost,sweet_helium,ALL PRIVILEGES
+pinktourmaline,pinktourmaline,localhost,bitter_lithium,ALL PRIVILEGES
+darkobsidian,darkobsidian,localhost,smoky_silicon,ALL PRIVILEGES
+clearquartz,clearquartz,localhost,pure_iron,ALL PRIVILEGES
+yellowtopaz,yellowtopaz,localhost,spicy_sodium,ALL PRIVILEGES
+whiteopal,whiteopal,localhost,delicate_mercury,ALL PRIVILEGES
+
