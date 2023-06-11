@@ -79,13 +79,14 @@ function run_script() {
 }
 # Función para leer la lista de dominios y crear los directorios web
 function create_webdirs() {
-  site_root="$HTML_PATH/$host/$WEB_DIR"
+  
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
     while read -r hostname; do
       local host="${hostname#*@}"
       host="${host%%.*}"
       echo "Hostname: $host"
+      local site_root="$HTML_PATH/$host/$WEB_DIR"
        # crear directorio web
       echo "Creando el directorio web: '$site_root'..."
       sudo mkdir -p "$site_root"
@@ -122,7 +123,7 @@ function create_nginx_configs() {
   while read -r hostname; do
     local host="${hostname#*@}"
     host="${host%%.*}"
-
+    local site_root="$HTML_PATH/$host/$WEB_DIR"
     echo "Creando archivo de configuración para el dominio: $host"
     config_path="/etc/nginx/sites-available/$host"
     # Crear el archivo de configuración
@@ -161,7 +162,6 @@ function create_nginx_configs() {
 
   location ~* \.(js|css|png|jpg|jpeg|gif|ico|eot|otf|ttf|woff)$ {
     add_header Access-Control-Allow-Origin *;
-    add_header Cache-Control "public, max-age=31536000, immutable";
     access_log off; log_not_found off;
   }
   
@@ -181,8 +181,6 @@ function test_config() {
   if sudo nginx -t; then
     echo "Nginx se ha configurado correctamente."
     restart_services
-    install_wp
-    edit_wp_config
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
@@ -196,6 +194,7 @@ function install_wp() {
       local host="${hostname#*@}"
       host="${host%%.*}"
       echo "Hostname: $host"
+      local site_root="$HTML_PATH/$host/$WEB_DIR"
       sudo rm "$site_root/$INDEX_SAMPLE"
       # Copiar WordPress
       echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
@@ -238,7 +237,7 @@ function edit_wp_config() {
   for ((i=0; i<${#dominios[@]}; i++)); do
     dominio="${dominios[i]}"
     host="${dominio%%.*}"
-    
+    local site_root="$HTML_PATH/$host/$WEB_DIR"
     # Verificar que el dominio tenga un usuario correspondiente
     if (( i >= ${#usuarios[@]} )); then
       echo "No hay suficientes usuarios de MySQL disponibles para todos los dominios."
@@ -298,11 +297,13 @@ function nginx_config() {
   mkdir
   read_domains
   validate_script
-  run_script
+ # run_script
   create_webdirs
   get_php_fpm_version
   create_nginx_configs
   test_config
+  install_wp
+  edit_wp_config
   restart_services
   echo "*************ALL DONE**************"
 }
