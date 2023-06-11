@@ -1,4 +1,5 @@
 tree
+htop
 dialog
 expect
 telnet
