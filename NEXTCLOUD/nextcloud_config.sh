@@ -252,7 +252,11 @@ function restart_services() {
   echo "Servicios reiniciados correctamente."
   return 0
   sudo service nginx status
+  sleep 2
+  clear
   sudo service php"$version_number"-fpm status
+  sleep 2
+  clear
 }
 # Función principal
 function nextcloud_config() {
