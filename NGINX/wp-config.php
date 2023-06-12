@@ -82,7 +82,7 @@ $table_prefix = 'hq1wn3p_';
 define( 'WP_DEBUG', false );
 
 /* Add any custom values between this line and the "stop editing" line. */
-
+define( 'FS_METHOD', 'direct' );
 
 
 /* That's all, stop editing! Happy publishing. */
