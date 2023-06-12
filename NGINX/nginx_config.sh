@@ -90,12 +90,6 @@ function create_webdirs() {
        # crear directorio web
       echo "Creando el directorio web: '$site_root'..."
       sudo mkdir -p "$site_root"
-      # cambiar permisos del subdirectorio
-      echo "Cambiando los permisos del subdirectorio '$site_root'..."
-      sudo chmod -R 755 "$site_root"
-      # cambiar la propiedad del directorio
-      echo "Cambiando la propiedad del directorio '$site_root'..."
-      sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$site_root"
       # Copiar plantilla index
       echo "Copiando plantilla '$INDEX_PATH' al directorio web '$site_root'..."
       sudo cp "$INDEX_PATH" "$site_root"
@@ -128,43 +122,26 @@ function create_nginx_configs() {
     config_path="/etc/nginx/sites-available/$host"
     # Crear el archivo de configuración
     echo "server {
-  listen 80;
-  server_name $hostname *.$hostname;
-  root $site_root;
-  index index.html index.php;
+    listen 80;
+    server_name $hostname *.$hostname;
 
-  if (!-e \$request_filename) {
-                rewrite /wp-admin$ \$scheme://\$host\$uri/ permanent;         
-                rewrite ^/wordpress(/[^/]+)?(/wp-.*) /wordpress\$2 last;      
-                rewrite ^/wordpress(/[^/]+)?(/.*\.php)$ /wordpress\$2 last;
-  }
+    root $site_root;
+    index index.php;
 
-  location / {
-	  try_files \$uri \$uri/ /index.php\$is_args\$args;
-  }
+    location / {
+        try_files \$uri \$uri/ /index.php?\$args;
+    }
 
-  location ~ \.php$ {
-    fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
-    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-    include fastcgi_params;
-    fastcgi_read_timeout 300;
-    include snippets/fastcgi-php.conf;
-  } 
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
 
-  location = /favicon.ico { log_not_found off; access_log off; 
-  }
-
-  location = /robots.txt { access_log off; log_not_found off; 
-  }
-
-  location ~ /\. { deny all; access_log off; log_not_found off; 
-  }
-
-  location ~* \.(js|css|png|jpg|jpeg|gif|ico|eot|otf|ttf|woff)$ {
-    add_header Access-Control-Allow-Origin *;
-    access_log off; log_not_found off;
-  }
-  
+    location ~ /\.ht {
+        deny all;
+    }
 }" | sudo tee "$config_path" > /dev/null
 
     echo "Archivo de configuración creado: $config_path"
@@ -196,9 +173,11 @@ function install_wp() {
       echo "Hostname: $host"
       local site_root="$HTML_PATH/$host/$WEB_DIR"
       sudo rm "$site_root/$INDEX_SAMPLE"
+
       # Copiar WordPress
       echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
       sudo cp "$WORDPRESS" "$HTML_PATH/$host"
+
       # Desempaquietar WordPress
       echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$site_root'..."
       if ! unzip -joq "$HTML_PATH/$host/latest.zip" -d "$site_root"; then
@@ -208,9 +187,7 @@ function install_wp() {
       echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$site_root'."
       echo "$HTML_PATH/$host:"
       ls "$HTML_PATH/$host"
-      # cambiar permisos del subdirectorio
-      echo "Cambiando los permisos del subdirectorio '$site_root'..."
-      sudo chmod -R a=r,u+w,a+X "$site_root"
+
       # Eliminar el archivo comprimido
       echo "Eliminando el archivo comprimido '$HTML_PATH/$host/latest.zip'..."
       if sudo rm "$HTML_PATH/$host/latest.zip"; then
@@ -257,6 +234,14 @@ function edit_wp_config() {
     # Copiar plantilla wp-config.php
     echo "Copiando plantilla '$WP_CONFIG_PATH' a '$site_root/$WP_CONFIG_FILE'..."
     sudo cp "$WP_CONFIG_PATH" "$site_root/$WP_CONFIG_FILE"
+
+    # cambiar permisos del subdirectorio
+    echo "Cambiando los permisos del subdirectorio '$site_root'..."
+    sudo chmod -R 755 "$site_root"
+
+    # cambiar la propiedad del directorio
+    echo "Cambiando la propiedad del directorio '$site_root'..."
+    sudo chown -R ${UID_NAME//\"/}:${GID_NAME//\"/} "$site_root"
 
     # Configurar wp-config.php
     echo "Configurando '$site_root/$WP_CONFIG_FILE' para el dominio $host..."
