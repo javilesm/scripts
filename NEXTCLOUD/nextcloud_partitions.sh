@@ -11,27 +11,28 @@ host="nextcloud"
 site_root="$HTML_PATH/$host"
 # Obtener la unidad a particionar y el número de particiones del usuario
 function get_dev() {
-  echo "Unidades de disco disponibles:"
-  lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -e '^NAME' -e 'disk' | awk '{print $1, $2}'
-  echo "--------------------------------------------------"
-
-  read -p "Ingrese el nombre de la unidad a particionar (ejemplo: sda, xvdf): " unidad
+  unidades=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -e '^NAME' -e 'disk' | awk '{print $1, $2}')
+  unidad=$(dialog --stdout --menu "Seleccione la unidad a particionar:" 10 50 0 $unidades)
   # Validar la unidad ingresada
   if ! [ -b "/dev/$unidad" ]; then
     echo "La unidad especificada no existe."
     exit 1
   fi
+
+  # Comprobar si la unidad ha sido montada previamente
+  if lsblk -o MOUNTPOINT | grep -q "^/dev/$unidad"; then
+    echo "La unidad seleccionada ya está montada. No se puede particionar."
+    exit 1
+  fi
+
 }
 
 function confirm() {
-  num_particiones=1
-   # Mostrar la información ingresada y solicitar confirmación al usuario
-  echo "Se crearán '$num_particiones' particiones en la unidad: '/dev/$unidad'."
-  echo "¿Desea proceder?"
-  source "$CONFIRM_SCRIPT" # Incluye el archivo confirmacion.sh
-  echo "Importando '$CONFIRM_SCRIPT'..."
-  # Pide confirmación al usuario
-  if confirm " ¿Está seguro de que desea ejecutar la acción?"; then
+  num_particiones=$contador
+  # Mostrar la información ingresada y solicitar confirmación al usuario
+  dialog --yesno "Se crearán '$num_particiones' particiones, una para cada dominio en la unidad: '/dev/$unidad'. ¿Desea proceder?" 10 50
+  response=$?
+  if [ $response -eq 0 ]; then
     echo "El usuario confirmó la ejecución."
     # Coloca aquí las acciones a realizar si el usuario confirma
     format_parts
