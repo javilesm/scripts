@@ -124,7 +124,6 @@ function create_nginx_configs() {
     echo "server {
     listen 80;
     server_name $hostname *.$hostname;
-
     root $site_root;
     index index.php;
 
@@ -180,12 +179,12 @@ function install_wp() {
       sudo cp "$WORDPRESS" "$HTML_PATH/$host"
 
       # Desempaquietar WordPress
-      echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$site_root'..."
-      if ! unzip -joq "$HTML_PATH/$host/latest.zip" -d "$site_root"; then
+      echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host'..."
+      if ! unzip -oq "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host"; then
           echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
           return 1
       fi
-      echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$site_root'."
+      echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$HTML_PATH/$host'."
       echo "$HTML_PATH/$host:"
       ls "$HTML_PATH/$host"
 
