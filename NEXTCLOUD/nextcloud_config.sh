@@ -129,9 +129,9 @@ function create_nginx_configs() {
   echo "server {
   listen 80;
   server_name $server_ip;
-  root $site_root;
+  root $site_root/nextcloud;
   index index.php;
-  #return 301 https://\$server_name\$request_uri;
+  return 301 https://\$server_name\$request_uri;
 }
 
 server {
@@ -143,7 +143,7 @@ server {
     ssl_certificate_key $KEY_PATH;
 
     # Configura la ubicación de los archivos de Nextcloud
-    root $site_root;
+    root $site_root/nextcloud;
     index index.php;
 
     # Configura las reglas de reescritura de URL
