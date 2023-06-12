@@ -38,7 +38,7 @@ function stop_proceses() {
   echo "Todos los procesos iniciados por el usuario $USER se han detenido de manera segura."
 }
 # Función para enviar una señal de reinicio al sistema
-function halt_system() {
+function reboot_system() {
   echo "Enviando la señal de reinicio al sistema..."
   sudo shutdown -r now
   if [ $? -ne 0 ]; then
@@ -48,10 +48,10 @@ function halt_system() {
 }
 # Función principal
 function sysreboot() {
-    get_userID
-    get_user_proceses
-    stop_proceses
-    halt_system
+    #get_userID
+    #get_user_proceses
+    #stop_proceses
+    reboot_system
 }
 # Llamar a la función principal
 sysreboot
