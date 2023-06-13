@@ -3,7 +3,9 @@
 # Variables 
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
-REACT_APP="/var/www/react-app"
+WEB_DIR="/var/www/django"
+REACT_APP="react-app"
+APP_PATH="$WEB_DIR/$REACT_APP"
 
 set -e
 function get_latest_node_version() {
@@ -127,13 +129,13 @@ function create_react_app() {
 
   # Crear una aplicación React
   echo "Creando una aplicación React..."
-  sudo mkdir -p "$REACT_APP"
-  sudo chmod -R 777 "$REACT_APP"
+  sudo mkdir -p "$APP_PATH"
+  sudo chmod -R 777 "$WEB_DIR"
   cd "$REACT_APP"
-  sudo npx create-react-app . && npm run build
+  npx create-react-app "$REACT_APP" && npm run build && npm install mysql2
 
   # Notificar que la aplicación React se ha creado correctamente
-  echo "La aplicación React se ha creado correctamente en: $REACT_APP"
+  echo "La aplicación React se ha creado correctamente en el directorio: $APP_PATH"
 }
 # función principal
 function install_node() {
