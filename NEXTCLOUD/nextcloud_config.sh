@@ -129,7 +129,7 @@ function create_nginx_configs() {
   echo "server {
   listen 80;
   server_name $server_ip;
-  root $site_root/nextcloud;
+  root $site_root;
   index index.php;
   return 301 https://\$server_name\$request_uri;
 }
@@ -143,7 +143,7 @@ server {
     ssl_certificate_key $KEY_PATH;
 
     # Configura la ubicación de los archivos de Nextcloud
-    root $site_root/nextcloud;
+    root $site_root;
     index index.php;
 
     # Configura las reglas de reescritura de URL
@@ -234,30 +234,7 @@ function configure_nextcloud() {
   echo "Nextcloud se ha configurado correctamente."
   return 0
 }
-# Función para reiniciar servicios
-function restart_services() {
-  echo "Reiniciando servicios..."
-  if ! sudo service nginx restart; then
-    echo "Error al reiniciar el servicio nginx."
-    return 1
-  fi
-  if ! sudo service php"$version_number"-fpm restart; then
-    echo "Error al reiniciar el servicio php"$version_number"-fpm ."
-    return 1
-  fi
-    if ! sudo service snap.nextcloud.nginx reload; then
-    echo "Error al recargar el servicio de Nextcloud."
-    return 1
-  fi
-  echo "Servicios reiniciados correctamente."
-  return 0
-  sudo service nginx status
-  sleep 2
-  clear
-  sudo service php"$version_number"-fpm status
-  sleep 2
-  clear
-}
+
 # Función principal
 function nextcloud_config() {
   echo "**********NEXTCLOUD CONFIGURATOR***********"
@@ -270,7 +247,6 @@ function nextcloud_config() {
   test_config
   webset
   configure_nextcloud
-  restart_services
   echo "**********ALL DONE***********"
 }
 # Llamar a la función principal
