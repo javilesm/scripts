@@ -28,7 +28,7 @@ function create_nginx_configs() {
   listen 8000;
   server_name $server_ip;
   root $site_root;
-  index index.html
+  index index.html;
 
   location / {
         try_files $uri $uri/ =404;
