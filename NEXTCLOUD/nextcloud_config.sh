@@ -191,6 +191,20 @@ location ~ \.(?:css|js|svg|gif|png|html|ttf|woff|ico|jpg|jpeg)$ {
   access_log off;
 }
 
+# Configuración para servir el admin panel de Django
+location /admin {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+ 
+# Configuración para servir archivos estáticos de Django
+location /static/ {
+        alias $HTML_PATH/django;
+    }
+    
 }" | sudo tee "$config_path" > /dev/null
 
   echo "Archivo de configuración creado: $config_path"
