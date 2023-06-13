@@ -1,5 +1,10 @@
 #!/bin/bash
 # nodejs_install.sh
+# Variables 
+CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
+REACT_APP="/var/www/react-app"
+
 set -e
 function get_latest_node_version() {
   echo "Obteniendo la última versión de Node.js..."
@@ -101,15 +106,34 @@ function find_bashrc() {
   export BASHRC_PATH
 }
 # Función para actualizar el archivo .bashrc
-function add_to_bashrc() {
-  CURRENT_PATH=$(dirname "$(readlink -f "$0")") # Obtener la ruta actual del script
-  echo "Actualizando el archivo .bashrc..."
-  echo 'export PATH=$PATH:/usr/local/node/bin' >> "$BASHRC_PATH"
-  if ! source "$BASHRC_PATH"; then
-        echo "No se pudo actualizar el archivo $BASHRC_PATH."
-        exit 1
+function create_react_app() {
+  # Comprobar si Node.js y npm están instalados
+  if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    echo "Error: Node.js y npm no están instalados."
+    echo "Por favor, instale Node.js y npm antes de ejecutar este script."
+    exit 1
   fi
-  echo "$BASHRC_PATH ha sido actualizado exitosamente."
+
+  # Comprobar si create-react-app está instalado
+  if ! command -v create-react-app &> /dev/null; then
+    echo "Need to install the following packages:"
+    echo "  create-react-app@5.0.1"
+    echo "Automáticamente confirmando la instalación..."
+    echo ""
+    sleep 2
+    echo "Instalando create-react-app..."
+    sudo npm install -g create-react-app@5.0.1
+  fi
+
+  # Crear una aplicación React
+  echo "Creando una aplicación React..."
+  sudo mkdir -p "$REACT_APP"
+  sudo chmod -R 777 "$REACT_APP"
+  cd "$REACT_APP"
+  sudo npx create-react-app . && npm run build
+
+  # Notificar que la aplicación React se ha creado correctamente
+  echo "La aplicación React se ha creado correctamente en: $REACT_APP"
 }
 # función principal
 function install_node() {
@@ -122,6 +146,7 @@ function install_node() {
   create_symlinks
   find_bashrc
   add_to_bashrc
+  create_react_app
   echo "******ALL DONE******"
 }
 # Llamada a la función principal
