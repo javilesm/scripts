@@ -51,12 +51,12 @@ function download_nextcloud() {
 }
 # Función para desempaquetar el archivo descargado
 function unpack_nextcloud() {
-    echo "Desempaquetando el archivo descargado '$HTML_PATH/$NEXTCLOUD_DIR.zip' en el directorio '$NEXTCLOUD_HTML_PATH'..."
-    if ! unzip -oq "$HTML_PATH/$NEXTCLOUD_DIR.zip" -d "$NEXTCLOUD_HTML_PATH"; then
+    echo "Desempaquetando el archivo descargado '$HTML_PATH/$NEXTCLOUD_DIR.zip' en el directorio '$HTML_PATH'..."
+    if ! unzip -oq "$HTML_PATH/$NEXTCLOUD_DIR.zip" -d "$HTML_PATH"; then
         echo "ERROR: Ha ocurrido un error al desempaquetar $NEXTCLOUD_DIR.zip."
         return 1
     fi
-    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$NEXTCLOUD_HTML_PATH."
+    echo "El archivo $NEXTCLOUD_DIR.zip se ha desempaquetado correctamente en el directorio '$HTML_PATH."
     echo "$HTML_PATH:"
     ls "$HTML_PATH"
 }
@@ -105,6 +105,31 @@ function run_script2() {
   fi
   echo "Configurador '$CONFIG_FILE' ejecutado."
 }
+# Función para reiniciar servicios
+function restart_services() {
+  echo "Reiniciando servicios..."
+  if ! sudo service nginx restart; then
+    echo "Error al reiniciar el servicio nginx."
+    return 1
+  fi
+  sudo service nginx status
+  sleep 2
+  clear
+  if ! sudo service php"$version_number"-fpm restart; then
+    echo "Error al reiniciar el servicio php"$version_number"-fpm ."
+    return 1
+  fi
+    sudo service php"$version_number"-fpm status
+  sleep 2
+  clear
+  if ! sudo service snap.nextcloud.nginx reload; then
+    echo "Error al recargar el servicio de Nextcloud."
+    return 1
+  fi
+  echo "Servicios reiniciados correctamente."
+  return 0
+  
+}
 # Función principal
 function nextcloud_install() {
   echo "**********NEXTCLOUD INSTALL***********"
@@ -117,6 +142,7 @@ function nextcloud_install() {
   set_nextcloud_permissions
   validate_script2
   run_script2
+  restart_services
   echo "*************ALL DONE**************"
 }
 # Llamar a la función principal
