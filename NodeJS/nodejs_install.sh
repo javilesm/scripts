@@ -3,9 +3,9 @@
 # Variables 
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
-WEB_DIR="/var/www/django"
 REACT_APP="react-app"
-APP_PATH="$WEB_DIR/$REACT_APP"
+WEB_DIR="/var/www/samava-cloud"
+REACT_APP_PATH="$WEB_DIR/$REACT_APP"
 
 set -e
 function get_latest_node_version() {
@@ -107,6 +107,14 @@ function find_bashrc() {
   echo "La ruta de ubicación del archivo .bashrc es: $BASHRC_PATH"
   export BASHRC_PATH
 }
+# Función para crear estructura de directorios
+function make_dirs() {
+  # Crear directorio principal
+  sudo mkdir -p "$WEB_DIR"
+  # Crear directorio para la app de React
+  sudo mkdir -p "$REACT_APP_PATH"
+}
+
 # Función para actualizar el archivo .bashrc
 function create_react_app() {
   # Comprobar si Node.js y npm están instalados
@@ -126,16 +134,14 @@ function create_react_app() {
     echo "Instalando create-react-app..."
     sudo npm install -g create-react-app@5.0.1
   fi
-
+ 
   # Crear una aplicación React
-  echo "Creando una aplicación React..."
-  sudo mkdir -p "$APP_PATH"
-  sudo chmod -R 777 "$WEB_DIR"
-  cd "$REACT_APP"
-  npx create-react-app "$REACT_APP" && npm run build && npm install mysql2
+  echo "Creando una aplicación React en el directorio '$REACT_APP_PATH'..."
+  cd "$REACT_APP_PATH"
+  sudo npx create-react-app . && npm run build
 
   # Notificar que la aplicación React se ha creado correctamente
-  echo "La aplicación React se ha creado correctamente en el directorio: $APP_PATH"
+  echo "La aplicación React se ha creado correctamente en: $REACT_APP_PATH"
 }
 # función principal
 function install_node() {
@@ -148,6 +154,7 @@ function install_node() {
   create_symlinks
   find_bashrc
   add_to_bashrc
+  make_dirs
   create_react_app
   echo "******ALL DONE******"
 }
