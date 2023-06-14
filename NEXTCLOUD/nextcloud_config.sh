@@ -175,7 +175,7 @@ function test_config() {
     sudo service nginx reload
     sudo service php"$version_number"-fpm stop
     sudo service php"$version_number"-fpm start
-    sudo service php"$version_number"-fpm status
+   
   else
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
