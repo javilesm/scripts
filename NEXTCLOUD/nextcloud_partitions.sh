@@ -6,7 +6,7 @@ PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the curre
 CONFIRM_SCRIPT="$PARENT_DIR/utilities/confirm"
 DOMAINS_FILE="domains.txt"
 DOMAINS_PATH="$PARENT_DIR/Postfix/$DOMAINS_FILE"
-HTML_PATH="/var/www"
+HTML_PATH="/var/www/samava-cloud"
 host="nextcloud"
 site_root="$HTML_PATH/$host"
 # Obtener la unidad a particionar y el número de particiones del usuario
