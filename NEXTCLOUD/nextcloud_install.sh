@@ -112,14 +112,14 @@ function restart_services() {
     echo "Error al reiniciar el servicio nginx."
     return 1
   fi
-  sudo service nginx status
+
   sleep 2
   clear
   if ! sudo service php"$version_number"-fpm restart; then
     echo "Error al reiniciar el servicio php"$version_number"-fpm ."
     return 1
   fi
-    sudo service php"$version_number"-fpm status
+ 
   sleep 2
   clear
   if ! sudo service snap.nextcloud.nginx reload; then
