@@ -6,6 +6,9 @@ PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the curre
 REACT_APP="react-app"
 WEB_DIR="/var/www/samava-cloud"
 REACT_APP_PATH="$WEB_DIR/$REACT_APP"
+HTML_PATH="$WEB_DIR/html"
+INDEX_FILE="index.html"
+INDEX_PATH="$CURRENT_DIR/$INDEX_FILE"
 
 set -e
 function get_latest_node_version() {
@@ -111,6 +114,9 @@ function find_bashrc() {
 function make_dirs() {
   # Crear directorio principal
   sudo mkdir -p "$WEB_DIR"
+  # Crear directorio HTML
+  sudo mkdir -p "$HTML_PATH"
+  sudo cp "$INDEX_PATH" "$HTML_PATH"
   # Crear directorio para la app de React
   sudo mkdir -p "$REACT_APP_PATH"
 }
