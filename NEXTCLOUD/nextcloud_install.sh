@@ -4,7 +4,7 @@
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 CONFIG_FILE="nextcloud_config.sh" # Script configurador
 CONFIG_PATH="$CURRENT_PATH/$CONFIG_FILE"
-HTML_PATH="/var/www"
+HTML_PATH="/var/www/samava-cloud"
 NEXTCLOUD_DIR="nextcloud"
 NEXTCLOUD_HTML_PATH="$HTML_PATH/$NEXTCLOUD_DIR"
 PARTITIONS_SCRIPT="nextcloud_partitions.sh"
