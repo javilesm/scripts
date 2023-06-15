@@ -1,5 +1,6 @@
 #!/bin/bash
 # php_config.sh
+
 function get_php_fpm_version() {
     # Obtener la versión de PHP-FPM
     version_output=$(php -v 2>&1)
@@ -7,26 +8,29 @@ function get_php_fpm_version() {
 
     if [[ $version_output =~ $regex ]]; then
         version_number="${BASH_REMATCH[1]}"
-        echo "Versión de PHP-FPM instalada: $version_number"
+        PHP_VERSION=$version_number  # Asignar la versión a la variable PHP_VERSION
+        echo "Versión de PHP-FPM instalada: $PHP_VERSION"
     else
         echo "No se pudo obtener la versión de PHP-FPM."
     fi
 }
 
+# Llamar a la función para obtener la versión de PHP-FPM
+get_php_fpm_version
+
 # Variables
-PHP_VERSION=$version_number
 PHP_FPM_PATH="/etc/php/$PHP_VERSION/fpm"
 PHP_INI_FILE="php.ini"
 PHP_INI_PATH="$PHP_FPM_PATH/$PHP_INI_FILE"
 
 # Función para verificar si el archivo php.ini existe para la versión actual de PHP
 function check_php_ini_exists() {
-  # Verificar si el archivo php.ini existe para la versión actual de PHP
-  echo "Verificando si el archivo '$PHP_INI_FILE' existe para la versión actual de PHP-FPM: $PHP_VERSION..."
-  if [ ! -f "$PHP_INI_PATH" ]; then
-    echo "Error: '$PHP_INI_PATH' no existe. Verifique que PHP-FPM esté instalado y que la versión sea correcta."
-    return 1
-  fi
+    # Verificar si el archivo php.ini existe para la versión actual de PHP
+    echo "Verificando si el archivo '$PHP_INI_FILE' existe para la versión actual de PHP-FPM: $PHP_VERSION..."
+    if [ ! -f "$PHP_INI_PATH" ]; then
+        echo "Error: '$PHP_INI_PATH' no existe. Verifique que PHP-FPM esté instalado y que la versión sea correcta."
+        return 1
+    fi
 }
 # Función para configurar PHP
 function configure_php() {
