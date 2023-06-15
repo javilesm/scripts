@@ -96,21 +96,42 @@ server {
     }
 
     location /nextcloud {
-        root $nextcloud_root;
+        alias $nextcloud_root;
         index index.php;
     
-
         location ~ \.php\$ {
             include fastcgi_params;
             fastcgi_param SCRIPT_FILENAME \$request_filename;
             fastcgi_pass unix:/var/run/php/php$version_number-fpm.sock;
         }
-        
+      
+        location ~* \.(?:css|js|svg|gif|png|html|ttf|woff|ico|jpg|jpeg)$ {
+            try_files \$uri \$uri/ /nextcloud/index.php\$request_uri;
+            expires 30d;
+            access_log off;
+        }
     }
     
     location /app {
-        root $react_root;
+        alias $react_root;
         index index.js;
+
+        location ~* \.(?:js|css)$ {
+            try_files \$uri \$uri/ /app/index.js;
+            expires 30d;
+            access_log off;
+        }
+    }
+    
+    # Configuración para el panel de administración de Django
+    location /admin {
+        alias /var/www/samava-cloud/django_project/admin;
+        
+        # Configura la ubicación del archivo de configuración de Django
+        location /admin/manage.py {
+            include uwsgi_params;
+            uwsgi_pass unix:/var/run/uwsgi/app/django_app/socket;
+        }
     }
     
     # Configura la ubicación de los archivos de caché
@@ -129,13 +150,6 @@ server {
 
     location ~ ^(/core/doc/[^\/]+/)$ {
         rewrite ^(.*) \$1/index.html;
-    }
-
-    # Configura las reglas de reescritura de URL para otros archivos
-    location ~* \.(?:css|js|svg|gif|png|html|ttf|woff|ico|jpg|jpeg)\$ {
-        try_files \$uri \$uri/ =404;
-        expires 30d;
-        access_log off;
     }
 
     # Configura las reglas de reescritura de URL para PHP
