@@ -43,16 +43,12 @@ function verify_node_integrity() {
 # Función para extraer el archivo comprimido de Node.js
 function extract_node_archive() {
   echo "Extrayendo archivos..."
-  if ! tar -xvf node.tar.xz; then
+  if ! tar -xf node.tar.xz -C /usr/local >/dev/null 2>&1; then
     echo "Ocurrió un error al extraer el archivo de Node.js."
     exit 1
   fi
-  echo "Archivo extraido."
-}
-# Función para mover los archivos de Node.js a /usr/local
-function move_node_files() {
-  echo "Moviendo archivos a /usr/local..."
-  if [[ ! -d "/usr/local/" ]]; then
+  # Cambiar el nombre del directorio extraído a "node"
+   if [[ ! -d "/usr/local/" ]]; then
     sudo mkdir -p /usr/local/
   fi
   
@@ -61,7 +57,11 @@ function move_node_files() {
     echo "Ocurrió un error al mover los archivos de Node.js a /usr/local/node."
     exit 1
   fi
+
+  sudo rm -rf /usr/local/node-$version-linux-x64
+  echo "Archivo extraído y directorio renombrado a 'node'."
 }
+
 # Crea enlaces simbólicos para los binarios node, npm y npx
 function create_symlinks() {
   echo "Creando enlaces simbólicos para los binarios node, npm y npx"
@@ -110,6 +110,17 @@ function find_bashrc() {
   echo "La ruta de ubicación del archivo .bashrc es: $BASHRC_PATH"
   export BASHRC_PATH
 }
+# Función para actualizar el archivo .bashrc
+function add_to_bashrc() {
+  CURRENT_PATH=$(dirname "$(readlink -f "$0")") # Obtener la ruta actual del script
+  echo "Actualizando el archivo .bashrc..."
+  echo 'export PATH=$PATH:/usr/local/node/bin' >> "$BASHRC_PATH"
+  if ! source "$BASHRC_PATH"; then
+        echo "No se pudo actualizar el archivo $BASHRC_PATH."
+        exit 1
+  fi
+  echo "$BASHRC_PATH ha sido actualizado exitosamente."
+}
 # Función para crear estructura de directorios
 function make_dirs() {
   # Crear directorio principal
@@ -156,7 +167,6 @@ function install_node() {
   download_latest_node_version $version
   verify_node_integrity
   extract_node_archive
-  move_node_files
   create_symlinks
   find_bashrc
   add_to_bashrc
