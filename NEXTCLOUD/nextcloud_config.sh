@@ -7,7 +7,7 @@ PARENT_DIR="$( dirname "$CURRENT_PATH" )" # Get the parent directory of the curr
 host="samava-cloud"
 nextcloud_dir="nextcloud"
 react_dir="react-app"
-django_dir="django"
+django_dir="django_project"
 server_ip="3.220.58.75"
 HTML_PATH="/var/www/$host"
 config_path="/etc/nginx/sites-available/$host"
@@ -91,6 +91,10 @@ server {
     root $HTML_PATH/html;
     index index.html;
 
+    location /static/admin {
+        alias $django_root/venv/lib/python3.10/site-packages/django/contrib/admin/static/admin;
+    }
+
     location / {
         try_files \$uri \$uri/ =404;
     }
@@ -113,25 +117,18 @@ server {
     }
     
     location /app {
-        alias $react_root;
-        index index.js;
-
-        location ~* \.(?:js|css)$ {
-            try_files \$uri \$uri/ /app/index.js;
-            expires 30d;
-            access_log off;
-        }
+        alias $react_root/build;
+        index index.html;
+        try_files \$uri \$uri/ /app/index.html;
     }
     
     # Configuración para el panel de administración de Django
     location /admin {
-        alias /var/www/samava-cloud/django_project/admin;
-        
-        # Configura la ubicación del archivo de configuración de Django
-        location /admin/manage.py {
-            include uwsgi_params;
-            uwsgi_pass unix:/var/run/uwsgi/app/django_app/socket;
-        }
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
     
     # Configura la ubicación de los archivos de caché
