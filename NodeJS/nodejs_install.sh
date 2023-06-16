@@ -4,9 +4,9 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 REACT_APP="react-app"
-WEB_DIR="/var/www/samava-cloud"
+WEB_DIR="/var/www/samava-cloud/django_project"
 REACT_APP_PATH="$WEB_DIR/$REACT_APP"
-HTML_PATH="$WEB_DIR/html"
+HTML_PATH="/var/www/samava-cloud/html"
 INDEX_FILE="index.html"
 INDEX_PATH="$CURRENT_DIR/$INDEX_FILE"
 
@@ -167,6 +167,7 @@ function install_node() {
   download_latest_node_version $version
   verify_node_integrity
   extract_node_archive
+  move_node_files
   create_symlinks
   find_bashrc
   add_to_bashrc
