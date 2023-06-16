@@ -5,11 +5,19 @@ CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actua
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 REACT_APP="react-app"
 WEB_DIR="/var/www/samava-cloud/django_project"
+DJANGO_PROJECT="django_crud_api"
 REACT_APP_PATH="$WEB_DIR/$REACT_APP"
 HTML_PATH="/var/www/samava-cloud/html"
 INDEX_FILE="index.html"
 INDEX_PATH="$CURRENT_DIR/$INDEX_FILE"
-
+SETTINGS_FILE="$WEB_DIR/$DJANGO_PROJECT/settings.py" # Ruta al archivo de configuración settings.py
+URLS_FILE="$WEB_DIR/$DJANGO_PROJECT/urls.py" # Ruta al archivo de configuración urls.py
+# Vector con los directorios
+DIRS=("localhost" 
+  "127.0.0.1"
+  "[::1]"
+  "3.220.58.75"
+  ) 
 set -e
 function get_latest_node_version() {
   echo "Obteniendo la última versión de Node.js..."
@@ -160,6 +168,68 @@ function create_react_app() {
   # Notificar que la aplicación React se ha creado correctamente
   echo "La aplicación React se ha creado correctamente en: $REACT_APP_PATH"
 }
+function add_dirs() {
+  # Verificar si el archivo de configuración existe
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$SETTINGS_FILE" ]; then
+    echo "ERROR: El archivo de configuración '$SETTINGS_FILE' no se puede encontrar."
+    exit 1
+  fi
+  echo "El archivo de configuración '$SETTINGS_FILE' existe."
+
+  # Agregar importación de os al inicio del archivo
+  echo "Agregando importación 'import os' al archivo de configuración..."
+  sudo sed -i '1s/^/import os\n/' "$SETTINGS_FILE"
+  echo "Importación agregada correctamente."
+
+  # Modificar el archivo de configuración
+  echo "Agregando directorio al archivo de configuración..."
+  sudo sed -i "s|'DIRS': \[\]|'DIRS': [os.path.join(BASE_DIR,'$REACT_APP/build')]|g" "$SETTINGS_FILE"
+  echo "Directorio agregado correctamente."
+
+  echo "¡Configuración completada!"
+}
+
+function edit_urls() {
+  # Verificar si el archivo de configuración existe
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$URLS_FILE" ]; then
+    echo "ERROR: El archivo de configuración '$URLS_FILE' no se puede encontrar."
+    exit 1
+  fi
+  echo "El archivo de configuración '$URLS_FILE' existe."
+
+  # Agregar importación de os al inicio del archivo
+  echo "Agregando importación 'from django.views.generic import TemplateView' al archivo de configuración..."
+  sudo sed -i '1s/^/from django.views.generic import TemplateView\n/' "$URLS_FILE"
+  echo "Importación agregada correctamente."
+
+  # Escribir la nueva ruta en urlpatterns
+  echo "Agregando ruta al archivo de configuración..."
+  sudo sed -i "/urlpatterns = \[/a \    path('', TemplateView.as_view(template_name='index.html'))," "$URLS_FILE"
+  echo "Ruta agregada correctamente."
+
+  echo "¡Configuración completada!"
+}
+function add_staticfiles_dirs() {
+  # Verificar si el archivo de configuración existe
+  echo "Verificando si el archivo de configuración existe..."
+  if [ ! -f "$SETTINGS_FILE" ]; then
+    echo "ERROR: El archivo de configuración '$SETTINGS_FILE' no se puede encontrar en la ruta '$CONFIG_PATH'."
+    exit 1
+  fi
+  echo "El archivo de configuración '$SETTINGS_FILE' existe."
+
+  # Agregar el vector STATICFILES_DIRS al final del archivo de configuración
+  echo "Agregando vector 'STATICFILES_DIRS' al archivo de configuración..."
+  echo "STATICFILES_DIRS=[os.path.join(BASE_DIR, '$REACT_APP/build/static')]" >> "$SETTINGS_FILE"
+  echo "Vector agregado correctamente."
+
+  echo "¡Configuración completada!"
+}
+
+
+
 # función principal
 function install_node() {
   echo "*******NODE.JS INSTALL******"
@@ -173,6 +243,9 @@ function install_node() {
   add_to_bashrc
   make_dirs
   create_react_app
+  add_dirs
+  edit_urls
+  add_staticfiles_dirs
   echo "******ALL DONE******"
 }
 # Llamada a la función principal
