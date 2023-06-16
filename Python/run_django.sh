@@ -11,10 +11,10 @@ GID_NAME="www-data"
 UID_NAME="www-data"
 SETTINGS_FILE="$WEB_DIR/$DJANGO_PROJECT/settings.py" # Ruta al archivo de configuración settings.py
 # Vector con las direcciones IP o nombres de host que deseas permitir
-HOSTS=("localhost", 
-  "127.0.0.1",
-  "[::1]",
-  "3.220.58.75",
+HOSTS=("localhost" 
+  "127.0.0.1"
+  "[::1]"
+  "3.220.58.75"
   ) 
 
 # Función para crear el directorio de la app
