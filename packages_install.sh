@@ -1,48 +1,85 @@
 #!/bin/bash
 # packages_install.sh
-CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+# Variables
+CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)" # Obtener el directorio actual
+STATE_FILE="$CURRENT_DIR/packages_state.txt" # Archivo de estado
+PACKAGES_FILE="$CURRENT_DIR/packages1.txt" # Lista de paquetes
 
-# Definimos las listas
-lista_paquetes=(
-  "packages1.txt" 
-  "packages2.txt" 
-  "packages3.txt"
-)
+# Función para solicitar un reinicio y continuar automáticamente después del reinicio
+function reboot_and_continue() {
+  echo "Se requiere un reinicio del sistema. El script se reanudará automáticamente después del reinicio."
+  echo "Reiniciando el sistema..."
+  sudo shutdown -r now
+}
+
+# Función para guardar el estado actual en el archivo de estado
+function save_state() {
+  echo "Guardando estado actual en el archivo de estado: $STATE_FILE"
+  echo "current_script_index=$current_script_index" >"$STATE_FILE"
+}
+
+# Función para cargar el estado anterior desde el archivo de estado
+function load_state() {
+  echo "Cargando estado anterior desde el archivo de estado: $STATE_FILE"
+  if [[ -f "$STATE_FILE" ]]; then
+    source "$STATE_FILE"
+  else
+    echo "No se encontró un archivo de estado anterior. Iniciando desde el principio."
+    current_script_index=0
+  fi
+}
 
 # Exportar la variable DEBIAN_FRONTEND para evitar problemas con debconf
 export DEBIAN_FRONTEND=noninteractive
 
 function wait_for_automatic_updates() {
-  while ps aux | grep -q '[u]nattended-upgr'; do
-    echo "Esperando a que finalicen las actualizaciones automáticas..."
-    sudo killall unattended-upgr
-    sleep 10
-  done
-}
-
-function packages_install() {
-  # Iteramos sobre la lista de paquetes
-  for ((i = 0; i < ${#lista_paquetes[@]}; i++))
-  do
-    # Obtenemos el paquet y la acción correspondiente
-    paquet="${lista_paquetes[$i]}"
-    PACKAGES_PATH="$CURRENT_DIR/$paquet"
-    read_packages_file
-  done
+  echo "Esperando a que finalicen las actualizaciones automáticas..."
+  sudo systemctl stop unattended-upgrades
+  sleep 10
 }
 
 # Función para leer la lista de paquetes e intentar instalar el paquete
 function read_packages_file() {
-    # leer la lista de dominios
-    echo "Leyendo la lista de dominios: '$PACKAGES_PATH'..."
-    while read -r package_item; do
-      # Imprimimos el mensaje correspondiente al paquet
-      echo "Intentando instalar el paquete '$package_item' de la lista '$PACKAGES_PATH'."
-      # Intentar instalar el paquete
-      install_and_restart $package_item
-      wait_for_automatic_updates
-    done < <(grep -v '^$' "$PACKAGES_PATH")
-    echo "Todos los paquetes de la lista '$PACKAGES_PATH' han sido leidos."
+  # Leer la lista de paquetes
+  echo "Leyendo la lista de paquetes: '$PACKAGES_FILE'..."
+  
+  # Verificar si el archivo de estado existe
+  if [[ -f "$STATE_FILE" ]]; then
+    load_state
+  else
+    echo "No se encontró un archivo de estado anterior. Iniciando desde el principio."
+    current_script_index=0
+  fi
+
+  # Leer la lista de paquetes
+  mapfile -t package_items < "$PACKAGES_FILE"
+
+  # Recorrer la lista de paquetes
+  for ((i=current_script_index; i<${#package_items[@]}; i++)); do
+    package_item="${package_items[$i]}"
+
+    # Imprimir el mensaje correspondiente al paquete
+    echo "Intentando instalar el paquete '$package_item' de la lista '$PACKAGES_FILE'."
+
+    # Intentar instalar el paquete y reiniciar
+    install_and_restart "$package_item"
+
+    # Esperar a que finalicen las actualizaciones automáticas
+    wait_for_automatic_updates
+
+    # Actualizar el índice actual en el archivo de estado
+    current_script_index=$((i + 1))
+    save_state
+
+    # Solicitar reinicio y continuar después de cada paquete
+    reboot_and_continue
+  done
+
+  # Todos los paquetes de la lista han sido leídos
+  echo "Todos los paquetes de la lista '$PACKAGES_FILE' han sido leídos."
+
+  # Eliminar el archivo de estado al finalizar todos los paquetes
+  #rm "$STATE_FILE"
 }
 
 # Función para instalar un paquete y reiniciar los servicios afectados
@@ -91,4 +128,4 @@ function install_and_restart() {
 }
 
 # Función principal
-packages_install
+read_packages_file
