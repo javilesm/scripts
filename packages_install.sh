@@ -16,6 +16,7 @@ function reboot_and_continue() {
 function save_state() {
   echo "Guardando estado actual en el archivo de estado: $STATE_FILE"
   echo "current_script_index=$current_script_index" >"$STATE_FILE"
+  echo "Estado actual '$current_script_index' guardado en: $STATE_FILE"
 }
 
 # Función para cargar el estado anterior desde el archivo de estado
@@ -54,6 +55,12 @@ function read_packages_file() {
   # Leer la lista de paquetes
   mapfile -t package_items < "$PACKAGES_FILE"
 
+  # Verificar si se han instalado todos los paquetes
+  if ((current_script_index >= ${#package_items[@]})); then
+    echo "Se han instalado todos los paquetes de la lista '$PACKAGES_FILE'. No se ejecutará el siguiente script."
+    exit 0
+  fi
+
   # Recorrer la lista de paquetes
   for ((i=current_script_index; i<${#package_items[@]}; i++)); do
     package_item="${package_items[$i]}"
@@ -71,16 +78,21 @@ function read_packages_file() {
     current_script_index=$((i + 1))
     save_state
 
+    # Agregar entrada al crontab para automatizar la ejecución tras cada reinicio
+    #add_cron_entry
+
     # Solicitar reinicio y continuar después de cada paquete
     reboot_and_continue
+
   done
 
   # Todos los paquetes de la lista han sido leídos
   echo "Todos los paquetes de la lista '$PACKAGES_FILE' han sido leídos."
 
   # Eliminar el archivo de estado al finalizar todos los paquetes
-  #rm "$STATE_FILE"
+  # sudo rm "$STATE_FILE"
 }
+
 
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
@@ -125,6 +137,22 @@ function install_and_restart() {
     fi
   echo "El paquete '$package' se instaló correctamente."
   return 0
+}
+# Función para agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
+function add_cron_entry() {
+  local cron_entry="@reboot sudo bash $CURRENT_DIR/packages_install.sh"
+  
+  # agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
+  echo "Agregando una entrada al crontab para automatizar la ejecución del script tras cada reinicio..."
+  
+  # Verificar si la entrada ya existe en el crontab
+  if sudo crontab -l | grep -q "$cron_entry"; then
+    echo "La entrada ya existe en el crontab. No se realizará ninguna modificación."
+  else
+    # Agregar la entrada al crontab utilizando echo y redirección de entrada
+    echo "$(sudo crontab -l 2>/dev/null; echo "$cron_entry")" | sudo crontab -
+    echo "Se ha agregado la entrada al crontab para ejecutar el script tras cada reinicio."
+  fi
 }
 
 # Función principal
