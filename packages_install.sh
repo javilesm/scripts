@@ -4,6 +4,17 @@
 CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)" # Obtener el directorio actual
 STATE_FILE="$CURRENT_DIR/packages_state.txt" # Archivo de estado
 PACKAGES_FILE="$CURRENT_DIR/packages1.txt" # Lista de paquetes
+# Funcion para actualizar sistema
+function actualizar_sistema() {
+  # actualizar sistema
+  echo "Actualizando sistema..."
+  if sudo apt-get update -y; then
+    echo "Sistema actualizado."
+  else
+    echo "Error al actualizar el sistema."
+    exit 1
+  fi
+}
 
 # Función para solicitar un reinicio y continuar automáticamente después del reinicio
 function reboot_and_continue() {
@@ -64,7 +75,10 @@ function read_packages_file() {
   # Recorrer la lista de paquetes
   for ((i=current_script_index; i<${#package_items[@]}; i++)); do
     package_item="${package_items[$i]}"
-
+    
+    # Actualizar el sistema
+    actualizar_sistema
+    
     # Imprimir el mensaje correspondiente al paquete
     echo "Intentando instalar el paquete '$package_item' de la lista '$PACKAGES_FILE'."
 
