@@ -37,7 +37,3 @@ dovecot-antispam
 clamav
 clamav-daemon
 python3-certbot-nginx
-transmission-gtk 
-transmission-cli 
-transmission-common 
-transmission-daemon
