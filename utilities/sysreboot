@@ -48,9 +48,9 @@ function reboot_system() {
 }
 # Función principal
 function sysreboot() {
-    #get_userID
-    #get_user_proceses
-    #stop_proceses
+    get_userID
+    get_user_proceses
+    stop_proceses
     reboot_system
 }
 # Llamar a la función principal
