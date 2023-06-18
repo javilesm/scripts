@@ -4,6 +4,36 @@
 CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)" # Obtener el directorio actual
 STATE_FILE="$CURRENT_DIR/packages_state.txt" # Archivo de estado
 PACKAGES_FILE="$CURRENT_DIR/packages1.txt" # Lista de paquetes
+DATE=$(date +"%Y%m%d_%H%M%S") # Obtener la fecha y hora actual para el nombre del archivo de registro
+LOG_FILE="packages_install_$DATE.log" # Nombre del archivo de registro
+LOG_PATH="$CURRENT_DIR/$LOG_FILE" # Ruta al archivo de registro
+# Función para crear un archivo de registro
+function create_log() {
+    # Verificar si el archivo de registro ya existe
+    if [ -f "$LOG_PATH" ]; then
+        echo "El archivo de registro '$LOG_FILE' ya existe."
+        return 1
+    fi
+    
+    # Intentar crear el archivo de registro
+    echo "Creando archivo de registro '$LOG_FILE'... "
+    sudo touch "$LOG_PATH"
+    if [ $? -ne 0 ]; then
+        echo "Error al crear el archivo de registro '$LOG_FILE'."
+        return 1
+    fi
+    echo "Archivo de registro '$LOG_FILE' creado exitosamente. "
+    # Redirección de la salida estándar y de error al archivo de registro
+    exec &> >(tee -a "$LOG_PATH")
+    if [ $? -ne 0 ]; then
+        echo "Error al redirigir la salida estándar y de error al archivo de registro."
+        return 1
+    fi
+    # Mostrar un mensaje de inicio
+    echo "Registro de eventos iniciado a las $(date '+%Y-%m-%d %H:%M:%S')."
+    # Agregar una función de finalización para detener el logging
+    trap "stop_logging" EXIT
+}
 # Funcion para actualizar sistema
 function actualizar_sistema() {
   # actualizar sistema
@@ -104,7 +134,6 @@ function read_packages_file() {
   # sudo rm "$STATE_FILE"
 }
 
-
 # Función para instalar un paquete y reiniciar los servicios afectados
 function install_and_restart() {
   local package="$1"
@@ -149,6 +178,24 @@ function install_and_restart() {
   echo "El paquete '$package' se instaló correctamente."
   return 0
 }
-
+# Función para detener el logging y mostrar un mensaje de finalización
+function stop_logging() {
+    # Restaurar la redirección de la salida estándar y de error a la terminal
+    exec &> /dev/tty
+    if [ $? -ne 0 ]; then
+        echo "Error al restaurar la redirección de la salida estándar y de error a la terminal."
+    fi
+    # Mostrar un mensaje de finalización
+    echo "Registro de eventos finalizado a las $(date '+%Y-%m-%d %H:%M:%S')."
+    echo "Ruta al registro de eventos: '$LOG_PATH'"
+}
 # Función principal
-read_packages_file
+function packages_install() {
+  echo "**********PACKAGES INSTALLER***********"
+  create_log
+  read_packages_file
+  stop_logging
+  echo "**************ALL DONE***************"
+}
+# Llamar a la función principal
+packages_install
