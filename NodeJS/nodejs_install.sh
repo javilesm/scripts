@@ -130,17 +130,6 @@ function add_to_bashrc() {
   fi
   echo "$BASHRC_PATH ha sido actualizado exitosamente."
 }
-# Función para crear estructura de directorios
-function make_dirs() {
-  # Crear directorio principal
-  sudo mkdir -p "$WEB_DIR"
-  # Crear directorio HTML
-  sudo mkdir -p "$HTML_PATH"
-  sudo cp "$INDEX_PATH" "$HTML_PATH"
-  # Crear directorio para la app de React
-  sudo mkdir -p "$REACT_APP_PATH"
-}
-
 # Función para actualizar el archivo .bashrc
 function create_react_app() {
   # Comprobar si Node.js y npm están instalados
@@ -160,7 +149,14 @@ function create_react_app() {
     echo "Instalando create-react-app..."
     sudo npm install -g create-react-app@5.0.1
   fi
- 
+   
+   # crear directorio WEB_DIR
+  echo "Creando el directorio '$WEB_DIR'..."
+  sudo mkdir -p "$WEB_DIR"
+  
+  # Crear directorio para la app de React
+  sudo mkdir -p "$REACT_APP_PATH"
+  
   # Crear una aplicación React
   echo "Creando una aplicación React en el directorio '$REACT_APP_PATH'..."
   cd "$REACT_APP_PATH"
@@ -230,8 +226,13 @@ function add_staticfiles_dirs() {
 
   echo "¡Configuración completada!"
 }
-
-
+# Función para crear directorio HTML
+function make_html_dir() {
+  # Crear directorio HTML
+  echo "Creando el directorio '$HTML_PATH'..."
+  sudo mkdir -p "$HTML_PATH"
+  sudo cp "$INDEX_PATH" "$HTML_PATH"
+}
 
 # función principal
 function install_node() {
@@ -243,11 +244,11 @@ function install_node() {
   create_symlinks
   find_bashrc
   add_to_bashrc
-  make_dirs
   create_react_app
   add_dirs
   edit_urls
   add_staticfiles_dirs
+  make_html_dir
   echo "******ALL DONE******"
 }
 # Llamada a la función principal
