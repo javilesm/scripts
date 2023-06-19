@@ -85,6 +85,7 @@ function add_host() {
   echo "El archivo de configuración '$SETTINGS_FILE' existe."
 
   # Verificar si HOSTS ya están en ALLOWED_HOSTS
+  echo "Verificando si HOSTS ya están en ALLOWED_HOSTS..."
   for HOST in "${HOSTS[@]}"; do
     if grep -Fxq "'$HOST'," "$SETTINGS_FILE"; then
       echo "El host '$HOST' ya está en ALLOWED_HOSTS."
@@ -107,9 +108,9 @@ function run_server() {
   activate_virtual_environment
   install_django
   create_django_project
+  add_host
   validate_script_file
   run_script
-  add_host
   run_server
   echo "************ALL DONE************"
  }
