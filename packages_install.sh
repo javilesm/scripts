@@ -79,7 +79,17 @@ function wait_for_automatic_updates() {
   sudo systemctl stop unattended-upgrades
   sleep 10
 }
-
+# Función para reparar la configuración interrumpida de los paquetes
+function fix_dpkg_interrupted() {
+  echo "Reparando la configuración interrumpida de los paquetes..."
+  sudo dpkg --configure -a
+  if [ $? -eq 0 ]; then
+    echo "La configuración de los paquetes se ha reparado correctamente."
+  else
+    echo "Error al reparar la configuración de los paquetes."
+    exit 1
+  fi
+}
 # Función para leer la lista de paquetes e intentar instalar el paquete
 function read_packages_file() {
   # Leer la lista de paquetes
@@ -101,7 +111,13 @@ function read_packages_file() {
     echo "Se han instalado todos los paquetes de la lista '$PACKAGES_FILE'. No se ejecutará el siguiente script."
     exit 0
   fi
-
+  
+   # Verificar si la configuración de los paquetes se interrumpió
+  if sudo dpkg --configure -a >/dev/null 2>&1; then
+    echo "La configuración de los paquetes se encontraba interrumpida. Reparando..."
+    fix_dpkg_interrupted
+  fi
+  
   # Recorrer la lista de paquetes
   for ((i=current_script_index; i<${#package_items[@]}; i++)); do
     package_item="${package_items[$i]}"
@@ -114,6 +130,12 @@ function read_packages_file() {
 
     # Intentar instalar el paquete y reiniciar
     install_and_restart "$package_item"
+    
+    # Verificar si la configuración de los paquetes se interrumpió
+    if sudo dpkg --configure -a >/dev/null 2>&1; then
+      echo "La configuración de los paquetes se encontraba interrumpida. Reparando..."
+      fix_dpkg_interrupted
+    fi
 
     # Esperar a que finalicen las actualizaciones automáticas
     wait_for_automatic_updates
