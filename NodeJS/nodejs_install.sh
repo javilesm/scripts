@@ -32,6 +32,7 @@ function get_latest_node_version() {
 # Función para descargar la última versión de Node.js para Linux
 function download_latest_node_version() {
   version=$1
+  cd /usr/local
   echo "Descargando Node.js $version para Linux..."
   url="https://nodejs.org/dist/$version/node-$version-linux-x64.tar.xz"
   echo "Origen: $url"
@@ -239,7 +240,6 @@ function install_node() {
   download_latest_node_version $version
   verify_node_integrity
   extract_node_archive
-  move_node_files
   create_symlinks
   find_bashrc
   add_to_bashrc
