@@ -2,11 +2,14 @@
 # packages_install.sh
 # Variables
 CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)" # Obtener el directorio actual
+PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 STATE_FILE="$CURRENT_DIR/packages_state.txt" # Archivo de estado
 PACKAGES_FILE="$CURRENT_DIR/packages1.txt" # Lista de paquetes
 DATE=$(date +"%Y%m%d_%H%M%S") # Obtener la fecha y hora actual para el nombre del archivo de registro
 LOG_FILE="packages_install_$DATE.log" # Nombre del archivo de registro
 LOG_PATH="$CURRENT_DIR/$LOG_FILE" # Ruta al archivo de registro
+RUN_SCRIPT_FILE="run_scripts.sh"
+RUN_SCRIPT_PATH="$PARENT_DIR/$RUN_SCRIPT_FILE"
 # Función para crear un archivo de registro
 function create_log() {
     # Verificar si el archivo de registro ya existe
@@ -153,6 +156,7 @@ function read_packages_file() {
   
   # Todos los paquetes de la lista han sido leídos
   echo "Todos los paquetes de la lista '$PACKAGES_FILE' han sido leídos."
+  run_script
 
   # Eliminar el archivo de estado al finalizar todos los paquetes
   # sudo rm "$STATE_FILE"
@@ -201,6 +205,17 @@ function install_and_restart() {
     fi
   echo "El paquete '$package' se instaló correctamente."
   return 0
+}
+function run_script() {
+  echo "Ejecutar el configurador '$RUN_SCRIPT_FILE'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$RUN_SCRIPT_PATH"; then
+    echo "El archivo '$RUN_SCRIPT_FILE' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo '$RUN_SCRIPT_FILE'."
+    exit 1
+  fi
+  echo "Configurador '$RUN_SCRIPT_FILE' ejecutado."
 }
 # Función para detener el logging y mostrar un mensaje de finalización
 function stop_logging() {
