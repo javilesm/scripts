@@ -112,6 +112,8 @@ function read_packages_file() {
   # Verificar si se han instalado todos los paquetes
   if ((current_script_index >= ${#package_items[@]})); then
     echo "Se han instalado todos los paquetes de la lista '$PACKAGES_FILE'. No se ejecutará el siguiente script."
+    comment_cron_entry
+    run_script
     exit 0
   fi
   
@@ -156,7 +158,7 @@ function read_packages_file() {
   
   # Todos los paquetes de la lista han sido leídos
   echo "Todos los paquetes de la lista '$PACKAGES_FILE' han sido leídos."
-  run_script
+
 
   # Eliminar el archivo de estado al finalizar todos los paquetes
   # sudo rm "$STATE_FILE"
@@ -240,7 +242,22 @@ function generate_package_summary() {
     echo "$installed_packages"
   fi
 }
-
+# Función para comentar la entrada al crontab para automatizar la ejecución del script tras cada reinicio
+function comment_cron_entry() {
+  local cron_entry="@reboot bash $CURRENT_PATH/scripts/packages_install.sh"
+  local edit_cron_entry="#@reboot bash $CURRENT_PATH/scripts/packages_install.sh"
+  # comentar la entrada al crontab para automatizar la ejecución del script tras cada reinicio
+  echo "Comentando la entrada al crontab para automatizar la ejecución del script tras cada reinicio..."
+  
+  # Verificar si la entrada ya existe en el crontab
+  if sudo crontab -l | grep -q "$cron_entry"; then
+    # Comentar la entrada al crontab utilizando echo y redirección de entrada
+    echo "$(sudo crontab -e 2>/dev/null; echo "$edit_cron_entry")" | sudo crontab -
+    echo "Se ha comentado la entrada al crontab para ejecutar el script tras cada reinicio."
+  else
+    echo "La entrada no existe en el crontab. No se realizará ninguna modificación."
+  fi
+}
 # Función principal
 function packages_install() {
   echo "**********PACKAGES INSTALLER***********"
