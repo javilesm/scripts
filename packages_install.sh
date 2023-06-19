@@ -148,7 +148,9 @@ function read_packages_file() {
     reboot_and_continue
 
   done
-
+  # Llamar a la función para generar el resumen de los paquetes instalados
+  generate_package_summary
+  
   # Todos los paquetes de la lista han sido leídos
   echo "Todos los paquetes de la lista '$PACKAGES_FILE' han sido leídos."
 
@@ -211,6 +213,19 @@ function stop_logging() {
     echo "Registro de eventos finalizado a las $(date '+%Y-%m-%d %H:%M:%S')."
     echo "Ruta al registro de eventos: '$LOG_PATH'"
 }
+# Función para generar un resumen de los paquetes instalados
+function generate_package_summary() {
+  echo "Generando resumen de paquetes instalados..."
+  installed_packages=$(dpkg --get-selections | grep -v deinstall | cut -f1)
+
+  if [ -z "$installed_packages" ]; then
+    echo "No se encontraron paquetes instalados en el sistema."
+  else
+    echo "Paquetes instalados:"
+    echo "$installed_packages"
+  fi
+}
+
 # Función principal
 function packages_install() {
   echo "**********PACKAGES INSTALLER***********"
