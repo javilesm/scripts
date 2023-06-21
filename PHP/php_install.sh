@@ -18,7 +18,17 @@ function wait_for_automatic_updates() {
     sleep 10
   done
 }
-
+# Función para reparar la configuración interrumpida de los paquetes
+function fix_dpkg_interrupted() {
+  echo "Reparando la configuración interrumpida de los paquetes..."
+  sudo dpkg --configure -a
+  if [ $? -eq 0 ]; then
+    echo "La configuración de los paquetes se ha reparado correctamente."
+  else
+    echo "Error al reparar la configuración de los paquetes."
+    exit 1
+  fi
+}
 # Función para validar si PHP está instalado y obtener la versión instalada
 function validate_php() {
   echo "Validando si PHP está instalado..."
@@ -91,7 +101,13 @@ function install_php_modules() {
   # instalar los módulos PHP del archivo php_modules.txt
   echo "Instalando módulos PHP..."
   failed_modules=()
-
+  
+  # Verificar si la configuración de los paquetes se interrumpió
+  if sudo dpkg --configure -a >/dev/null 2>&1; then
+    echo "La configuración de los paquetes se encontraba interrumpida. Reparando..."
+    fix_dpkg_interrupted
+  fi
+  
   while read module; do
     local module_name="${module}"
     # Verificar si el módulo ya está instalado
@@ -107,6 +123,11 @@ function install_php_modules() {
         echo "Módulo '$module' instalado correctamente como '$module_name'."
         php -m | grep ${module}
       fi
+    fi
+    # Verificar si la configuración de los paquetes se interrumpió
+    if sudo dpkg --configure -a >/dev/null 2>&1; then
+      echo "La configuración de los paquetes se encontraba interrumpida. Reparando..."
+      fix_dpkg_interrupted
     fi
     wait_for_automatic_updates
   done < <(sed -e '$a\' "$PHP_MODULES_PATH")
