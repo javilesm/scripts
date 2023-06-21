@@ -19,6 +19,22 @@ WP_CONFIG_FILE="wp-config.php"
 WP_CONFIG_PATH="$CURRENT_DIR/$WP_CONFIG_FILE"
 MYSQL_USERS_FILE="mysql_users.csv"
 MYSQL_USERS_PATH="$PARENT_DIR/MySQL/$MYSQL_USERS_FILE"
+# Función para agregar una entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema
+function add_cron_entry() {
+  local cron_entry="@reboot sudo service nginx restart"
+  
+  # agregar una entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema
+  echo "Agregando una entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema..."
+  
+  # Verificar si la entrada ya existe en el crontab
+  if sudo crontab -l | grep -q "$cron_entry"; then
+    echo "La entrada ya existe en el crontab. No se realizará ninguna modificación."
+  else
+    # Agregar la entrada al crontab utilizando echo y redirección de entrada
+    echo "$(sudo crontab -l 2>/dev/null; echo "$cron_entry")" | sudo crontab -
+    echo "Se ha agregado la entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema."
+  fi
+}
 # Función para crear el directorio principal de Nginx
 function mkdir() {
   # Verificar si el directorio ya existe
@@ -279,6 +295,7 @@ function restart_services() {
 # Función principal
 function nginx_config() {
   echo "**********NGINX CONFIG***********"
+  add_cron_entry
   mkdir
   read_domains
   validate_script
