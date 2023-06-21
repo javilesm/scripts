@@ -247,7 +247,7 @@ function install_node() {
   create_react_app
   add_dirs
   edit_urls
-  add_staticfiles_dirs
+  #add_staticfiles_dirs #WARNINGS (statifiles.W004) The directory '/var/www/samava-cloud/django_project/react-app/build/static' in the STATICFILES_DIRS setting does not exists.
   make_html_dir
   echo "******ALL DONE******"
 }
