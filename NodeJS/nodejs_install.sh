@@ -166,6 +166,7 @@ function create_react_app() {
 
   # Notificar que la aplicación React se ha creado correctamente
   echo "La aplicación React se ha creado correctamente en: $REACT_APP_PATH"
+  npm run build
 }
 function add_dirs() {
   # Verificar si el archivo de configuración existe
@@ -183,7 +184,7 @@ function add_dirs() {
 
   # Modificar el archivo de configuración
   echo "Agregando directorio al archivo de configuración..."
-  sudo sed -i "s|'DIRS': \[\]|'DIRS': [os.path.join(BASE_DIR,'$REACT_APP/build')]|g" "$SETTINGS_FILE"
+  sudo sed -i "s|'DIRS': \[\]|'DIRS': [os.path.join(BASE_DIR, '$REACT_APP/build')]|g" "$SETTINGS_FILE"
   echo "Directorio agregado correctamente."
 
   echo "¡Configuración completada!"
@@ -247,7 +248,7 @@ function install_node() {
   create_react_app
   add_dirs
   edit_urls
-  #add_staticfiles_dirs #WARNINGS (statifiles.W004) The directory '/var/www/samava-cloud/django_project/react-app/build/static' in the STATICFILES_DIRS setting does not exists.
+  add_staticfiles_dirs #WARNINGS (statifiles.W004) The directory '/var/www/samava-cloud/django_project/react-app/build/static' in the STATICFILES_DIRS setting does not exists.
   make_html_dir
   echo "******ALL DONE******"
 }
