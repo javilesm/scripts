@@ -256,6 +256,7 @@ function comment_cron_entry() {
     echo "Entrada del crontab actualizada."
   else
     echo "La entrada no existe."
+  fi
 }
 # Función principal
 function packages_install() {
