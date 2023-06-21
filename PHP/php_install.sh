@@ -234,6 +234,7 @@ function php_install() {
     #validate_php
     #install_php
     #install_comp
+    wait_for_automatic_updates
     validate_php_modules_file
     validate_php_virtuals_file
     validate_php_packages_file
