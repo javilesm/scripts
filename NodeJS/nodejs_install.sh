@@ -162,7 +162,6 @@ function create_react_app() {
   cd "$REACT_APP_PATH"
   npx create-react-app . --template cra-template --use-npm  # Crear la aplicación usando el template predeterminado y npm como administrador de paquetes
   echo "PORT=5000" > .env  # Crear un archivo .env con la configuración del puerto 5000
-  npm install            # Instalar dependencias del proyecto
 
   # Notificar que la aplicación React se ha creado correctamente
   echo "La aplicación React se ha creado correctamente en: $REACT_APP_PATH"
