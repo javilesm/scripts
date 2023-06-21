@@ -16,7 +16,13 @@ HOSTS=("localhost"
   "[::1]"
   "3.220.58.75"
   ) 
-
+INSTALLED_APPS=("rest_framework"
+  "corsheaders"
+  "react-app"
+)
+MIDDLEWARE=("corsheaders.middleware.CorsMiddleware"
+  "django.middleware.common.CommonMiddleware"
+)
 # Función para crear el directorio de la app
 function make_app_dir() {
   # crear el directorio de la app
