@@ -46,13 +46,8 @@ function create_django_project() {
   # crear un nuevo proyecto Django
   echo "Creando un nuevo proyecto Django '$DJANGO_PROJECT'..."
   django-admin startproject "$DJANGO_PROJECT" .
-  move_project_directory
+  python manage.py startapp app
   change_directory_permissions
-}
-
-# Función para mover el proyecto al directorio /var/www/django
-function move_project_directory() {
-    sudo mv "$DJANGO_PROJECT" "$WEB_DIR"
 }
 # Función para verificar si el archivo de configuración existe
 function validate_script_file() {
@@ -75,7 +70,6 @@ function run_script() {
   fi
   echo "Configurador '$NODE_SCRIPT' ejecutado."
 }
-
 # Función para cambiar los permisos del directorio del proyecto
 function change_directory_permissions() {
     sudo chown -R $GID_NAME:$UID_NAME "$WEB_DIR"
