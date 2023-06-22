@@ -16,13 +16,18 @@ HOSTS=("localhost"
   "[::1]"
   "3.220.58.75"
   ) 
-INSTALLED_APPS=("rest_framework"
+INSTALLED_APPS=("django.contrib.admin"
+  "rest_framework"
   "corsheaders"
   "react-app"
 )
-MIDDLEWARE=("corsheaders.middleware.CorsMiddleware"
+MIDDLEWARES=("corsheaders.middleware.CorsMiddleware"
   "django.middleware.common.CommonMiddleware"
+  "django.contrib.sessions.middleware.SessionMiddleware"
+  "django.contrib.auth.middleware.AuthenticationMiddleware"
 )
+ADMIN_PORT="8080"
+
 # Función para crear el directorio de la app
 function make_app_dir() {
   # crear el directorio de la app
@@ -46,8 +51,13 @@ function create_django_project() {
   # crear un nuevo proyecto Django
   echo "Creando un nuevo proyecto Django '$DJANGO_PROJECT'..."
   django-admin startproject "$DJANGO_PROJECT" .
-  python manage.py startapp app
+  move_project_directory
   change_directory_permissions
+}
+
+# Función para mover el proyecto al directorio /var/www/django
+function move_project_directory() {
+    sudo mv "$DJANGO_PROJECT" "$WEB_DIR"
 }
 # Función para verificar si el archivo de configuración existe
 function validate_script_file() {
@@ -70,12 +80,13 @@ function run_script() {
   fi
   echo "Configurador '$NODE_SCRIPT' ejecutado."
 }
+
 # Función para cambiar los permisos del directorio del proyecto
 function change_directory_permissions() {
     sudo chown -R $GID_NAME:$UID_NAME "$WEB_DIR"
     # Reemplaza "yourusername" con tu nombre de usuario real
 }
-function add_host() {
+function validate_config_file() {
   # Verificar si el archivo de configuración existe
   echo "Verificando si el archivo de configuración existe..."
   if [ ! -f "$SETTINGS_FILE" ]; then
@@ -83,9 +94,14 @@ function add_host() {
     exit 1
   fi
   echo "El archivo de configuración '$SETTINGS_FILE' existe."
-
+  add_host
+  add_installed_apps
+  add_middleware
+  add_port
+}
+function add_host() {
   # Verificar si HOSTS ya están en ALLOWED_HOSTS
-  echo "Verificando si HOSTS ya están en ALLOWED_HOSTS..."
+  echo "Verificando si HOSTS ya están en el archivo '$SETTINGS_FILE'.."
   for HOST in "${HOSTS[@]}"; do
     if grep -Fxq "'$HOST'," "$SETTINGS_FILE"; then
       echo "El host '$HOST' ya está en ALLOWED_HOSTS."
@@ -96,11 +112,50 @@ function add_host() {
     fi
   done
   echo "Se agregó '$HOST' a ALLOWED_HOSTS en $SETTINGS_FILE."
-
+}
+function add_installed_apps() {
+  # Verificar si INSTALLED_APPS ya están en INSTALLED_APPS
+  echo "Verificando si INSTALLED_APPS ya está en el archivo '$SETTINGS_FILE'..."
+  for INSTALLED_APP in "${INSTALLED_APPS[@]}"; do
+    if grep -Fxq "'$INSTALLED_APP'," "$SETTINGS_FILE"; then
+      echo "La app '$INSTALLED_APP' ya está en ALLOWED_HOSTS."
+    else
+      # Agregar INSTALLED_APPS a INSTALLED_APPS
+      sed -i "s/\(INSTALLED_APPS\s*=\s*\[\)/\1\n    '$INSTALLED_APP',/" "$SETTINGS_FILE"
+      echo "Se agregó '$INSTALLED_APP' a INSTALLED_APPS en '$SETTINGS_FILE'."
+    fi
+  done
+  echo "Se agregó '$INSTALLED_APP' a INSTALLED_APPS en '$SETTINGS_FILE'."
+}
+function add_middleware() {
+  # Verificar si MIDDLEWARES ya están en MIDDLEWARE
+  echo "Verificando si MIDDLEWARE ya están en el archivo '$SETTINGS_FILE'.."
+  for MIDDLEWARE in "${MIDDLEWARES[@]}"; do
+    if grep -Fxq "'$MIDDLEWARE'," "$SETTINGS_FILE"; then
+      echo "El middleware '$MIDDLEWARE' ya está en MIDDLEWARE."
+    else
+      # Agregar MIDDLEWARE a MIDDLEWARE
+      sed -i "s/\(MIDDLEWARE\s*=\s*\[\)/\1\n    '$MIDDLEWARE',/" "$SETTINGS_FILE"
+      echo "Se agregó '$MIDDLEWARE' a MIDDLEWARE en '$SETTINGS_FILE'."
+    fi
+  done
+  echo "Se agregó '$MIDDLEWARE' a MIDDLEWARE en '$SETTINGS_FILE'."
+}
+function add_port() {
+  # Verificar si ADMIN_PORT ya existe en el archivo
+  echo "Verificar si ADMIN_PORT ya existe en el archivo '$SETTINGS_FILE'..."
+  if grep -q "ADMIN_PORT" "$SETTINGS_FILE"; then
+    echo "La variable ADMIN_PORT ya existe en el archivo."
+  else
+    # Escribir la variable ADMIN_PORT en el archivo
+    echo "ADMIN_PORT = $ADMIN_PORT" >> "$SETTINGS_FILE"
+    echo "Se ha agregado la variable ADMIN_PORT al archivo."
+  fi
 }
 # Función para ejecutar el servidor de desarrollo
 function run_server() {
-  cd "$WEB_DIR" && python manage.py runserver
+  cd "$WEB_DIR"
+  python manage.py runserver $ADMIN_PORT
 }
  function run_django() {
   echo "************RUN DJANGO************"
@@ -108,7 +163,7 @@ function run_server() {
   activate_virtual_environment
   install_django
   create_django_project
-  add_host
+  validate_config_file
   validate_script_file
   run_script
   run_server
