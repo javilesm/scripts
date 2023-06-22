@@ -166,7 +166,7 @@ function run_server() {
   validate_config_file
   validate_script_file
   run_script
-  run_server
+  #run_server
   echo "************ALL DONE************"
  }
  run_django
