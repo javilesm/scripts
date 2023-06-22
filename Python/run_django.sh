@@ -67,19 +67,6 @@ function validate_script_file() {
   fi
   echo "El archivo de configuración '$NODE_SCRIPT existe."
 }
-# Función para ejecutar el configurador de Postfix
-function run_script() {
-  echo "Ejecutar el configurador '$NODE_SCRIPT'..."
-    # Intentar ejecutar el archivo de configuración de Postfix
-  if sudo bash "$NODE_SCRIPT"; then
-    echo "El archivo de configuración '$NODE_SCRIPT' se ha ejecutado correctamente."
-  else
-    echo "ERROR: No se pudo ejecutar el archivo de configuración '$NODE_SCRIPT'."
-    exit 1
-  fi
-  echo "Configurador '$NODE_SCRIPT' ejecutado."
-}
-
 # Función para cambiar los permisos del directorio del proyecto
 function change_directory_permissions() {
     sudo chown -R $GID_NAME:$UID_NAME "$WEB_DIR"
@@ -151,8 +138,22 @@ function add_port() {
     echo "Se ha agregado la variable ADMIN_PORT al archivo."
   fi
 }
+# Función para ejecutar el configurador de Postfix
+function run_script() {
+  echo "Ejecutar el configurador '$NODE_SCRIPT'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$NODE_SCRIPT"; then
+    echo "El archivo de configuración '$NODE_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el archivo de configuración '$NODE_SCRIPT'."
+    exit 1
+  fi
+  echo "Configurador '$NODE_SCRIPT' ejecutado."
+}
 # Función para ejecutar el servidor de desarrollo
 function run_server() {
+  # ejecutar el servidor de desarrollo
+  echo "Procediendo a ejecutar el servidor de desarrollo..."
   cd "$WEB_DIR"
   python manage.py runserver $ADMIN_PORT
 }
