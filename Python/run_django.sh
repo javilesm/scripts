@@ -39,7 +39,7 @@ function activate_virtual_environment() {
 }
 # Función para instalar Django en el entorno virtual
 function install_django() {
-    pip install django django-environ djangorestframework django-cors-headers django-storages django-ckeditor pillow
+    pip install django django-environ djangorestframework django-cors-headers django-storages django-ckeditor pillow pyscopg2
 }
 # Función para crear un nuevo proyecto Django
 function create_django_project() {
