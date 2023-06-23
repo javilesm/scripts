@@ -16,14 +16,10 @@ HOSTS=("localhost"
   "[::1]"
   "3.220.58.75"
   ) 
-INSTALLED_APPS=("django.contrib.admin"
-  "rest_framework"
+INSTALLED_APPS=("rest_framework"
   "corsheaders"
 )
 MIDDLEWARES=("corsheaders.middleware.CorsMiddleware"
-  "django.middleware.common.CommonMiddleware"
-  "django.contrib.sessions.middleware.SessionMiddleware"
-  "django.contrib.auth.middleware.AuthenticationMiddleware"
 )
 ADMIN_PORT="8080"
 
