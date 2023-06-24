@@ -166,6 +166,10 @@ function create_react_app() {
   # Notificar que la aplicación React se ha creado correctamente
   echo "La aplicación React se ha creado correctamente en: $REACT_APP_PATH"
   npm run build
+  
+  # Modificar permisos en directorio Node
+  echo "Modificando permisos en directorio '$REACT_APP_PATH/node_modules'..."
+  sudo chmod 777 -R "$REACT_APP_PATH/node_modules"
 }
 function add_dirs() {
   # Verificar si el archivo de configuración existe
@@ -247,7 +251,7 @@ function install_node() {
   create_react_app
   add_dirs
   edit_urls
-  add_staticfiles_dirs #WARNINGS (statifiles.W004) The directory '/var/www/samava-cloud/django_project/react-app/build/static' in the STATICFILES_DIRS setting does not exists.
+  add_staticfiles_dirs
   make_html_dir
   echo "******ALL DONE******"
 }
