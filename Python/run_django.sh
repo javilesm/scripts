@@ -10,6 +10,7 @@ DJANGO_PROJECT="django_crud_api"
 GID_NAME="www-data"
 UID_NAME="www-data"
 SETTINGS_FILE="$WEB_DIR/$DJANGO_PROJECT/settings.py" # Ruta al archivo de configuración settings.py
+DJANGO_RUNSERVER="$CURRENT_DIR/django_runserver.sh"
 # Vector con las direcciones IP o nombres de host que deseas permitir
 HOSTS=("localhost" 
   "127.0.0.1"
@@ -153,6 +154,22 @@ function run_server() {
   cd "$WEB_DIR"
   python manage.py runserver $ADMIN_PORT
 }
+# Función para agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
+function add_cron_entry() {
+  local cron_entry="@reboot bash $DJANGO_RUNSERVER"
+  
+  # agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
+  echo "Agregando una entrada al crontab para automatizar la ejecución del script tras cada reinicio..."
+  
+  # Verificar si la entrada ya existe en el crontab
+  if sudo crontab -l | grep -q "$cron_entry"; then
+    echo "La entrada ya existe en el crontab. No se realizará ninguna modificación."
+  else
+    # Agregar la entrada al crontab utilizando echo y redirección de entrada
+    echo "$(sudo crontab -l 2>/dev/null; echo "$cron_entry")" | sudo crontab -
+    echo "Se ha agregado la entrada al crontab para ejecutar el script tras cada reinicio."
+  fi
+}
  function run_django() {
   echo "************RUN DJANGO************"
   make_app_dir
@@ -163,6 +180,7 @@ function run_server() {
   validate_script_file
   run_script
   #run_server
+  add_cron_entry
   echo "************ALL DONE************"
  }
  run_django
