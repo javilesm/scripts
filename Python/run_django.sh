@@ -22,7 +22,7 @@ INSTALLED_APPS=("rest_framework"
 )
 MIDDLEWARES=("corsheaders.middleware.CorsMiddleware"
 )
-ADMIN_PORT="8080"
+ADMIN_PORT="8000"
 
 # Función para crear el directorio de la app
 function make_app_dir() {
