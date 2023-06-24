@@ -95,8 +95,37 @@ server {
         alias $django_root/venv/lib/python3.10/site-packages/django/contrib/admin/static/admin;
     }
 
-    location / {
-        try_files \$uri \$uri/ =404;
+     location / {
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        
+    }
+
+    location /home {
+        alias /var/www/samava-cloud/html;
+        index index.html;
+    }
+
+    location /app {
+        rewrite ^/app(/.*)$ $1 break;
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
     }
 
     location /nextcloud {
@@ -114,12 +143,6 @@ server {
             expires 30d;
             access_log off;
         }
-    }
-    
-    location /app {
-        alias $react_root/build;
-        index index.html;
-        try_files \$uri \$uri/ /app/index.html;
     }
     
     # Configuración para el panel de administración de Django
