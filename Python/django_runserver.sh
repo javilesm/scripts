@@ -7,7 +7,7 @@ NODE_SCRIPT="$PARENT_DIR/NodeJS/nodejs_install.sh"
 DJANGO_ENV="venv"
 WEB_DIR="/var/www/samava-cloud/django_project"
 DJANGO_PROJECT="django_crud_api"
-ADMIN_PORT="8080"
+ADMIN_PORT="8000"
 # Función para activar el entorno virtual
 function activate_virtual_environment() {
   # activar el entorno virtual
