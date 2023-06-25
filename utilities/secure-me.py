@@ -6,7 +6,7 @@ from random import choice
 import string
 # Funcion para generar contrasenas
 def generate_password(length):
-    special_chars = "!:/\#$%&()*+<=>?@[\\]^_{|}~"
+    special_chars = "!:/\#$%()*+<=>?@[\\]^_{|}~"
     other_chars = string.ascii_letters + string.digits
     password = ''.join([random.choice(special_chars + other_chars.replace(",", "")) for i in range(length)])
     return password
