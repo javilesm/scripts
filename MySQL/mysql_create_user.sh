@@ -4,7 +4,15 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 USERS_FILE="mysql_users.csv"
 USERS_PATH="$SCRIPT_DIR/$USERS_FILE"
+CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+SECURE_USERS_SCRIPT="$CURRENT_DIR/secure_users.sh"
 password="root"
+# Función para ejecutar el generador de contrasenas seguras
+function run_script() {
+    # ejecutar el generador de contrasenas seguras
+    echo "Ejecutando el generador de contrasenas seguras..."
+    sudo bash "$SECURE_USERS_SCRIPT"
+}
 # Función para verificar la existencia del archivo de usuarios
 function check_user_file() {
     echo "Verificando la existencia del archivo de usuarios '$USERS_FILE'"
@@ -116,6 +124,7 @@ function apply_mysql_privileges() {
 # Función principal
 function mysql_create_user() {
     echo "**********MYSQL CREATE USER**********"
+    run_script
     check_user_file
     show_users
     create_user
