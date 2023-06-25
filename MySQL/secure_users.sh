@@ -29,7 +29,7 @@ $host
 0
 EOF
 
-    done < <(sed -e '$a\' "$USERS_PATH")
+    done < "$USERS_PATH"
     echo "Las contrasenas seguras para todos los usuarios fueron generadas."
 }
 # Función para desactivar el entorno virtual
