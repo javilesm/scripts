@@ -12,6 +12,13 @@ def generate_password(length):
     return password
 
 def solicitar_datos_usuario():
+    # Solicitar el nombre de usuario
+    username = input("Ingrese el nombre de usuario: ")
+    # Solicitar la base de datos
+    database = input("Ingrese el nombre de la base de datos: ")
+    # Solicitar el host
+    host = input("Ingrese el host deseado (presione Enter para usar 'localhost'): ") or 'localhost'
+
     # Solicitar el motor de base de datos
     engines = {
         "1": "MySQL",
@@ -28,12 +35,8 @@ def solicitar_datos_usuario():
     if db_engine is None:
         print("Opción de motor de base de datos inválida")
         exit()
-       # Solicitar el nombre de usuario
-    username = input("Ingrese el nombre de usuario: ")
-    # Solicitar la base de datos
-    database = input("Ingrese el nombre de la base de datos: ")
-    # Solicitar el host
-    host = input("Ingrese el host deseado (presione Enter para usar 'localhost'): ") or 'localhost'
+    
+     
     if db_engine == "MySQL":
         users_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scripts", "MySQL", "mysql_users.csv")
         privileges = {
@@ -147,10 +150,20 @@ def solicitar_datos_usuario():
         if privilege is None:
             print("Opción de privilegio inválida")
             exit()
-    return username, db_engine, database, host, users_file, privilege
+    # Mostrar las opciones ingresadas por el usuario
+    print("")
+    print("Opciones ingresadas:")
+    print("- Usuario ingresado:", username)
+    print("- Base de datos ingresada:", database)
+    print("- Host ingresado:", host)
+    print("- Motor de base de datos ingresado:", db_engine)
+    print("- Privilegio ingresado:", privilege)
+    
+    return username, database, host, db_engine, privilege, users_file
+    
 
 # Obtener los datos del usuario
-db_engine, username, database, host, users_file, privilege = solicitar_datos_usuario()
+username, database, host, db_engine, privilege, users_file  = solicitar_datos_usuario()
 
 # Generar una contraseña aleatoria
 password_length = 32
@@ -168,12 +181,32 @@ sha256.update(password_bytes)
 # Obtener el valor hexadecimal del hash
 password_hash = sha256.hexdigest()
 
-# Guardar el nombre de usuario, la contraseña, el motor de base de datos, la base de datos, el host y el privilegio en un archivo csv
-with open(users_file, "a") as f:
-    f.write("{},{},{},{},{}\n".format(username, password, host, database, privilege))
+# Leer el contenido actual del archivo si existe
+existing_entries = []
+if os.path.exists(users_file):
+    with open(users_file, "r") as f:
+        existing_entries = [line.strip() for line in f.readlines()]
+
+# Buscar si existe una entrada existente para el usuario
+found = False
+for i, entry in enumerate(existing_entries):
+    data = entry.split(",")
+    if data[0] == username:
+        # Actualizar la contraseña correspondiente
+        existing_entries[i] = "{},{},{},{},{}".format(username, password, host, database, privilege)
+        found = True
+        break
+
+# Si no se encuentra una entrada existente, agregar una nueva entrada a la lista
+if not found:
+    existing_entries.append("{},{},{},{},{}".format(username, password, host, database, privilege))
+
+# Sobrescribir el contenido completo del archivo con la lista actualizada
+with open(users_file, "w") as f:
+    f.write("\n".join(existing_entries))
 
 # Imprimir un mensaje de confirmación
-print("El nombre de usuario y la información de la base de datos se han almacenado en el archivo '{}'.".format(users_file))
+print("El nombre de usuario y la información de la base de datos se han actualizado en el archivo '{}'.".format(users_file))
 
 # Crear un archivo de texto para el usuario
 # Crear el subdirectorio "credentials" si no existe
