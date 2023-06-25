@@ -8,15 +8,14 @@ DJANGO_ENV="venv"
 WEB_DIR="/var/www/samava-cloud/django_project"
 DJANGO_PROJECT="django_crud_api"
 ADMIN_PORT="8000"
+REACT_APP="react-app"
+WEB_DIR="/var/www/samava-cloud/django_project"
+REACT_APP_PATH="$WEB_DIR/$REACT_APP"
 # Función para activar el entorno virtual
 function activate_virtual_environment() {
   # activar el entorno virtual
   echo "Activando el entorno virtual '$DJANGO_ENV'..."
   source "$WEB_DIR/$DJANGO_ENV/bin/activate"
-}
-# Función para instalar Django en el entorno virtual
-function install_django() {
-    pip install django django-environ djangorestframework django-cors-headers django-storages django-ckeditor pillow pyscopg2
 }
 # Función para ejecutar el servidor de desarrollo
 function run_server() {
@@ -25,11 +24,19 @@ function run_server() {
   cd "$WEB_DIR"
   python manage.py runserver $ADMIN_PORT
 }
- function django_runserver() {
+# Función para inicializar la aplicacion React
+function npm_start() {
+  # Inicializar aplicacion React
+  echo "Inicializando la aplicacion React..."
+  cd "$REACT_APP_PATH"
+  npm start
+}
+function django_runserver() {
   echo "************DJANGO RUNSERVER************"
   activate_virtual_environment
-  #install_django
-  run_server
+  run_server &
+  npm_start &
+  wait
   echo "************ALL DONE************"
- }
+}
 django_runserver
