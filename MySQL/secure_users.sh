@@ -3,7 +3,7 @@
 # Variables
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
-PYTHON_SCRIPT="$CURRENT_DIR/secure_users.py"
+PYTHON_SCRIPT="$PARENT_DIR/utilities/secure-me.py"
 VENV="venv5"
 VENV_PATH="/home/ubuntu/envs/$VENV"
 # Función para activar el entorno virtual
@@ -14,9 +14,12 @@ function activate_venv() {
 }
 # Función para ejecutar el script de Python
 function run_script() {
-    # ejecutar el script de Python
-    echo "Ejecutando el script de Python..."
-    python "$PYTHON_SCRIPT"
+    # ejecutar el script de Python con datos prellenados
+    echo "Ejecutando el script de Python con datos prellenados..."
+    python "$PYTHON_SCRIPT" << EOF
+1
+0
+EOF
 }
 # Función para desactivar el entorno virtual
 function deactivate_venv() {
