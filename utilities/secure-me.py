@@ -153,7 +153,7 @@ def solicitar_datos_usuario():
 db_engine, username, database, host, users_file, privilege = solicitar_datos_usuario()
 
 # Generar una contraseña aleatoria
-password_length = 64
+password_length = 32
 password = generate_password(password_length)
 
 # Codificar la contraseña en UTF-8 para convertirla en bytes
