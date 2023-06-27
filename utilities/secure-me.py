@@ -6,7 +6,7 @@ from random import choice
 import string
 # Funcion para generar contrasenas
 def generate_password(length):
-    special_chars = "!:/\#$%()*+<=>?@[\\]^_{|}~"
+    special_chars = "!:/#$%()*+<=>?@[]^_{|}~"
     other_chars = string.ascii_letters + string.digits
     password = ''.join([random.choice(special_chars + other_chars.replace(",", "")) for i in range(length)])
     return password
@@ -166,7 +166,7 @@ def solicitar_datos_usuario():
 username, database, host, db_engine, privilege, users_file  = solicitar_datos_usuario()
 
 # Generar una contraseña aleatoria
-password_length = 32
+password_length = 48
 password = generate_password(password_length)
 
 # Codificar la contraseña en UTF-8 para convertirla en bytes
