@@ -80,7 +80,7 @@ export DEBIAN_FRONTEND=noninteractive
 function wait_for_automatic_updates() {
   echo "Esperando a que finalicen las actualizaciones automáticas..."
   sudo systemctl stop unattended-upgrades
-  sudo apt --fix-broken install
+  #sudo apt --fix-broken install
   sleep 10
 }
 # Función para reparar la configuración interrumpida de los paquetes
