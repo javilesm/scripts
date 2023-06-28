@@ -83,17 +83,39 @@ function wait_for_automatic_updates() {
   #sudo apt --fix-broken install
   sleep 10
 }
+
 # Función para reparar la configuración interrumpida de los paquetes
 function fix_dpkg_interrupted() {
-  echo "Reparando la configuración interrumpida de los paquetes..."
-  sudo dpkg --configure -a
-  if [ $? -eq 0 ]; then
-    echo "La configuración de los paquetes se ha reparado correctamente."
-  else
-    echo "Error al reparar la configuración de los paquetes."
-    exit 1
-  fi
+echo "Reparando la configuración interrumpida de los paquetes..."\
+    sudo apt clean
+    
+    # Update package lists
+    sudo apt update
+
+    # Check for broken dependencies
+    echo "Checking for broken packages..."
+    sudo apt --fix-broken install
+
+    # Clean up unused packages
+    echo "Cleaning up unused packages..."
+    sudo apt autoremove
+
+    # Remove partially installed or corrupted packages
+    echo "Removing partially installed or corrupted packages..."
+    sudo dpkg --configure -a
+    if [ $? -eq 0 ]; then
+        echo "La configuración de los paquetes se ha reparado correctamente."
+    else
+        echo "Error al reparar la configuración de los paquetes."
+      fi
+    sudo apt-get install -f
+
+    echo "Package troubleshooting and fixing complete!"
 }
+
+# Call the function
+troubleshoot_and_fix_packages
+
 # Función para leer la lista de paquetes e intentar instalar el paquete
 function read_packages_file() {
   # Leer la lista de paquetes
@@ -263,6 +285,7 @@ function comment_cron_entry() {
 function packages_install() {
   echo "**********PACKAGES INSTALLER***********"
   create_log
+  fix_dpkg_interrupted
   read_packages_file
   stop_logging
   echo "**************ALL DONE***************"
