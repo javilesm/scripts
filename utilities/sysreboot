@@ -48,6 +48,7 @@ function reboot_system() {
 }
 # Función principal
 function sysreboot() {
+  echo "**********SYSREBOOT***********"
     get_userID
     get_user_proceses
     stop_proceses
