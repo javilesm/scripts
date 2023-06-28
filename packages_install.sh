@@ -53,7 +53,7 @@ function actualizar_sistema() {
 function reboot_and_continue() {
   echo "Se requiere un reinicio del sistema. El script se reanudará automáticamente después del reinicio."
   echo "Reiniciando el sistema..."
-  sysreboot
+  sudo shutdown -r now
 }
 
 # Función para guardar el estado actual en el archivo de estado
