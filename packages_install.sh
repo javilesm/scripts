@@ -86,7 +86,8 @@ function wait_for_automatic_updates() {
 
 # Función para reparar la configuración interrumpida de los paquetes
 function fix_dpkg_interrupted() {
-echo "Reparando la configuración interrumpida de los paquetes..."\
+    echo "Reparando la configuración interrumpida de los paquetes..."
+    
     sudo apt clean
     
     # Update package lists
