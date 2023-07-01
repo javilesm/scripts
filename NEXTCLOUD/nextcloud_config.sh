@@ -2,7 +2,6 @@
 # nextcloud_config.sh
 # Variables
 CURRENT_PATH="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
-NGINX_SITES_ENABLED="/etc/nginx/sites-enabled/"
 PARENT_DIR="$( dirname "$CURRENT_PATH" )" # Get the parent directory of the current directory
 host="samava-cloud"
 nextcloud_dir="nextcloud"
@@ -10,7 +9,10 @@ react_dir="react-app"
 django_dir="django_project"
 server_ip="3.220.58.75"
 HTML_PATH="/var/www/$host"
-config_path="/etc/nginx/sites-available/$host"
+NGINX_DIR="/etc/nginx"
+PMA_PASS_FILE="$NGINX_DIR/pma_pass"
+NGINX_SITES_ENABLED="$NGINX_DIR/sites-enabled/"
+config_path="$NGINX_DIR/sites-available/$host"
 nextcloud_root="$HTML_PATH/$nextcloud_dir"
 react_root="$HTML_PATH/$react_dir"
 django_root="$HTML_PATH/$django_dir"
@@ -62,7 +64,22 @@ function get_php_fpm_version() {
         echo "No se pudo obtener la versión de PHP-FPM."
     fi
 }
+function create_pma_pass() {
+  echo "Creando archivo '$PMA_PASS_FILE'..."
+  sudo touch "$PMA_PASS_FILE"
 
+  # Solicitar al usuario ingresar una contraseña
+  read -s -p "Ingrese la contraseña de acceso para el usuario 'jorge': " access_password
+  echo
+
+  # Generar contraseña segura con OpenSSL
+  secure_password=$(openssl passwd -6 "$access_password")
+
+  # Crear archivo pma_pass con la contraseña segura
+  echo "jorge:$secure_password" > $PMA_PASS_FILE
+
+  echo "Contraseña segura generada y guardada en el archivo '$PMA_PASS_FILE'."
+}
 function create_nginx_configs() {
   # Crear el archivo de configuración
   echo "Creando archivos de configuración para el dominio: $host..."
@@ -198,7 +215,12 @@ server {
     # Configuración adicional según tus necesidades...
     location /phpmyadmin {
         root /usr/share/;
-        index index.php index.html index.htm;
+        index index.php;
+        access_log off;
+        error_log off;
+        auth_basic "Admin Login";
+        auth_basic_user_file /etc/nginx/pma_pass;    
+        try_files \$uri \$uri/ /index.php;
     }
 
     location ~ ^/phpmyadmin/(.+\.php)$ {
@@ -212,6 +234,10 @@ server {
 
     location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
         root /usr/share/;
+    }
+
+    location ~ ^/(doc|sql|setup)/ {
+        deny all;
     }
 }" | sudo tee "$config_path" > /dev/null
 
@@ -264,6 +290,7 @@ function nextcloud_config() {
   uninstall_apache2
   restart_nginx
   get_php_fpm_version
+  create_pma_pass
   create_nginx_configs
   test_config
   webset
