@@ -99,7 +99,12 @@ function write_config_file() {
 
     echo "Archivo de configuración escrito correctamente."
 }
-
+#  create the schema for the PostfixAdmin database 
+function create_schema() {
+    #  create the schema for the PostfixAdmin database 
+    echo "Creando esquema para la base de datos PostfixAdmin..."
+    sudo -u "$UID" php "$WEB_DIR/public/upgrade.php"
+}
 # Función principal
 function configure_postfixadmin() {
     echo "**********CONFIGURE POSTFIXADMIN***********"
