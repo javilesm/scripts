@@ -94,3 +94,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Sets up WordPress vars and included files. */
 require_once ABSPATH . 'wp-settings.php';
+
+/* SECURITY */
+define( 'DISALLOW_FILE_EDIT', true);
+define( 'WP_DEBUG', true);
+//define( 'FORCE_SSL_LOGIN', true);
+//define( 'FORCE_SSL_ADMIN', true);
