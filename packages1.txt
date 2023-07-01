@@ -3,6 +3,7 @@ ca-certificates
 apt-transport-https
 software-properties-common
 tree
+w3m
 htop
 dialog
 expect
