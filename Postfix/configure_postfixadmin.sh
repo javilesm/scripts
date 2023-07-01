@@ -5,6 +5,7 @@ CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 USERS_FILE="$PARENT_DIR/MySQL/mysql_users.csv"
 WEB_DIR="/var/www/samava-cloud/postfixadmin"
+CONFIG_FILE="$WEB_DIR/config.local.php"
 UID="www-data"
 GID="www-data"
 # Función para obtener la versión más reciente de PostfixAdmin desde Sourceforge
@@ -45,7 +46,7 @@ function move_dir() {
 function create_config() {
     # crear el archivo de configuracion
     echo "Creando el archivo de configuracion..."
-    sudo touch "$WEB_DIR/config.local.php"
+    sudo touch "$CONFIG_FILE"
 }
 # Función para leer la lista de usuarios
 function read_users_file() {
@@ -63,6 +64,42 @@ function read_users_file() {
         fi
     done < "$USERS_FILE"
 }
+# Función para escribir el contenido en el archivo de configuración
+function write_config_file() {
+    echo "<?php
+\$CONF['configured'] = true;
+
+\$CONF['database_type'] = 'mysqli';
+\$CONF['database_host'] = '$h';
+\$CONF['database_user'] = '$u';
+\$CONF['database_password'] = '$p';
+\$CONF['database_name'] = '$d';
+
+\$CONF['default_aliases'] = array (
+ 'abuse' => 'abuse@avilesworks.com',
+ 'hostmaster' => 'hostmaster@avilesworks.com',
+ 'postmaster' => 'postmaster@avilesworks.com',
+ 'webmaster' => 'webmaster@avilesworks.com'
+);
+
+\$CONF['fetchmail'] = 'NO';
+\$CONF['show_footer_text'] = 'NO';
+
+\$CONF['quota'] = 'YES';
+\$CONF['domain_quota'] = 'YES';
+\$CONF['quota_multiplier'] = '1024000';
+\$CONF['used_quotas'] = 'YES';
+\$CONF['new_quota_table'] = 'YES';
+
+\$CONF['aliases'] = '0';
+\$CONF['mailboxes'] = '0';
+\$CONF['maxquota'] = '0';
+\$CONF['domain_quota_default'] = '0';
+?>" > "$CONFIG_FILE"
+
+    echo "Archivo de configuración escrito correctamente."
+}
+
 # Función principal
 function configure_postfixadmin() {
     echo "**********CONFIGURE POSTFIXADMIN***********"
@@ -71,6 +108,7 @@ function configure_postfixadmin() {
     move_dir
     create_config
     read_users_file
+    write_config_file
     echo "**************ALL DONE***************"
 }
 # Llamar a la función principal
