@@ -20,6 +20,8 @@ WP_CONFIG_FILE="wp-config.php"
 WP_CONFIG_PATH="$WORDPRESS_DIR/$WP_CONFIG_FILE"
 MYSQL_USERS_FILE="mysql_users.csv"
 MYSQL_USERS_PATH="$PARENT_DIR/MySQL/$MYSQL_USERS_FILE"
+NGINX_PATH="/etc/nginx/"
+NGINX_CONF="$NGINX_PATH/nginx.conf"
 # Función para agregar una entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema
 function add_cron_entry() {
   local cron_entry="@reboot sudo service nginx restart"
@@ -272,7 +274,13 @@ function edit_wp_config() {
 
   echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada y configurada en '$contador' directorios."
 }
-
+# Función para reemplazar el archivo de configuracion original por uno optimizado
+function change_conf() {
+  # reemplazar el archivo de configuracion original por uno optimizado
+  echo "Reemplazano el archivo de configuracion original '$NGINX_CONF' por uno optimizado..."
+  sudo rm "$NGINX_CONF"
+  sudo cp "$CURRENT_DIR/nginx.conf" "$NGINX_PATH"
+}
 function restart_services() {
   echo "Deteniendo el servicio apache2..."
   sudo service apache2 stop
@@ -307,6 +315,7 @@ function nginx_config() {
   test_config
   install_wp
   edit_wp_config
+  #change_conf
   restart_services
   echo "*************ALL DONE**************"
 }
