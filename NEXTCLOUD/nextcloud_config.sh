@@ -196,6 +196,23 @@ server {
     }
 
     # Configuración adicional según tus necesidades...
+    location /phpmyadmin {
+        root /usr/share/;
+        index index.php index.html index.htm;
+    }
+
+    location ~ ^/phpmyadmin/(.+\.php)$ {
+        try_files \$uri /index.php;
+        root /usr/share/;
+        fastcgi_pass unix:/run/php/php$version_number-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include /etc/nginx/fastcgi_params;
+    }
+
+    location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+        root /usr/share/;
+    }
 }" | sudo tee "$config_path" > /dev/null
 
   echo "Archivo de configuración creado: $config_path"
