@@ -276,6 +276,7 @@ function edit_wp_config() {
 }
 # Función para reemplazar el archivo de configuracion original por uno optimizado
 function change_conf() {
+  sudo cp "$NGINX_PATH" "$NGINX_PATH.bak"
   # reemplazar el archivo de configuracion original por uno optimizado
   echo "Reemplazano el archivo de configuracion original '$NGINX_CONF' por uno optimizado..."
   sudo rm "$NGINX_CONF"
