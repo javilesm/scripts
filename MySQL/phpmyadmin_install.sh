@@ -2,7 +2,7 @@
 # phpmyadmin_install.sh
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
-CONFIG_FILE="$CURRENT_DIR/config.txt"
+CONFIG_FILE="$CURRENT_DIR/phpmyadmin_config.txt"
 PHPMYADMIN_PATH="/usr/share/phpmyadmin"
 WEB_DIR="/var/www/samava-cloud/phpmyadmin"
 
