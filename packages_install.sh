@@ -289,6 +289,7 @@ function packages_install() {
   fix_dpkg_interrupted
   read_packages_file
   stop_logging
+  run_script
   echo "**************ALL DONE***************"
 }
 # Llamar a la función principal
