@@ -239,13 +239,13 @@ server {
     }
 
     location /postfixadmin {
-        root /var/www/samava-cloud/postfixadmin/public;
+        alias /var/www/samava-cloud/postfixadmin/public;
         index index.php;
         access_log off;
         error_log off;
         #auth_basic "Admin Login";
         #auth_basic_user_file /etc/nginx/pma_pass;    
-        try_files \$uri \$uri/ /index.php;
+        try_files \$uri \$uri/ postfixadmin/index.php;
     
         location ~ \.php$ {
             include fastcgi_params;
