@@ -169,6 +169,8 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        #auth_basic "Admin Login";
+        #auth_basic_user_file /etc/nginx/pma_pass;
     }
     
     # Configura la ubicación de los archivos de caché
@@ -218,8 +220,8 @@ server {
         index index.php;
         access_log off;
         error_log off;
-        auth_basic "Admin Login";
-        auth_basic_user_file /etc/nginx/pma_pass;    
+        #auth_basic "Admin Login";
+        #auth_basic_user_file /etc/nginx/pma_pass;    
         try_files \$uri \$uri/ /index.php;
     }
 
@@ -238,6 +240,26 @@ server {
 
     location ~ ^/(doc|sql|setup)/ {
         deny all;
+    }
+
+    location /postfixadmin {
+        root /var/www/samava-cloud/postfixadmin/public;
+        index index.php;
+        access_log off;
+        error_log off;
+        #auth_basic "Admin Login";
+        #auth_basic_user_file /etc/nginx/pma_pass;    
+        try_files \$uri \$uri/ /index.php;
+    
+        location ~ \.php$ {
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME \$request_filename;
+            fastcgi_pass unix:/var/run/php/php$version_number-fpm.sock;
+        }
+
+        location ~ /\.ht {
+            deny all;
+        }
     }
 }" | sudo tee "$config_path" > /dev/null
 
