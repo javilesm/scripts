@@ -18,8 +18,8 @@ react_root="$HTML_PATH/$react_dir"
 django_root="$HTML_PATH/$django_dir"
 GID_NAME="www-data"
 UID_NAME="www-data"
-CERTS_FILE="generate_certs.sh"
-CERTS_PATH="$PARENT_DIR/Dovecot/$CERTS_FILE"
+CERTS_FILE="nginx_generate_certs.sh"
+CERTS_PATH="$CURRENT_PATH/$CERTS_FILE"
 
 # Función para leer la variable KEY_PATH desde el script '$CERTS_PATH'
 function read_KEY_PATH() {
@@ -33,7 +33,7 @@ function read_KEY_PATH() {
 
         # Imprimir el valor actual de la variable KEY_PATH
         echo "El valor del KEY_PATH definido es: $KEY_PATH"
-        echo "El valor del PEM_PATH definido es: $PEM_PATH"
+        echo "El valor del CRT_PATH definido es: $CRT_PATH"
     else
         echo "El archivo '$CERTS_PATH' no existe."
     fi
@@ -100,13 +100,18 @@ function create_nginx_configs() {
 server {
     listen 443 ssl;
     server_name $server_ip;
-    
-    # Configura los certificados SSL
-    ssl_certificate  $PEM_PATH;
-    ssl_certificate_key  $KEY_PATH;
-
     root $HTML_PATH/html;
     index index.html;
+    server_tokens    off;
+    
+    # Configuracion SSL
+    ssl_certificate  $CRT_PATH;
+    ssl_certificate_key  $KEY_PATH;
+    ssl    on;
+    ssl_session_cache    builtin:1000    shared:SSL:10m;
+    ssl_protocols    TLSv1.3;
+    ssl_ciphers    "HIGH !aNULL !eNULL !EXPORT !CAMELLIA !DES !MD5 !PSK !RC4";
+    ssl_prefer_server_ciphers on;
 
     location /static/admin {
         alias $django_root/venv/lib/python3.10/site-packages/django/contrib/admin/static/admin;
