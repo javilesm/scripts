@@ -34,12 +34,15 @@ function generate_key() {
         echo "La llave '$KEY_PATH' ya existe."
         return 0
     fi
-    # generar la llave privada 
-    echo "Generando la llave privada ..."
-    if sudo openssl genrsa -des3 -out "$KEY_PATH" 2048; then
+
+    # Generar la llave privada y certificado autofirmado
+    echo "Generando la llave privada..."
+    if sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$KEY_PATH" -out "$CRT_PATH" \
+        -subj "/C=US/ST=State/L=City/O=Organization/CN=$DOMAIN"; then
         echo "Se ha creado la llave: $KEY_PATH."
     else
-        echo "ERROR:Error al generar la llave '$KEY_PATH'."
+        echo "ERROR: Error al generar la llave '$KEY_PATH'."
         return 1
     fi
 }
@@ -49,12 +52,13 @@ function generate_csr() {
         echo "El requerimiento '$CSR_PATH' ya existe."
         return 0
     fi
-    # generar el requerimiento  
+    # Generar el requerimiento  
     echo "Generando el requerimiento  ..."
-    if sudo openssl req -new -key "$KEY_PATH" -out "$CSR_PATH"; then
+    if sudo openssl req -new -key "$KEY_PATH" -out "$CSR_PATH" \
+        -subj "/C=US/ST=State/L=City/O=Organization/CN=$DOMAIN"; then
         echo "Se ha creado el requerimiento: $CSR_PATH."
     else
-        echo "ERROR:Error al generar el requerimiento '$CSR_PATH'."
+        echo "ERROR: Error al generar el requerimiento '$CSR_PATH'."
         return 1
     fi
 }
