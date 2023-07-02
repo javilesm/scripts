@@ -107,10 +107,9 @@ server {
     # Configuracion SSL
     ssl_certificate  $CRT_PATH;
     ssl_certificate_key  $KEY_PATH;
-    ssl    on;
     ssl_session_cache    builtin:1000    shared:SSL:10m;
     ssl_protocols    TLSv1.3;
-    ssl_ciphers    "HIGH !aNULL !eNULL !EXPORT !CAMELLIA !DES !MD5 !PSK !RC4";
+    ssl_ciphers    \"HIGH !aNULL !eNULL !EXPORT !CAMELLIA !DES !MD5 !PSK !RC4\";
     ssl_prefer_server_ciphers on;
 
     location /static/admin {
