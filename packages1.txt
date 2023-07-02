@@ -15,6 +15,7 @@ openssl
 dnsutils
 zip
 snapd
+snapd-store
 jq
 fail2ban
 postgresql
