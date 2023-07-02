@@ -94,24 +94,16 @@ function create_nginx_configs() {
   echo "server {
     listen 80;
     server_name $server_ip;
-    return 301 https://\$host\$request_uri;       
+    return 302 https://\$server_name\$request_uri;      
 }
 
 server {
     listen 443 ssl;
+    include snippets/self-signed.conf;
     server_name $server_ip;
     root $HTML_PATH/html;
     index index.html;
-    server_tokens    off;
     
-    # Configuracion SSL
-    ssl_certificate  $CRT_PATH;
-    ssl_certificate_key  $KEY_PATH;
-    ssl_session_cache    builtin:1000    shared:SSL:10m;
-    ssl_protocols    TLSv1.3;
-    ssl_ciphers    \"HIGH !aNULL !eNULL !EXPORT !CAMELLIA !DES !MD5 !PSK !RC4\";
-    ssl_prefer_server_ciphers on;
-
     location /static/admin {
         alias $django_root/venv/lib/python3.10/site-packages/django/contrib/admin/static/admin;
     }
