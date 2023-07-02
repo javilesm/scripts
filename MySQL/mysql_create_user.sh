@@ -139,7 +139,7 @@ function apply_mysql_privileges() {
 # Función principal
 function mysql_create_user() {
     echo "**********MYSQL CREATE USER**********"
-    #run_script
+    run_script
     check_user_file
     show_users
     create_user
