@@ -40,14 +40,7 @@ function create_user() {
                 echo "ERROR: El valor de 'host' ($host) para el usuario '$username' no es válido. Debe ser 'localhost', '%' o una dirección IP válida."
                 continue 2
             fi
-            # Verificar que los valores de 'databases' sean válidos
-            echo "Verificando que el valor de "databases" sea válido para el usuario '$username'..."
-           for database in $(echo $databases | tr ',' ' '); do
-                if ! sudo mysql -e "USE $database" 2>/dev/null; then
-                    echo "ERROR: El valor de 'databases' ($database) para el usuario '$username' no es válido. No existe la base de datos '$database'."
-                    continue 2
-                fi
-            done
+            echo "Valor de host '$host' para el usuario '$username' válido."
             # Verificar que los valores de 'privileges' sean válidos
             echo "Verificando que el valor de "privileges" sea válido para el usuario '$username'..."
             valid_privileges=("ALL PRIVILEGES" "CREATE" "DROP" "ALTER" "SELECT" "INSERT" "UPDATE" "DELETE")
@@ -57,6 +50,7 @@ function create_user() {
                     continue 2
                 fi
             done
+            echo "Valor de privilegio '$privilege' para el usuario '$username' válido."
             # Crear usuario
             echo "Creando al usuario '$username'..."
             if ! sudo mysql -e "CREATE USER '$username'@'$host' IDENTIFIED BY '$password';"; then
@@ -79,13 +73,9 @@ function create_user() {
                 echo "ERROR: La base de datos '$db' no existe. No se asignarán permisos al usuario '$username' para esta base de datos."
                 continue
             fi
-            # Otorgar privilegios a cada base de datos
-            echo "Otorgando privilegios '$privileges' al usuario '$username' en las bases de datos '$databases'..."
-            for database in $(echo $databases | tr ',' ' '); do
-                echo "GRANT $privileges ON $database.* TO '$username'@'$host';"
-                sudo mysql -e "GRANT $privileges ON $database.* TO '$username'@'$host';"
-            done
         fi
+        echo "---------------------------------------------------------------------------------"
+        sleep 1
     done < <(sed -e '$a\' "$USERS_PATH")
     echo "Todos los usuarios en '$USERS_FILE' fueron creados."
 }
@@ -93,6 +83,29 @@ function create_user() {
 function show_users() {
     echo "Mostrando todos los usuarios en MySQL..."
     sudo mysql -e "SELECT User, Host, plugin FROM mysql.user;"
+}
+# Función para otorgar privilegios a usuarios MySQL
+function grant_privileges() {
+    # otorgar privilegios a usuarios MySQL
+    echo "Otorgando privilegios a usuarios MySQL..."
+    # Leer la lista de usuarios y contraseñas desde el archivo mysql_users.csv
+    while IFS="," read -r username password host databases privileges; do
+        # Verificar si el usuario ya existe
+        echo "Verificando si el usuario '$username' ya existe..."
+        if sudo mysql -e "SELECT 1 FROM mysql.user WHERE user='$username'" | grep -q 1; then
+            echo "El usuario '$username' ya existe."
+            # Otorgar privilegios a cada base de datos
+            echo "Otorgando privilegios '$privileges' al usuario '$username' en las bases de datos '$databases'..."
+            local MYSQL_SENTECE="GRANT "$privileges" ON "$databases".* TO '"$username"'@'"$host"' WITH GRANT OPTION;"
+            echo "$MYSQL_SENTECE"
+            sudo mysql -e "$MYSQL_SENTECE"
+        else
+            echo "El usuario '$username' no existe, verificando requerimientos..."  
+        fi
+        echo "---------------------------------------------------------------------------------"
+        sleep 1
+    done < <(sed -e '$a\' "$USERS_PATH")
+    echo "Se han otorgado los privilegios a todos los usuarios MySQL."
 }
 # Función para mostrar todos privilegios de un usuario en MySQL
 function show_grants() {
@@ -106,6 +119,8 @@ function show_grants() {
                 exit 1
             fi
         done
+        echo "---------------------------------------------------------------------------------"
+        sleep 1
     done < <(sed -e '$a\' "$USERS_PATH")
     echo "Todos los privilegios en '$USERS_PATH' fueron mostrados."
 }
@@ -124,11 +139,12 @@ function apply_mysql_privileges() {
 # Función principal
 function mysql_create_user() {
     echo "**********MYSQL CREATE USER**********"
-    run_script
+    #run_script
     check_user_file
     show_users
     create_user
     show_users
+    grant_privileges
     show_grants
     apply_mysql_privileges
     echo "**************ALL DONE**************"
