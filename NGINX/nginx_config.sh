@@ -21,6 +21,8 @@ WP_CONFIG_PATH="$WORDPRESS_DIR/$WP_CONFIG_FILE"
 MYSQL_USERS_FILE="mysql_users.csv"
 MYSQL_USERS_PATH="$PARENT_DIR/MySQL/$MYSQL_USERS_FILE"
 NGINX_PATH="/etc/nginx/"
+SNIPPETS_DIR="$NGINX_PATH/snippets"
+SELF_SIGNED_SNIPPET="$CURRENT_DIR/self-signed.conf"
 NGINX_CONF="$NGINX_PATH/nginx.conf"
 # Función para agregar una entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema
 function add_cron_entry() {
@@ -37,6 +39,12 @@ function add_cron_entry() {
     echo "$(sudo crontab -l 2>/dev/null; echo "$cron_entry")" | sudo crontab -
     echo "Se ha agregado la entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema."
   fi
+}
+# Función para copiar snippets
+function copy_snippets() {
+  # copiar snippets
+  echo "Copiando snippets..."
+  sudo cp "$SELF_SIGNED_SNIPPET" "$SNIPPETS_DIR"
 }
 # Función para crear el directorio principal de Nginx
 function mkdir() {
