@@ -89,6 +89,10 @@ function write_config_file() {
 
     echo "Archivo de configuración escrito correctamente."
 }
+function mkdir_templates_c() {
+    sudo mkdir -p "$WEB_DIR/templates_c"
+    sudo chown -R www-data "$WEB_DIR/templates_c"
+}
 #  create the schema for the PostfixAdmin database 
 function create_schema() {
     #  create the schema for the PostfixAdmin database 
@@ -104,6 +108,8 @@ function configure_postfixadmin() {
     create_config
     read_users_file
     write_config_file
+    mkdir_templates_c
+    create_schema
     echo "**************ALL DONE***************"
 }
 # Llamar a la función principal
