@@ -151,11 +151,17 @@ function create_nginx_configs() {
     echo "server {
     listen 80;
     server_name $hostname *.$hostname;
+    return 302 https://\$server_name\$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    include snippets/self-signed.conf;
+    server_name $hostname *.$hostname;
     root $site_root;
     index index.php;
 
     location / {
-        #try_files \$uri \$uri/ =404;
         try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
 
