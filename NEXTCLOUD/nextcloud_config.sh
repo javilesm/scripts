@@ -19,7 +19,7 @@ django_root="$HTML_PATH/$django_dir"
 GID_NAME="www-data"
 UID_NAME="www-data"
 CERTS_FILE="nginx_generate_certs.sh"
-CERTS_PATH="$CURRENT_PATH/$CERTS_FILE"
+CERTS_PATH="$PARENT_DIR/NGINX/$CERTS_FILE"
 
 # Función para leer la variable KEY_PATH desde el script '$CERTS_PATH'
 function read_KEY_PATH() {
