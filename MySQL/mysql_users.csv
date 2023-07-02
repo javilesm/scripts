@@ -8,5 +8,5 @@ darkobsidian,darkobsidian,localhost,smoky_silicon,ALL PRIVILEGES
 clearquartz,clearquartz,localhost,pure_iron,ALL PRIVILEGES
 yellowtopaz,yellowtopaz,localhost,spicy_sodium,ALL PRIVILEGES
 whiteopal,whiteopal,localhost,delicate_mercury,ALL PRIVILEGES
-postfixadmin,postfixadmin,localhost,*,ALL PRIVILEGES
-phpmyadmin,phpmyadmin,localhost,*,ALL PRIVILEGES
+postfixadmin,postfixadmin,localhost,postfixadmin,ALL PRIVILEGES
+phpmyadmin,phpmyadmin,localhost,phpmyadmin,ALL PRIVILEGES
