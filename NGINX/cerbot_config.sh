@@ -21,6 +21,7 @@ function read_domains_list() {
     while IFS= read -r hostname; do
         echo "Hostname: $hostname"
         generate_ssl_certificate "$hostname"
+        #dry_run "$hostname"
     done < <(grep -v '^$' "$DOMAINS_LIST")
     echo "Todos los dominios han sido procesados."
 }
@@ -36,7 +37,8 @@ function generate_ssl_certificate() {
         echo "Error al generar el certificado SSL para el dominio '$domain' con Certbot (código de salida: $exit_code)"
         exit 1
     fi
-
+}
+function dry_run() {
     echo "Ejecutando prueba de renovación de certificado SSL para el dominio '$domain'..."
     sudo certbot renew --dry-run
     exit_code=$?
@@ -47,14 +49,13 @@ function generate_ssl_certificate() {
         exit 1
     fi
 }
-
 # Reiniciar Nginx
 function start_nginx() {
     echo "Iniciando Nginx..."
-    sudo systemctl start nginx
+    sudo killall nginx
+    sudo service nginx start
     echo "Nginx iniciado"
 }
-
 # Función principal
 function cerbot_config() {
     echo "**********CERBOT CONFIG**********"
