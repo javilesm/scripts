@@ -21,9 +21,8 @@ WP_CONFIG_PATH="$WORDPRESS_DIR/$WP_CONFIG_FILE"
 MYSQL_USERS_FILE="mysql_users.csv"
 MYSQL_USERS_PATH="$PARENT_DIR/MySQL/$MYSQL_USERS_FILE"
 NGINX_PATH="/etc/nginx/"
-SNIPPETS_DIR="$NGINX_PATH/snippets"
-SELF_SIGNED_SNIPPET="$CURRENT_DIR/self-signed.conf"
 NGINX_CONF="$NGINX_PATH/nginx.conf"
+CERBOT_SCRIPT="$CURRENT_DIR/cerbot_config.sh"
 # Función para agregar una entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema
 function add_cron_entry() {
   local cron_entry="@reboot sudo service nginx restart"
@@ -39,12 +38,6 @@ function add_cron_entry() {
     echo "$(sudo crontab -l 2>/dev/null; echo "$cron_entry")" | sudo crontab -
     echo "Se ha agregado la entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema."
   fi
-}
-# Función para copiar snippets
-function copy_snippets() {
-  # copiar snippets
-  echo "Copiando snippets..."
-  sudo cp "$SELF_SIGNED_SNIPPET" "$SNIPPETS_DIR"
 }
 # Función para crear el directorio principal de Nginx
 function mkdir() {
@@ -94,19 +87,18 @@ function validate_script() {
 }
 # Función para ejecutar el configurador de Postfix
 function run_script() {
-  echo "Ejecutar el configurador '$PARTITIONS_SCRIPT'..."
+  echo "Ejecutando el script '$PARTITIONS_SCRIPT'..."
     # Intentar ejecutar el archivo de configuración de Postfix
   if sudo bash "$PARTITIONS_PATH"; then
-    echo "El archivo '$PARTITIONS_SCRIPT' se ha ejecutado correctamente."
+    echo "El script '$PARTITIONS_SCRIPT' se ha ejecutado correctamente."
   else
-    echo "ERROR: No se pudo ejecutar el archivo '$PARTITIONS_SCRIPT'."
+    echo "ERROR: No se pudo ejecutar el script '$PARTITIONS_SCRIPT'."
     exit 1
   fi
-  echo "Configurador '$PARTITIONS_SCRIPT' ejecutado."
+  echo "Script '$PARTITIONS_SCRIPT' ejecutado."
 }
 # Función para leer la lista de dominios y crear los directorios web
 function create_webdirs() {
-  
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
     while read -r hostname; do
@@ -151,17 +143,11 @@ function create_nginx_configs() {
     echo "server {
     listen 80;
     server_name $hostname *.$hostname;
-    return 302 https://\$server_name\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    include snippets/self-signed.conf;
-    server_name $hostname *.$hostname;
     root $site_root;
     index index.php;
 
     location / {
+        #try_files \$uri \$uri/ =404;
         try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
 
@@ -195,6 +181,26 @@ function test_config() {
     echo "ERROR: Hubo un problema con la configuración de Nginx."
     exit 1
   fi
+}
+# Función para reemplazar el archivo de configuracion original por uno optimizado
+function change_conf() {
+  sudo cp "$NGINX_PATH" "$NGINX_PATH.bak"
+  # reemplazar el archivo de configuracion original por uno optimizado
+  echo "Reemplazano el archivo de configuracion original '$NGINX_CONF' por uno optimizado..."
+  sudo rm "$NGINX_CONF"
+  sudo cp "$CURRENT_DIR/nginx.conf" "$NGINX_PATH"
+}
+# Función para ejecutar script Cerbot SSL
+function run_cerbot_script() {
+  echo "Ejecutando el script '$CERBOT_SCRIPT'..."
+    # Intentar ejecutar el archivo de configuración de Postfix
+  if sudo bash "$CERBOT_SCRIPT"; then
+    echo "El script '$CERBOT_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el script '$CERBOT_SCRIPT'."
+    exit 1
+  fi
+  echo "Script '$CERBOT_SCRIPT' ejecutado."
 }
 # Función para leer la lista de dominios e instalar wordpress en cada sitio
 function install_wp() {
@@ -288,14 +294,7 @@ function edit_wp_config() {
 
   echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada y configurada en '$contador' directorios."
 }
-# Función para reemplazar el archivo de configuracion original por uno optimizado
-function change_conf() {
-  sudo cp "$NGINX_PATH" "$NGINX_PATH.bak"
-  # reemplazar el archivo de configuracion original por uno optimizado
-  echo "Reemplazano el archivo de configuracion original '$NGINX_CONF' por uno optimizado..."
-  sudo rm "$NGINX_CONF"
-  sudo cp "$CURRENT_DIR/nginx.conf" "$NGINX_PATH"
-}
+
 function restart_services() {
   echo "Deteniendo el servicio apache2..."
   sudo service apache2 stop
@@ -328,9 +327,10 @@ function nginx_config() {
   get_php_fpm_version
   create_nginx_configs
   test_config
+  change_conf
+  run_cerbot_script
   install_wp
   edit_wp_config
-  #change_conf
   restart_services
   echo "*************ALL DONE**************"
 }
