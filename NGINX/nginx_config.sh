@@ -141,7 +141,6 @@ function create_nginx_configs() {
     config_path="/etc/nginx/sites-available/$host"
     # Crear el archivo de configuración
     echo "server {
-    listen 80;
     server_name $hostname *.$hostname;
     root $site_root;
     index index.php;
