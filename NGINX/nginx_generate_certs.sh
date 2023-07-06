@@ -89,17 +89,14 @@ function generate_csr_file() {
     fi
     # Generar el requerimiento  
     echo "Generando el requerimiento  ..."
-    if sudo openssl req -new -sha256 -key "$PEM_PATH" -out "$CSR_PATH" \
-        -subj "/C=US/ST=State/L=City/O=Organization/CN=$DOMAIN"; then
+    if sudo openssl req -new -sha256 -subj "/CN=$DOMAIN" -key "$PEM_PATH" -out "$CSR_PATH"; then
         echo "Se ha creado el requerimiento: $CSR_PATH."
     else
         echo "ERROR: Error al generar el requerimiento '$CSR_PATH'."
         return 1
     fi
 }
-function create_extfile() {
-    echo "subjectAltName=DNS:*.$DOMAIN,IP:3.220.58.75" >> extfile.cnf
-}
+
 # Función para generar la llave privada 
 function generate_key() {
     if [ -e "$KEY_PATH" ]; then
@@ -109,16 +106,34 @@ function generate_key() {
 
     # Generar la llave privada y certificado autofirmado
     echo "Generando la llave privada..."
-    if sudo openssl x509 -req -sha256 -days 365 -in "$CSR_PATH" -CA "$CA_CERT_PATH" -CAkey "$CA_KEY_PATH" -out cert.pem -extfile extfile.cnf -CAcreateserial; then
+    if sudo openssl x509 -req -sha256 -days 3650 -in "$CSR_PATH" -CA "$CA_CERT_PATH" -CAkey "$CA_KEY_PATH" -out $CERTS_PATH/cert.pem -CAcreateserial; then
         echo "Se ha creado la llave: $KEY_PATH."
     else
         echo "ERROR: Error al generar la llave '$KEY_PATH'."
         return 1
     fi
 }
-function merge_certs() {
-    sudo cat cert.pem > fullchain.pem
-    sudo cat "$CA_CERT_PATH" >> .\fullchain.pem
+# Función para mover el certificado de la CA
+function move_ca_certificate() {
+    echo "Moviendo el certificado '$CA_CERT_PATH'..."
+    if [ -e "$CA_CERT_PATH" ]; then
+        if sudo mv "$CA_CERT_PATH" /usr/share/ca-certificates/ca.crt; then
+            echo "El certificado se movió correctamente."
+            echo "Actualizando los certificados del sistema..."
+            if sudo update-ca-certificates; then
+                echo "Los certificados del sistema se han actualizado correctamente."
+            else
+                echo "ERROR: Error al actualizar los certificados del sistema."
+                return 1
+            fi
+        else
+            echo "ERROR: Error al mover el certificado '$CA_CERT_PATH' a /usr/share/ca-certificates/ca.crt."
+            return 1
+        fi
+    else
+        echo "ERROR: El certificado '$CA_CERT_PATH' no existe."
+        return 1
+    fi
 }
 # Función principal
 function nginx_generate_certs() {
@@ -128,9 +143,8 @@ function nginx_generate_certs() {
     generate_ca_pem
     generate_pem_file
     generate_csr_file
-    create_extfile
     generate_key
-    merge_certs
+    move_ca_certificate
     echo "******************ALL DONE******************"
 }
 # Llama a la función princial
