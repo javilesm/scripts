@@ -7,7 +7,6 @@ host="samava-cloud"
 nextcloud_dir="nextcloud"
 react_dir="react-app"
 django_dir="django_project"
-server_ip="3.220.58.75"
 HTML_PATH="/var/www/$host"
 NGINX_DIR="/etc/nginx"
 PMA_PASS_FILE="$NGINX_DIR/pma_pass"
@@ -20,25 +19,15 @@ GID_NAME="www-data"
 UID_NAME="www-data"
 CERTS_FILE="nginx_generate_certs.sh"
 CERTS_PATH="$PARENT_DIR/NGINX/$CERTS_FILE"
+# Funcion para obtener la dirección IP pública de la instancia EC2
+function get_ip() {
+    # Obtener la dirección IP pública de la instancia EC2
+    echo "Obteniendo la dirección IP pública de la instancia EC2..."
+    ip_address=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
-# Función para leer la variable KEY_PATH desde el script '$CERTS_PATH'
-function read_KEY_PATH() {
-    # Verificar si el archivo existe
-    if [ -f "$CERTS_PATH" ]; then
-        # Cargar el contenido del archivo 'generate_certs.sh' en una variable
-        file_contents=$(<"$CERTS_PATH")
-
-        # Evaluar la cadena para expandir las variables
-        eval "$file_contents"
-
-        # Imprimir el valor actual de la variable KEY_PATH
-        echo "El valor del KEY_PATH definido es: $KEY_PATH"
-        echo "El valor del CRT_PATH definido es: $CRT_PATH"
-    else
-        echo "El archivo '$CERTS_PATH' no existe."
-    fi
+    # Imprimir la dirección IP en la consola
+    echo "La dirección IP pública de la instancia EC2 es: $ip_address"
 }
-
 function uninstall_apache2() {
   echo "Desintalando apache2 del sistema...."
   sudo systemctl stop apache2
@@ -92,15 +81,7 @@ function create_nginx_configs() {
   # Editar el archivo de configuración
   
   echo "server {
-    listen 80;
-    server_name $server_ip;
-    return 302 https://\$server_name\$request_uri;      
-}
-
-server {
-    listen 443 ssl;
-    include snippets/self-signed.conf;
-    server_name $server_ip;
+    server_name $ip_address;
     root $HTML_PATH/html;
     index index.html;
     
@@ -257,6 +238,23 @@ server {
             deny all;
         }
     }
+
+    listen 443 ssl;
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/server-cert.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+server {
+    if ($host = $ip_address) {
+        return 301 https://$host/home;
+    }
+
+    listen 80;
+    server_name $ip_address;
+    return 404; 
+
 }" | sudo tee "$config_path" > /dev/null
 
   echo "Archivo de configuración creado: $config_path"
@@ -303,17 +301,17 @@ function configure_nextcloud() {
 
 # Función principal
 function nextcloud_config() {
-  echo "**********NEXTCLOUD CONFIGURATOR***********"
-  read_KEY_PATH
-  uninstall_apache2
-  restart_nginx
-  get_php_fpm_version
-  create_pma_pass
-  create_nginx_configs
-  test_config
-  webset
-  configure_nextcloud
-  echo "**********ALL DONE***********"
+    echo "**********NEXTCLOUD CONFIGURATOR***********"
+    get_ip
+    uninstall_apache2
+    restart_nginx
+    get_php_fpm_version
+    create_pma_pass
+    create_nginx_configs
+    test_config
+    webset
+    configure_nextcloud
+    echo "**********ALL DONE***********"
 }
 # Llamar a la función principal
 nextcloud_config
