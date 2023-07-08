@@ -7,7 +7,7 @@ AWS_CONFIG="$PARENT_DIR/AWS/aws_config.sh"
 SOURCE_DIR=$(dirname "$(readlink -f "$0")") # Obtener el directorio padre del script
 BUCKET="s3://ec2-safety-vault" # Bucket de Amazon S3 para el respaldo
 DESTINATION_DIR="$BUCKET/vol-07fa8e9b466bbe2eb" # Directorio de respaldo remoto
-BACKUP_DIR="backup" # Directorio de respaldo local
+BACKUP_DIR="backups" # Directorio de respaldo local
 BACKUP_PATH="$HOME/$BACKUP_DIR" # Ruta del directorio local
 BACKUP_FILE="backup_$SOURCE_DIR_$(date +%Y%m%d_%H%M%S).tar.gz" # Nombre del archivo de respaldo
 source "$AWS_CONFIG"
