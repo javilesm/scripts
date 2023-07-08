@@ -6,6 +6,24 @@ LOG_DIR="/var/log/ec2snap"
 LOG_FILE="$LOG_DIR/backup_log_$(date +%Y%m%d).txt" # Nombre del archivo de registro
 BACKUP_DIR="/var/ec2snap" # Directorio temporal para archivo comprimido
 BACKUP_FILE="snapshot_$(date +%Y%m%d_%H%M%S).tar.gz" # Nombre del archivo de respaldo
+# Función para comprobar si la ruta de respaldo está montada
+function check_mount() {
+    # Comprobar si la ruta de respaldo está montada
+    echo "Comprobando si la ruta de respaldo está montada..."
+    mount_point=$(df --output=target "$BACKUP_DIR" | tail -n 1)
+    if [ "$mount_point" != "$BACKUP_DIR" ]; then
+        echo "La ruta de respaldo '$BACKUP_DIR' no está montada."
+        # Aquí puedes agregar el procedimiento de montaje adecuado para tu sistema
+        # Por ejemplo, puedes usar el comando 'mount' con los parámetros necesarios
+        # o invocar otro script para montar la unidad requerida.
+        # Después de montar la unidad, puedes verificar nuevamente si está montada correctamente.
+        # Si el montaje es exitoso, puedes continuar con la copia de seguridad.
+        # De lo contrario, puedes mostrar un mensaje de error y salir del script.
+    else
+        echo "La ruta de respaldo '$BACKUP_DIR' está montada."
+    fi
+}
+
 # Función para verificar la existencia del directorio temporal para archivo comprimido
 function check_log_dir() {
     # verificar la existencia del directorio temporal
@@ -67,18 +85,19 @@ function report() {
 }
 # Función principal
 function ec2snap() {
+    check_mount
     check_log_dir
     check_backup_dir
-  # Inicio del programa
-  inicio=$(date +%s)  # Tomar la hora de inicio del respaldo
-  compress_dir
-  calculate_size
-  # Calcular el tiempo transcurrido
-  fin=$(date +%s)  # Tomar la hora de fin del respaldo
-  tiempo_transcurrido=$((fin - inicio))  # Calcular el tiempo transcurrido en segundos
-  # Fin
-  echo "Registrando información de la copia de seguridad en $LOG_FILE..."
-  report
+      # Inicio del programa
+      inicio=$(date +%s)  # Tomar la hora de inicio del respaldo
+      compress_dir
+      calculate_size
+      # Calcular el tiempo transcurrido
+      fin=$(date +%s)  # Tomar la hora de fin del respaldo
+      tiempo_transcurrido=$((fin - inicio))  # Calcular el tiempo transcurrido en segundos
+      # Fin
+      echo "Registrando información de la copia de seguridad en $LOG_FILE..."
+      report
 }
 # Llamar a la funcion principal
 ec2snap
