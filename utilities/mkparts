@@ -66,6 +66,7 @@ function confirm() {
     echo "El usuario confirmó la ejecución."
     # Coloca aquí las acciones a realizar si el usuario confirma
     format_parts
+    check_mountung_path
     iteration
     edit_fstab
   else  
@@ -84,11 +85,23 @@ function format_parts() {
   echo "Filtrando la unidad de disco xvdf:"
   lsblk --paths | grep $unidad
 }
-
+function check_mountung_path() {
+  MOUNTING_PATH="/var/$MOUNTING_POINT"
+    # verificar la existencia del punto de montaje
+    echo "Verificando la existencia del directorio temporal..."
+    if [ -d "$MOUNTING_PATH" ]; then
+        echo "El punto de montaje '$MOUNTING_PATH' existe."
+    else
+        echo "ERROR: El punto de montaje '$MOUNTING_PATH' no existe."
+        echo "Creando el punto de montaje '$MOUNTING_PATH'."
+        sudo mkdir -p "$MOUNTING_PATH" 
+        sudo chmod 777 "$MOUNTING_PATH"
+    fi
+}
 function iteration() {
   # Obtenemos la partición correspondiente
   particion="/dev/${unidad}"
-  MOUNTING_PATH="/var/$MOUNTING_POINT"
+  
   # Montar la partición
   echo "Montando la partición: '$particion' --> '$MOUNTING_PATH'"
   if sudo mount "$particion" "$MOUNTING_PATH"; then
