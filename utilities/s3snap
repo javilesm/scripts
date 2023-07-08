@@ -4,20 +4,53 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 AWS_CONFIG="$PARENT_DIR/AWS/aws_config.sh"
-SOURCE_DIR=$(dirname "$(readlink -f "$0")") # Obtener el directorio padre del script
+SOURCE_DIR="/home/ubuntu/scripts" # Obtener el directorio padre del script
 BUCKET="s3://ec2-safety-vault" # Bucket de Amazon S3 para el respaldo
 DESTINATION_DIR="$BUCKET/vol-07fa8e9b466bbe2eb" # Directorio de respaldo remoto
-BACKUP_DIR="backups" # Directorio de respaldo local
-BACKUP_PATH="$HOME/$BACKUP_DIR" # Ruta del directorio local
+BACKUP_DIR="/var/s3snap" # Directorio temporal para archivo comprimido
 BACKUP_FILE="backup_$SOURCE_DIR_$(date +%Y%m%d_%H%M%S).tar.gz" # Nombre del archivo de respaldo
-source "$AWS_CONFIG"
-# Funcion para comprobar si el directorio de respaldo existe
-function check_backup_path() {
-    # Comprobar si el directorio de respaldo existe
-    echo "Comprobando si el directorio de respaldo existe..."
-    if [ ! -d "$BACKUP_PATH" ]; then
-        echo "El directorio de respaldo no existe. Creando directorio..."
-        sudo mkdir -p "$BACKUP_PATH"
+LOG_DIR="/var/log/s3snap"
+LOG_FILE="$LOG_DIR/backup_log_$(date +%Y%m%d).txt" # Nombre del archivo de registro
+#source "$AWS_CONFIG"
+# Función para comprobar si la ruta de respaldo está montada
+function check_mount() {
+    # Comprobar si la ruta de respaldo está montada
+    echo "Comprobando si la ruta de respaldo está montada..."
+    mount_point=$(df --output=target "$BACKUP_DIR" | tail -n 1)
+    if [ "$mount_point" != "$BACKUP_DIR" ]; then
+        echo "La ruta de respaldo '$BACKUP_DIR' no está montada."
+        # Aquí puedes agregar el procedimiento de montaje adecuado para tu sistema
+        # Por ejemplo, puedes usar el comando 'mount' con los parámetros necesarios
+        # o invocar otro script para montar la unidad requerida.
+        # Después de montar la unidad, puedes verificar nuevamente si está montada correctamente.
+        # Si el montaje es exitoso, puedes continuar con la copia de seguridad.
+        # De lo contrario, puedes mostrar un mensaje de error y salir del script.
+    else
+        echo "La ruta de respaldo '$BACKUP_DIR' está montada."
+    fi
+}
+# Función para verificar la existencia del directorio temporal para archivo comprimido
+function check_log_dir() {
+    # verificar la existencia del directorio temporal
+    echo "Verificando la existencia del directorio temporal..."
+    if [ -d "$LOG_DIR" ]; then
+        echo "El directorio de respaldo '$LOG_DIR' existe."
+    else
+        echo "ERROR: El directorio de respaldo '$LOG_DIR' no existe."
+        echo "Creando el directorio de respaldo '$LOG_DIR'."
+        sudo mkdir -p "$LOG_DIR" 
+        sudo chmod 777 "$LOG_DIR" 
+    fi
+}
+function check_backup_dir() {
+    # verificar la existencia del directorio temporal
+    echo "Verificando la existencia del directorio temporal..."
+    if [ -d "$BACKUP_DIR" ]; then
+        echo "El directorio de respaldo '$BACKUP_DIR' existe."
+    else
+        echo "ERROR: El directorio de respaldo '$BACKUP_DIR' no existe."
+        echo "Creando el directorio de respaldo '$BACKUP_DIR'."
+        sudo mkdir -p "$BACKUP_DIR" 
     fi
 }
 # Funcion para limpiar respaldos viejos
@@ -25,7 +58,7 @@ function clean_up() {
     # Comprobar si hay archivos en el directorio de respaldo
     echo "Comprobando si hay archivos en el directorio de respaldo..."
     shopt -s nullglob
-    files=("$BACKUP_PATH"/*)
+    files=("$BACKUP_DIR"/*)
     if [ ${#files[@]} -eq 0 ]; then
         echo "ADVERTENCIA: No hay archivos en el directorio de respaldo."
         return
@@ -33,25 +66,27 @@ function clean_up() {
 
     # Limpiar respaldos viejos
     echo "Limpiando respaldos viejos..."
-    sudo rm -f ${BACKUP_PATH:?}/*
+    sudo rm -f ${BACKUP_DIR:?}/*
     sleep 5
 }
 # Funcion para comprimir el directorio de origen en un archivo tar.gz
 function compress_source(){
     # comprimir el directorio de origen en un archivo tar.gz
-    echo "Comprimiendo el directorio '$SOURCE_DIR' con destino '$BACKUP_PATH'..."
-    sudo tar czf "$BACKUP_PATH/$BACKUP_FILE" -C "$SOURCE_DIR" .
+    echo "Comprimiendo el directorio '$SOURCE_DIR' con destino '$BACKUP_DIR'..."
+    sudo tar czf "$BACKUP_DIR/$BACKUP_FILE" -C "$SOURCE_DIR" .
     sleep 5
 }
 # Funcion para copiar el archivo de respaldo a S3 utilizando awscli
 function s3_sync() {
     echo "Sincronizando con S3..."
-    aws s3 sync $BACKUP_PATH $DESTINATION_DIR
+    aws s3 sync $BACKUP_DIR $DESTINATION_DIR
     echo "Copia de seguridad realizada con exito..."
 }
 # Funcion principal
 function s3snap() {
-    check_backup_path
+    check_mount
+    check_log_dir
+    check_backup_dir
     clean_up
     compress_source
     s3_sync
