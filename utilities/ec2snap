@@ -1,18 +1,33 @@
 #!/bin/bash
 # ec2snap.sh
 # Variables
-SOURCE_DIR="/*" # Directorio local a respaldar
-BACKUP_DIR="/vault/xvda1" # Directorio temporal para archivo comprimido
+SOURCE_DIR="/home/ubuntu/scripts" # Directorio local a respaldar
+LOG_DIR="/var/log/ec2snap"
+LOG_FILE="$LOG_DIR/backup_log_$(date +%Y%m%d).txt" # Nombre del archivo de registro
+BACKUP_DIR="/var/ec2snap" # Directorio temporal para archivo comprimido
 BACKUP_FILE="snapshot_$(date +%Y%m%d_%H%M%S).tar.gz" # Nombre del archivo de respaldo
 # Función para verificar la existencia del directorio temporal para archivo comprimido
+function check_log_dir() {
+    # verificar la existencia del directorio temporal
+    echo "Verificando la existencia del directorio temporal..."
+    if [ -d "$LOG_DIR" ]; then
+        echo "El directorio de respaldo '$LOG_DIR' existe."
+    else
+        echo "ERROR: El directorio de respaldo '$LOG_DIR' no existe."
+        echo "Creando el directorio de respaldo '$LOG_DIR'."
+        sudo mkdir -p "$LOG_DIR" 
+        sudo chmod 777 "$LOG_DIR" 
+    fi
+}
 function check_backup_dir() {
     # verificar la existencia del directorio temporal
     echo "Verificando la existencia del directorio temporal..."
-    if [ -d "/vault/xvda1" ]; then
+    if [ -d "$BACKUP_DIR" ]; then
         echo "El directorio de respaldo '$BACKUP_DIR' existe."
     else
-        echo "ERROR: El directorio de respaldo '$BACKUP_DIR' no existe. Cree el directorio y vuelva a intentarlo."
-        exit 1
+        echo "ERROR: El directorio de respaldo '$BACKUP_DIR' no existe."
+        echo "Creando el directorio de respaldo '$BACKUP_DIR'."
+        sudo mkdir -p "$BACKUP_DIR" 
     fi
 }
 # Función para comprimir el directorio local en un archivo tar.gz
@@ -43,10 +58,17 @@ function report() {
     echo "Tiempo transcurrido: $tiempo_transcurrido segundos."
     echo "El tamaño total de la copia de seguridad es: $tamano_total."
     echo "Copia de seguridad realizada con exito..."
-    ls $BACKUP_DIR
+    echo "Mostrando información de la copia de seguridad..." | tee -a "$LOG_FILE"
+    echo "Hora de copia de seguridad: $inicio" | tee -a "$LOG_FILE"
+    echo "Tiempo transcurrido: $tiempo_transcurrido segundos." | tee -a "$LOG_FILE"
+    echo "El tamaño total de la copia de seguridad es: $tamano_total." | tee -a "$LOG_FILE"
+    echo "Copia de seguridad realizada con éxito..." | tee -a "$LOG_FILE"
+    ls "$BACKUP_DIR" | tee -a "$LOG_FILE"
 }
 # Función principal
 function ec2snap() {
+    check_log_dir
+    check_backup_dir
   # Inicio del programa
   inicio=$(date +%s)  # Tomar la hora de inicio del respaldo
   compress_dir
@@ -55,6 +77,7 @@ function ec2snap() {
   fin=$(date +%s)  # Tomar la hora de fin del respaldo
   tiempo_transcurrido=$((fin - inicio))  # Calcular el tiempo transcurrido en segundos
   # Fin
+  echo "Registrando información de la copia de seguridad en $LOG_FILE..."
   report
 }
 # Llamar a la funcion principal
