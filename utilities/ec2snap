@@ -13,32 +13,7 @@ function check_mount() {
     mount_point=$(df --output=target "$BACKUP_DIR" | tail -n 1)
     if [ "$mount_point" != "$BACKUP_DIR" ]; then
         echo "La ruta de respaldo '$BACKUP_DIR' no está montada."
-        
-        # Obtener una lista de las unidades disponibles en el sistema
-        available_drives=$(lsblk -rpo "NAME,TYPE,MOUNTPOINT" | awk '$2=="disk" && $3=="" {print $1}')
-
-        if [ -z "$available_drives" ]; then
-            echo "No se encontraron unidades disponibles en el sistema."
-            exit 1
-        fi
-
-        echo "Unidades disponibles en el sistema:"
-        echo "$available_drives"
-
-        # Montar la primera unidad disponible
-        drive_to_mount=$(echo "$available_drives" | head -n 1)
-
-        echo "Montando la unidad '$drive_to_mount' en '$BACKUP_DIR'..."
-        sudo mount "/dev/$drive_to_mount" "$BACKUP_DIR"
-        
-        # Verificar si el montaje fue exitoso
-        mount_point=$(df --output=target "$BACKUP_DIR" | tail -n 1)
-        if [ "$mount_point" != "$BACKUP_DIR" ]; then
-            echo "Error al montar la unidad '$drive_to_mount' en '$BACKUP_DIR'."
-            exit 1
-        else
-            echo "La unidad '$drive_to_mount' se ha montado correctamente en '$BACKUP_DIR'."
-        fi
+       mkparts
     else
         echo "La ruta de respaldo '$BACKUP_DIR' está montada."
     fi
