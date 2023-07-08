@@ -3,12 +3,8 @@
 # Variables
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
-CONFIRM_SCRIPT="$PARENT_DIR/utilities/confirm"
-DOMAINS_FILE="domains.txt"
-DOMAINS_PATH="$PARENT_DIR/Postfix/$DOMAINS_FILE"
-HTML_PATH="/var/www/samava-cloud"
-host="nextcloud"
-site_root="$HTML_PATH/$host"
+CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
+
 # Obtener la unidad a particionar y el número de particiones del usuario
 function get_dev() {
   unidades=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -e '^NAME' -e 'disk' | awk '{print $1, $2}')
