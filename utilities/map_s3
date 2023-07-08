@@ -1,0 +1,86 @@
+#!/bin/bash
+# map_s3.sh
+# Variables
+CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
+CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
+
+# Obtener el punto de montaje
+function get_mounting_point() {
+  local valid_mounting_point=false
+
+  while [[ "$valid_mounting_point" = false ]]; do
+    read -p "Ingrese el punto de montaje: " MOUNTING_POINT
+
+    # Validar si el punto de montaje es válido
+    if [[ ! -z "$MOUNTING_POINT" ]]; then
+      # Eliminar espacios en blanco iniciales y finales
+      MOUNTING_POINT=$(echo "$MOUNTING_POINT" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+      # Reemplazar espacios en blanco internos por guiones bajos
+      MOUNTING_POINT=$(echo "$MOUNTING_POINT" | tr ' ' '_')
+
+      # Verificar si el punto de montaje existe
+      if [[ -d "$MOUNTING_POINT" ]]; then
+        echo "El punto de montaje '$MOUNTING_POINT' ya existe."
+      else
+        # Comprobar si se tienen permisos de escritura en el directorio padre
+        local parent_dir=$(dirname "$MOUNTING_POINT")
+        if [[ -w "$parent_dir" ]]; then
+          valid_mounting_point=true
+          echo "El punto de montaje ingresado es: $MOUNTING_POINT"
+        else
+          echo "No se tienen permisos de escritura en el directorio padre '$parent_dir'."
+        fi
+      fi
+    else
+      echo "El punto de montaje no puede estar vacío."
+    fi
+  done
+}
+
+function check_mounting_path() {
+  MOUNTING_PATH="/var/$MOUNTING_POINT"
+    # verificar la existencia del punto de montaje
+    echo "Verificando la existencia del directorio temporal..."
+    if [ -d "$MOUNTING_PATH" ]; then
+        echo "El punto de montaje '$MOUNTING_PATH' existe."
+    else
+        echo "ERROR: El punto de montaje '$MOUNTING_PATH' no existe."
+        echo "Creando el punto de montaje '$MOUNTING_PATH'."
+        sudo mkdir -p "$MOUNTING_PATH" 
+        sudo chmod 777 "$MOUNTING_PATH"
+    fi
+}
+function mount_bucket() {
+  # Obtenemos la partición correspondiente
+  particion="/dev/${unidad}"
+  
+  # Montar la partición
+  echo "Montando la partición: '$particion' --> '$MOUNTING_PATH'"
+  if sudo mount "$particion" "$MOUNTING_PATH"; then
+    echo "Partición '$particion' fue montada en '$MOUNTING_PATH'."
+  else
+    echo "Error al montar la partición '$particion' en '$MOUNTING_PATH'."
+    echo "Asegúrese de que la partición exista y el punto de montaje esté disponible."
+    echo "Revise los permisos y la configuración del sistema."
+  fi
+  lsblk --paths | grep $unidad
+}
+
+# Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+function edit_fstab() {
+  # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+  echo "Agregar entradas en /etc/fstab para montar la particion '$particion' al reiniciar el sistema..."
+  echo "${particion//\"/} ${MOUNTING_PATH//\"/} ${formato//\"/} defaults 0 0" | sudo tee -a /etc/fstab
+}
+
+function map_s3() {
+  echo "****************MAP S3****************"
+  get_mounting_point
+  check_mounting_path
+  mount_bucket
+  edit_fstab
+  echo "****************ALL DONE****************"
+}
+map_s3
