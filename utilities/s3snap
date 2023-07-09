@@ -19,12 +19,7 @@ function check_mount() {
     mount_point=$(df --output=target "$BACKUP_DIR" | tail -n 1)
     if [ "$mount_point" != "$BACKUP_DIR" ]; then
         echo "La ruta de respaldo '$BACKUP_DIR' no está montada."
-        # Aquí puedes agregar el procedimiento de montaje adecuado para tu sistema
-        # Por ejemplo, puedes usar el comando 'mount' con los parámetros necesarios
-        # o invocar otro script para montar la unidad requerida.
-        # Después de montar la unidad, puedes verificar nuevamente si está montada correctamente.
-        # Si el montaje es exitoso, puedes continuar con la copia de seguridad.
-        # De lo contrario, puedes mostrar un mensaje de error y salir del script.
+        map_s3
     else
         echo "La ruta de respaldo '$BACKUP_DIR' está montada."
     fi
