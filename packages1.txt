@@ -2,6 +2,8 @@ lsb-release
 ca-certificates
 apt-transport-https
 software-properties-common
+awscli
+s3fs
 tree
 w3m
 htop
