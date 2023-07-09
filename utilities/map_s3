@@ -69,7 +69,6 @@ function edit_fstab() {
 
 function map_s3() {
   echo "****************MAP S3****************"
-  get_instance_id
   get_mounting_point
   check_mounting_path
   mount_bucket
