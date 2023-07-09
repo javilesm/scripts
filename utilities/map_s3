@@ -4,7 +4,8 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
-
+S3_BUCKET=""
+PASSWORD_FILE=""
 # Obtener el punto de montaje
 function get_mounting_point() {
   local valid_mounting_point=false
@@ -53,26 +54,22 @@ function check_mounting_path() {
     fi
 }
 function mount_bucket() {
-  # Obtenemos la partición correspondiente
-  particion="/dev/${unidad}"
-  
   # Montar la partición
-  echo "Montando la partición: '$particion' --> '$MOUNTING_PATH'"
-  if sudo mount "$particion" "$MOUNTING_PATH"; then
-    echo "Partición '$particion' fue montada en '$MOUNTING_PATH'."
+  echo "Montando el bucket: '$S3_BUCKET' --> '$MOUNTING_PATH'"
+  if sudo s3fs "$S3_BUCKET" "$MOUNTING_PATH" -o passwd_file=$PASSWORD_FILE; then
+    echo "El bucket '$S3_BUCKET' fue montado en '$MOUNTING_PATH'."
   else
-    echo "Error al montar la partición '$particion' en '$MOUNTING_PATH'."
-    echo "Asegúrese de que la partición exista y el punto de montaje esté disponible."
-    echo "Revise los permisos y la configuración del sistema."
+    echo "Error al montar el bucket '$S3_BUCKET' en '$MOUNTING_PATH'."
   fi
   lsblk --paths | grep $unidad
 }
 
 # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
 function edit_fstab() {
+    local formato=""
   # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-  echo "Agregar entradas en /etc/fstab para montar la particion '$particion' al reiniciar el sistema..."
-  echo "${particion//\"/} ${MOUNTING_PATH//\"/} ${formato//\"/} defaults 0 0" | sudo tee -a /etc/fstab
+  echo "Agregar entradas en /etc/fstab para montar bucket '$S3_BUCKET' al reiniciar el sistema..."
+  echo "${S3_BUCKET//\"/} ${MOUNTING_PATH//\"/} ${formato//\"/} defaults 0 0" | sudo tee -a /etc/fstab
 }
 
 function map_s3() {
