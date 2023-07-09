@@ -4,15 +4,13 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
-S3_BUCKET="s3://ec2-safety-vault"
+S3_BUCKET="ec2-safety-vault"
 PASSWORD_FILE=".s3"
 PASSWORD_FILE_PATH="$PASSWORD_FILE"
+
 # Obtener el punto de montaje
 function get_mounting_point() {
-  local valid_mounting_point=false
-
-  while [[ "$valid_mounting_point" = false ]]; do
-    read -p "Ingrese el punto de montaje: " MOUNTING_POINT
+  read -p "Ingrese el punto de montaje: " MOUNTING_POINT
 
     # Validar si el punto de montaje es válido
     if [[ ! -z "$MOUNTING_POINT" ]]; then
@@ -38,7 +36,6 @@ function get_mounting_point() {
     else
       echo "El punto de montaje no puede estar vacío."
     fi
-  done
 }
 
 function check_mounting_path() {
@@ -55,16 +52,13 @@ function check_mounting_path() {
     fi
 }
 function mount_bucket() {
-  # Montar la partición
   echo "Montando el bucket: '$S3_BUCKET' --> '$MOUNTING_PATH'"
-  if sudo s3fs "$S3_BUCKET" "$MOUNTING_PATH" -o passwd_file=$PASSWORD_FILE; then
+  if sudo s3fs "$S3_BUCKET" "$MOUNTING_PATH" -o passwd_file=$PASSWORD_FILE -o nonempty; then
     echo "El bucket '$S3_BUCKET' fue montado en '$MOUNTING_PATH'."
   else
     echo "Error al montar el bucket '$S3_BUCKET' en '$MOUNTING_PATH'."
   fi
-  lsblk --paths | grep $unidad
 }
-
 # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
 function edit_fstab() {
     local formato=""
@@ -75,6 +69,7 @@ function edit_fstab() {
 
 function map_s3() {
   echo "****************MAP S3****************"
+  get_instance_id
   get_mounting_point
   check_mounting_path
   mount_bucket
