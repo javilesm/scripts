@@ -4,8 +4,9 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
-S3_BUCKET=""
-PASSWORD_FILE=""
+S3_BUCKET="s3://ec2-safety-vault"
+PASSWORD_FILE=".s3"
+PASSWORD_FILE_PATH="$PASSWORD_FILE"
 # Obtener el punto de montaje
 function get_mounting_point() {
   local valid_mounting_point=false
