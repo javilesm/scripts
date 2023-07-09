@@ -5,9 +5,13 @@ CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actua
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
 S3_BUCKET="ec2-safety-vault"
-PASSWORD_FILE=".s3"
-PASSWORD_FILE_PATH="$PASSWORD_FILE"
+S3_CREDENTIALS_FILE=".s3"
 
+# Encontrar archivo con las credenciales de acceso a AWS S3
+function find_s3_credentials_file() {
+  S3_PASSWD_FILE=$(find $HOME -type f -name "${S3_CREDENTIALS_FILE}")
+  echo "La ruta a las credenciales de acceso es: $S3_PASSWD_FILE"
+}
 # Obtener el punto de montaje
 function get_mounting_point() {
   read -p "Ingrese el punto de montaje: " MOUNTING_POINT
@@ -53,7 +57,7 @@ function check_mounting_path() {
 }
 function mount_bucket() {
   echo "Montando el bucket: '$S3_BUCKET' --> '$MOUNTING_PATH'"
-  if sudo s3fs "$S3_BUCKET" "$MOUNTING_PATH" -o passwd_file=$PASSWORD_FILE -o nonempty; then
+  if sudo s3fs "$S3_BUCKET" "$MOUNTING_PATH" -o passwd_file=$S3_PASSWD_FILE -o nonempty; then
     echo "El bucket '$S3_BUCKET' fue montado en '$MOUNTING_PATH'."
   else
     echo "Error al montar el bucket '$S3_BUCKET' en '$MOUNTING_PATH'."
@@ -69,6 +73,7 @@ function edit_fstab() {
 
 function map_s3() {
   echo "****************MAP S3****************"
+  find_s3_credentials_file
   get_mounting_point
   check_mounting_path
   mount_bucket
