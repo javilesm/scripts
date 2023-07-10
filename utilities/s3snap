@@ -88,19 +88,21 @@ function s3_sync() {
     aws s3 sync "$BACKUP_PATH" "$DESTINATION_DIR"
     echo "Copia de seguridad realizada con exito..."
 }
-# Función para verificar y agregar la entrada en el crontab general del sistema
-function check_crontab_entry() {
-    echo "Verificando la existencia de la entrada en el crontab general del sistema..."
-    cron_entry="0 0 * * * root s3snap >> $LOG_FILE 2>&1" # Entrada cron para ejecutar el script cada 24 horas
-    existing_crontab=$(sudo cat /etc/crontab 2>/dev/null) # Obtener el contenido actual del crontab general del sistema
-
-    if echo "$existing_crontab" | grep -Fq "$cron_entry"; then
-        echo "La entrada en el crontab general del sistema ya existe."
-    else
-        echo "Agregando la entrada en el crontab general del sistema..."
-        echo "$cron_entry" | sudo tee -a /etc/crontab > /dev/null # Agregar la nueva entrada al crontab general del sistema
-        echo "Entrada en el crontab general del sistema agregada correctamente."
-    fi
+# Función para agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
+function add_cron_entry() {
+  local cron_entry="0 0 * * * s3snap"
+  
+  # agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
+  echo "Agregando una entrada al crontab para automatizar la ejecución del script tras cada reinicio..."
+  
+  # Verificar si la entrada ya existe en el crontab
+  if sudo crontab -l | grep -q "$cron_entry"; then
+    echo "La entrada ya existe en el crontab. No se realizará ninguna modificación."
+  else
+    # Agregar la entrada al crontab utilizando echo y redirección de entrada
+    echo "$(sudo crontab -l 2>/dev/null; echo "$cron_entry")" | sudo crontab -
+    echo "Se ha agregado la entrada al crontab para ejecutar el script tras cada reinicio."
+  fi
 }
 
 # Funcion principal
@@ -112,7 +114,7 @@ function s3snap() {
     #clean_up
     compress_source
     s3_sync
-    check_crontab_entry
+    add_cron_entry
 }
 # Llamar a la funcion principal
 s3snap
