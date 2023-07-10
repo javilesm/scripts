@@ -7,10 +7,7 @@ CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
 
 # Obtener el punto de montaje
 function get_mounting_point() {
-  local valid_mounting_point=false
-
-  while [[ "$valid_mounting_point" = false ]]; do
-    read -p "Ingrese el punto de montaje: " MOUNTING_POINT
+  read -p "Ingrese el punto de montaje: " MOUNTING_POINT
 
     # Validar si el punto de montaje es válido
     if [[ ! -z "$MOUNTING_POINT" ]]; then
@@ -36,7 +33,6 @@ function get_mounting_point() {
     else
       echo "El punto de montaje no puede estar vacío."
     fi
-  done
 }
 
 # Obtener la unidad a particionar y el número de particiones del usuario
