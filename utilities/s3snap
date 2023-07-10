@@ -6,12 +6,11 @@ PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the curre
 AWS_CONFIG="$PARENT_DIR/AWS/aws_config.sh"
 SOURCE_DIR="/home/ubuntu/scripts" # Obtener el directorio padre del script
 BUCKET="s3://ec2-safety-vault" # Bucket de Amazon S3 para el respaldo
-DESTINATION_DIR="$BUCKET/vol-07fa8e9b466bbe2eb" # Directorio de respaldo remoto
 BACKUP_FILE="backup_$SOURCE_DIR_$(date +%Y%m%d_%H%M%S).tar.gz" # Nombre del archivo de respaldo
 LOG_DIR="/var/log/s3snap"
 LOG_FILE="$LOG_DIR/backup_log_$(date +%Y%m%d).txt" # Nombre del archivo de registro
 BACKUP_DIR="/var/s3snap"
-source "$AWS_CONFIG"
+
 function get_instance_id() {
   instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
   if [[ -n "$instance_id" ]]; then
@@ -82,10 +81,36 @@ function compress_source(){
     sudo tar czf "$BACKUP_PATH/$BACKUP_FILE" -C "$SOURCE_DIR" .
     sleep 5
 }
+# Función para calcular el tamaño total del archivo creado
+function calculate_size() {
+    # calcular el tamaño total del archivo creado
+    echo "Calculando el tamaño total del archivo creado..."
+    tamano_total=$(du -sh $BACKUP_PATH/$BACKUP_FILE | awk '{print $1}')  # Obtener el tamaño total en formato legible por humanos
+    if [ $? -ne 0 ]; then
+        echo "Ha ocurrido un error al calcular el tamaño total del archivo"
+        exit 1
+    fi
+    echo "El tamaño total del archivo creado es: $tamano_total"
+}
+# Función para mostrar información de la copia de seguridad
+function report() {
+    # mostrar información de la copia de seguridad
+    echo "Mostrando información de la copia de seguridad..."
+    echo "Hora de copia de seguridad: $inicio"
+    echo "Tiempo transcurrido: $tiempo_transcurrido segundos."
+    echo "El tamaño total de la copia de seguridad es: $tamano_total."
+    echo "Copia de seguridad realizada con exito..."
+    echo "Mostrando información de la copia de seguridad..." | tee -a "$LOG_FILE"
+    echo "Hora de copia de seguridad: $inicio" | tee -a "$LOG_FILE"
+    echo "Tiempo transcurrido: $tiempo_transcurrido segundos." | tee -a "$LOG_FILE"
+    echo "El tamaño total de la copia de seguridad es: $tamano_total." | tee -a "$LOG_FILE"
+    echo "Copia de seguridad realizada con éxito..." | tee -a "$LOG_FILE"
+    ls "$BACKUP_DIR" | tee -a "$LOG_FILE"
+}
 # Funcion para copiar el archivo de respaldo a S3 utilizando awscli
 function s3_sync() {
     echo "Sincronizando con S3..."
-    aws s3 sync "$BACKUP_PATH" "$DESTINATION_DIR"
+    sudo aws s3 sync "$BACKUP_PATH" "$BUCKET"
     echo "Copia de seguridad realizada con exito..."
 }
 # Función para agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
@@ -112,8 +137,17 @@ function s3snap() {
     check_log_dir
     check_backup_dir
     #clean_up
+    # Inicio del programa
+    inicio=$(date +%s)  # Tomar la hora de inicio del respaldo
     compress_source
+    calculate_size
     s3_sync
+    # Calcular el tiempo transcurrido
+    fin=$(date +%s)  # Tomar la hora de fin del respaldo
+    tiempo_transcurrido=$((fin - inicio))  # Calcular el tiempo transcurrido en segundos
+    # Fin
+    echo "Registrando información de la copia de seguridad en $LOG_FILE..."
+    report
     add_cron_entry
 }
 # Llamar a la funcion principal
