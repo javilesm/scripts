@@ -3,7 +3,7 @@
 # Variables 
 CURRENT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"  # Directorio de este script
 S3_CREDENTIALS_FILE=".s3"
-S3_CREDENTIALS_PATH="$HOME/$S3_CREDENTIALS_FILE"
+S3_CREDENTIALS_PATH="$./$S3_CREDENTIALS_FILE"
 CREDENTIALS_FILE="aws_credentials.txt" # Ubicacion segura de las credenciales de acceso
 CREDENTIALS_PATH="$CURRENT_PATH/$CREDENTIALS_FILE" # Ruta a las credenciales de acceso
 # Función para leer las credenciales desde el archivo de texto
