@@ -108,7 +108,7 @@ function ec2snap() {
       # Fin
       echo "Registrando información de la copia de seguridad en $LOG_FILE..."
       report
-    add_cron_entry
+      add_cron_entry
 }
 # Llamar a la funcion principal
 ec2snap
