@@ -4,12 +4,45 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 CONFIRM_SCRIPT="$CURRENT_DIR/confirm"
-S3_BUCKET="ec2-safety-vault"
 S3_CREDENTIALS_FILE=".s3"
+# Obtener la lista de buckets disponibles
+function get_bucket() {
+  echo "Mostrando la lista de buckets disponibles en la cuenta AWS..."
+  buckets=($(aws s3 ls | awk '{print $3}')) # Obtener solo los nombres de los buckets y guardarlos en un arreglo
+
+  # Mostrar los nombres de los buckets con números de opción
+  for i in "${!buckets[@]}"; do
+    echo "$((i+1)). ${buckets[i]}"
+  done
+
+  # Solicitar al usuario que ingrese el número del bucket a montar
+  read -p "Ingrese el número del bucket a montar: " bucket_number
+
+  # Validar la entrada del usuario
+  re='^[0-9]+$'
+  if ! [[ $bucket_number =~ $re ]]; then
+    echo "Error: La entrada no es un número válido."
+    exit 1
+  fi
+
+  # Verificar si el número seleccionado está dentro del rango válido
+  if ((bucket_number < 1 || bucket_number > ${#buckets[@]})); then
+    echo "Error: El número seleccionado está fuera del rango válido."
+    exit 1
+  fi
+
+  # Obtener el nombre del bucket seleccionado
+  S3_BUCKET=${buckets[bucket_number-1]}
+  echo "El bucket seleccionado es: $S3_BUCKET"
+}
 
 # Encontrar archivo con las credenciales de acceso a AWS S3
 function find_s3_credentials_file() {
-  S3_PASSWD_FILE=$(find $HOME -type f -name "${S3_CREDENTIALS_FILE}")
+  S3_PASSWD_FILE=$(find / -type f -name "${S3_CREDENTIALS_FILE}")
+    if [[ -z "$S3_PASSWD_FILE" ]]; then
+        echo "ERROR: No se encontró el archivo '$S3_CREDENTIALS_FILE'..."
+        exit 1
+    fi
   echo "La ruta a las credenciales de acceso es: $S3_PASSWD_FILE"
 }
 # Obtener el punto de montaje
@@ -48,6 +81,7 @@ function check_mounting_path() {
     echo "Verificando la existencia del directorio temporal..."
     if [ -d "$MOUNTING_PATH" ]; then
         echo "El punto de montaje '$MOUNTING_PATH' existe."
+        sudo chmod 777 "$MOUNTING_PATH"
     else
         echo "ERROR: El punto de montaje '$MOUNTING_PATH' no existe."
         echo "Creando el punto de montaje '$MOUNTING_PATH'."
@@ -65,19 +99,28 @@ function mount_bucket() {
 }
 # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
 function edit_fstab() {
-    local formato=""
   # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
   echo "Agregar entradas en /etc/fstab para montar bucket '$S3_BUCKET' al reiniciar el sistema..."
-  echo "${S3_BUCKET//\"/} ${MOUNTING_PATH//\"/} ${formato//\"/} defaults 0 0" | sudo tee -a /etc/fstab
+  echo "s3fs#${S3_BUCKET//\"/} ${MOUNTING_PATH//\"/} s3fs _netdev,use_cache=/tmp,nonempty,allow_other,uid=1000,gid=1000 0 2" | sudo tee -a /etc/fstab
 }
-
+# Función que monta automáticamente la partición sin reiniciar
+function mount_automatically() {
+    if sudo mount -a; then
+        echo "Particiones montadas automáticamente con éxito"
+    else
+        echo "ERROR: Hubo un error al montar las particiones automáticamente"
+        exit 1
+    fi
+}
 function map_s3() {
   echo "****************MAP S3****************"
+  get_bucket
   find_s3_credentials_file
   get_mounting_point
   check_mounting_path
   mount_bucket
   edit_fstab
+  mount_automatically
   echo "****************ALL DONE****************"
 }
 map_s3
