@@ -7,11 +7,21 @@ AWS_CONFIG="$PARENT_DIR/AWS/aws_config.sh"
 SOURCE_DIR="/home/ubuntu/scripts" # Obtener el directorio padre del script
 BUCKET="s3://ec2-safety-vault" # Bucket de Amazon S3 para el respaldo
 DESTINATION_DIR="$BUCKET/vol-07fa8e9b466bbe2eb" # Directorio de respaldo remoto
-BACKUP_DIR="/var/s3snap" # Directorio temporal para archivo comprimido
 BACKUP_FILE="backup_$SOURCE_DIR_$(date +%Y%m%d_%H%M%S).tar.gz" # Nombre del archivo de respaldo
 LOG_DIR="/var/log/s3snap"
 LOG_FILE="$LOG_DIR/backup_log_$(date +%Y%m%d).txt" # Nombre del archivo de registro
-#source "$AWS_CONFIG"
+BACKUP_DIR="/var/s3snap"
+source "$AWS_CONFIG"
+function get_instance_id() {
+  instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+  if [[ -n "$instance_id" ]]; then
+    echo "ID de instancia EC2: $instance_id"
+  else
+    echo "No se pudo obtener el ID de instancia EC2."
+  fi
+  BACKUP_PATH="$BACKUP_DIR/$instance_id" # Directorio temporal para archivo comprimido
+}
+
 # Función para comprobar si la ruta de respaldo está montada
 function check_mount() {
     # Comprobar si la ruta de respaldo está montada
@@ -27,25 +37,26 @@ function check_mount() {
 # Función para verificar la existencia del directorio temporal para archivo comprimido
 function check_log_dir() {
     # verificar la existencia del directorio temporal
-    echo "Verificando la existencia del directorio temporal..."
+    echo "Verificando la existencia del directorio log..."
     if [ -d "$LOG_DIR" ]; then
-        echo "El directorio de respaldo '$LOG_DIR' existe."
+        echo "El directorio log '$LOG_DIR' existe."
     else
-        echo "ERROR: El directorio de respaldo '$LOG_DIR' no existe."
-        echo "Creando el directorio de respaldo '$LOG_DIR'."
+        echo "ERROR: El directorio log '$LOG_DIR' no existe."
+        echo "Creando el directorio log '$LOG_DIR'."
         sudo mkdir -p "$LOG_DIR" 
         sudo chmod 777 "$LOG_DIR" 
     fi
 }
 function check_backup_dir() {
+    
     # verificar la existencia del directorio temporal
     echo "Verificando la existencia del directorio temporal..."
-    if [ -d "$BACKUP_DIR" ]; then
-        echo "El directorio de respaldo '$BACKUP_DIR' existe."
+    if [ -d "$BACKUP_PATH" ]; then
+        echo "El directorio de respaldo '$BACKUP_PATH' existe."
     else
-        echo "ERROR: El directorio de respaldo '$BACKUP_DIR' no existe."
-        echo "Creando el directorio de respaldo '$BACKUP_DIR'."
-        sudo mkdir -p "$BACKUP_DIR" 
+        echo "ERROR: El directorio de respaldo '$BACKUP_PATH' no existe."
+        echo "Creando el directorio de respaldo '$BACKUP_PATH'."
+        sudo mkdir -p "$BACKUP_PATH" 
     fi
 }
 # Funcion para limpiar respaldos viejos
@@ -67,22 +78,23 @@ function clean_up() {
 # Funcion para comprimir el directorio de origen en un archivo tar.gz
 function compress_source(){
     # comprimir el directorio de origen en un archivo tar.gz
-    echo "Comprimiendo el directorio '$SOURCE_DIR' con destino '$BACKUP_DIR'..."
-    sudo tar czf "$BACKUP_DIR/$BACKUP_FILE" -C "$SOURCE_DIR" .
+    echo "Comprimiendo el directorio '$SOURCE_DIR' con destino '$BACKUP_PATH'..."
+    sudo tar czf "$BACKUP_PATH/$BACKUP_FILE" -C "$SOURCE_DIR" .
     sleep 5
 }
 # Funcion para copiar el archivo de respaldo a S3 utilizando awscli
 function s3_sync() {
     echo "Sincronizando con S3..."
-    aws s3 sync $BACKUP_DIR $DESTINATION_DIR
+    aws s3 sync "$BACKUP_PATH" "$DESTINATION_DIR"
     echo "Copia de seguridad realizada con exito..."
 }
 # Funcion principal
 function s3snap() {
+    get_instance_id
     check_mount
     check_log_dir
     check_backup_dir
-    clean_up
+    #clean_up
     compress_source
     s3_sync
 }
