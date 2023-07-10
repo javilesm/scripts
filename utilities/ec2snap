@@ -77,6 +77,22 @@ function report() {
     echo "Copia de seguridad realizada con éxito..." | tee -a "$LOG_FILE"
     ls "$BACKUP_DIR" | tee -a "$LOG_FILE"
 }
+# Función para agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
+function add_cron_entry() {
+  local cron_entry="0 0 * * * ec2snap"
+  
+  # agregar una entrada al crontab para automatizar la ejecución del script tras cada reinicio
+  echo "Agregando una entrada al crontab para automatizar la ejecución del script tras cada reinicio..."
+  
+  # Verificar si la entrada ya existe en el crontab
+  if sudo crontab -l | grep -q "$cron_entry"; then
+    echo "La entrada ya existe en el crontab. No se realizará ninguna modificación."
+  else
+    # Agregar la entrada al crontab utilizando echo y redirección de entrada
+    echo "$(sudo crontab -l 2>/dev/null; echo "$cron_entry")" | sudo crontab -
+    echo "Se ha agregado la entrada al crontab para ejecutar el script tras cada reinicio."
+  fi
+}
 # Función principal
 function ec2snap() {
     check_mount
@@ -92,6 +108,7 @@ function ec2snap() {
       # Fin
       echo "Registrando información de la copia de seguridad en $LOG_FILE..."
       report
+    add_cron_entry
 }
 # Llamar a la funcion principal
 ec2snap
