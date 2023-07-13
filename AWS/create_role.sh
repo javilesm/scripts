@@ -6,7 +6,7 @@ POLICIES_DIR="$CURRENT_DIR/Policies"
 POLICY_NAME="samava-s3bucket"
 ROLE_POLICY_PATH="$POLICIES_DIR/$POLICY_NAME"
 ROLE_NAME="samava_EC2_AmazonS3FullAccess"
-INSTANCE_PROFILE_NAME=""
+INSTANCE_PROFILE_NAME="samava-ops"
 # Función para crear un rol en AWS
 function create_role() {
   echo "Creando un rol en AWS..."
