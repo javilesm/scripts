@@ -1,0 +1,2 @@
+ec2-safety-vault us-east-1
+s3-cloudpress us-east-1
