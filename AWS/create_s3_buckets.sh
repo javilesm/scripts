@@ -2,8 +2,8 @@
 # create_s3_buckets.sh
 
 # Variables
-BUCKETS_FILE="s3-buckets.txt"
 CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)" # Obtener el directorio actual
+BUCKETS_FILE="$CURRENT_DIR/s3-buckets.txt"
 # Función para crear un bucket S3
 function create_s3_bucket() {
   local bucket_name="$1"
