@@ -10,3 +10,4 @@ yellowtopaz,yellowtopaz,localhost,spicy_sodium,ALL PRIVILEGES
 whiteopal,whiteopal,localhost,delicate_mercury,ALL PRIVILEGES
 postfixadmin,postfixadmin,localhost,postfixadmin,ALL PRIVILEGES
 phpmyadmin,phpmyadmin,localhost,phpmyadmin,ALL PRIVILEGES
+webmaster,webmaster,localhost,webmaster,ALL PRIVILEGES
