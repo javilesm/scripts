@@ -6,6 +6,14 @@ S3_CREDENTIALS_FILE=".s3"
 S3_CREDENTIALS_PATH="$./$S3_CREDENTIALS_FILE"
 CREDENTIALS_FILE="aws_credentials.txt" # Ubicacion segura de las credenciales de acceso
 CREDENTIALS_PATH="$CURRENT_PATH/$CREDENTIALS_FILE" # Ruta a las credenciales de acceso
+scripts=(
+    "create_user_groups.sh"
+    "create_role.sh"
+    "create_s3_buckets.sh"
+    "generate_kms_key.sh"
+    "s3_config.sh"
+)
+
 # Función para leer las credenciales desde el archivo de texto
 function read_credentials() {
     # Obtener la ubicación del archivo aws_credentials.txt
@@ -103,9 +111,45 @@ function verify_configuration() {
     echo "AWS CLI ha sido configurado exitosamente."
     echo "Las variables de entorno AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY y AWS_DEFAULT_REGION también han sido exportadas."
 }
+function run_scripts() {
+    echo "¿Desea ejecutar los scripts? (y/n)"
+    read answer
+    if [ "$answer" == "y" ]; then
+        for script in "${scripts[@]}"; do
+            echo "¿Desea ejecutar el script '$script'? (y/n)"
+            read script_answer
+            while [ "$script_answer" != "y" ] && [ "$script_answer" != "n" ]; do
+                echo "Respuesta inválida. Por favor, responda 'y' para ejecutar el script o 'n' para omitirlo."
+                read script_answer
+            done
+
+            if [ "$script_answer" == "y" ]; then
+                echo "Ejecutando el script: $script"
+                chmod +x "$CURRENT_PATH/$script"
+                "$CURRENT_PATH/$script"
+            else
+                echo "No se ejecutará el script: $script"
+            fi
+
+            echo "¿Desea continuar con el siguiente script? (y/n)"
+            read continue_answer
+            while [ "$continue_answer" != "y" ] && [ "$continue_answer" != "n" ]; do
+                echo "Respuesta inválida. Por favor, responda 'y' para continuar con el siguiente script o 'n' para finalizar."
+                read continue_answer
+            done
+
+            if [ "$continue_answer" != "y" ]; then
+                break
+            fi
+        done
+    else
+        echo "No se ejecutarán los scripts."
+    fi
+}
+
 # Función principal para configurar AWS CLI
 function aws_config() {
-    echo "**********AWS CONFIGURE***********"
+    echo "**********AWS CONFIG***********"
     read_credentials
     print_credentials
     check_aws_cli
@@ -114,6 +158,7 @@ function aws_config() {
     create_credentials_file
     change_credentials_permissions
     verify_configuration
+    run_scripts
     echo "**********ALL DONE***********"
 }
 # Ejecutar la función principal
