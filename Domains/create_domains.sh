@@ -38,12 +38,13 @@ function read_users() {
 # Función para leer los dominios del archivo CSV
 function read_domains() {
     echo "Leyendo la lista de dominios: '$CSV_FILE'..."
-    while IFS="," read -r domain owner city state phone || [[ -n "$domain" ]]; do
+    while IFS="," read -r domain owner city state phone flag|| [[ -n "$domain" ]]; do
         echo "Dominio: $domain"
         echo "Propietario: $owner"
         echo "Ciudad: $city"
         echo "Estado: $state"
         echo "Tel: $phone"
+        echo "Flag: $flag"
         echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     done < <(grep -v '^$' "$CSV_FILE")
     echo "Todos los dominios han sido leídos."
