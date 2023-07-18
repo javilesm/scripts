@@ -36,10 +36,10 @@ function read_users() {
 
 # Función para exportar la tabla de dominios a un archivo CSV
 function export_domains() {
-    sql_command="SELECT * FROM $DB_NAME.$TABLE_NAME INTO OUTFILE '$EXPORT_FILE' FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n';"
+    sql_command="SELECT * FROM $DB_NAME.$TABLE_NAME INTO OUTFILE '$EXPORT_PATH' FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n';"
     echo "Ejecutando query: $sql_command"
     mysql_command "$sql_command"
-    echo "La tabla de dominios se ha exportado exitosamente a '$EXPORT_FILE'."
+    echo "La tabla de dominios se ha exportado exitosamente en: '$EXPORT_PATH'."
 }
 
 # Función para ejecutar comandos SQL en la base de datos MySQL
