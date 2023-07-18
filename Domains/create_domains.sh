@@ -57,7 +57,8 @@ function create_table() {
         owner VARCHAR(255),
         city VARCHAR(255),
         state VARCHAR(255),
-        phone VARCHAR(255)
+        phone VARCHAR(255),
+        flag VARCHAR(255)
     );"
 
     mysql_command "$create_table_sql"
