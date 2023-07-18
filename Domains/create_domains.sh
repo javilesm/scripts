@@ -9,7 +9,7 @@ USERS_FILE="mysql_users.csv"
 USERS_PATH="$PARENT_DIR/MySQL/$USERS_FILE"
 TABLE_NAME="domains" # Nombre de la tabla a crear
 
-DB_PORT="[tu_puerto_de_mysql]"
+DB_PORT="3306"
 
 # Función para obtener las variables de configuración de la base de datos
 function read_users() {
@@ -68,17 +68,16 @@ function import_csv() {
     local import_csv_sql="LOAD DATA LOCAL INFILE '$CSV_FILE'
     INTO TABLE $TABLE_NAME
     FIELDS TERMINATED BY ','
-    ENCLOSED BY '\"'
     LINES TERMINATED BY '\n'
-    IGNORE 1 LINES;"
-
+    ;"
+    echo "Ejecutando query: $import_csv_sql"
     mysql_command "$import_csv_sql"
 }
 
 # Función para ejecutar comandos SQL en la base de datos MySQL
 function mysql_command() {
     local sql_command="$1"
-    sudo mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "$sql_command"
+    sudo mysql --local-infile=1 -u root -h "$DB_HOST" "$DB_NAME" -e "$sql_command"
 }
 
 # Función principal
@@ -86,8 +85,8 @@ function create_domains() {
     echo "***************CREATE DOMAINS***************"
     read_users
     read_domains
-    #create_table
-    #import_csv
+    create_table
+    import_csv
     echo "***************ALL DONE***************"
 }
 # Llamar a la función principal
