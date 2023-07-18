@@ -36,7 +36,7 @@ function read_users() {
 
 # Función para exportar la tabla de dominios a un archivo CSV
 function export_domains() {
-    sql_command="SELECT * FROM $DB_NAME.$TABLE_NAME INTO OUTFILE '$EXPORT_PATH' FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n';"
+    sql_command="SELECT * FROM $DB_NAME.$TABLE_NAME INTO OUTFILE '$EXPORT_PATH' FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n';"
     echo "Ejecutando query: $sql_command"
     mysql_command "$sql_command"
     echo "La tabla de dominios se ha exportado exitosamente en: '$EXPORT_PATH'."
@@ -47,11 +47,16 @@ function mysql_command() {
     local sql_command="$1"
     sudo mysql -u root -h "$DB_HOST" "$DB_NAME" -e "$sql_command"
 }
-
+# Función para cambiar la propiedad del archivo CSV
+function chown() {
+    echo "Cambiando la propiedad del archivo '$EXPORT_PATH'..."
+    sudo chown ubuntu:ubuntu "$EXPORT_PATH"
+}
 # Función principal
 function export_domains_csv() {
     read_users
     export_domains
+    chown
 }
 
 # Llamar a la función principal
