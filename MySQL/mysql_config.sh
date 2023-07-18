@@ -4,6 +4,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 MYSQL_CONF="/etc/mysql/mysql.conf.d/mysqld.cnf"
 MYSQL_SOCKET="/var/run/mysqld/mysqld.sock"
+SECURE_FILE_PRIV=""
 # Vector de sub-scripts a ejecutar recursivamente
 scripts=(
     "mysql_create_db.sh"
@@ -37,7 +38,7 @@ function set_mysql_file_permissions() {
 # Función para verificar si el archivo de configuración de MySQL existe
 function check_mysql_config_file() {
 echo "Verificando si el archivo de configuración de MySQL existe..."
-  if [[ ! -f /etc/mysql/mysql.conf.d/mysqld.cnf ]]; then
+  if [[ ! -f "$MYSQL_CONF" ]]; then
     echo "El archivo de configuración de MySQL no existe."
     exit 1
   fi
@@ -46,7 +47,7 @@ echo "Verificando si el archivo de configuración de MySQL existe..."
 # Función para realizar una copia de seguridad de mysql.conf
 function backup_mysql_config_file() {
   echo "Realizando una copia de seguridad de mysqld.cnf..."
-  if ! sudo cp /etc/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf.bak; then
+  if ! sudo cp "$MYSQL_CONF" "$MYSQL_CONF".bak; then
     echo "Error al realizar una copia de seguridad de mysqld.cnf."
     exit 1
   fi
@@ -55,7 +56,7 @@ function backup_mysql_config_file() {
 # Función para modificar el archivo de configuración y permitir conexiones desde cualquier IP
 function modify_mysql_config_file() {
   echo "Modificando el archivo de configuración y permitir conexiones desde cualquier IP..."
-  if ! sudo sed -i 's/bind-address.*/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf; then
+  if ! sudo sed -i 's/bind-address.*/bind-address = 0.0.0.0/' "$MYSQL_CONF"; then
     echo "Error al modificar el archivo de configuración."
     exit 1
   fi
@@ -79,6 +80,18 @@ function set_mysql_socket() {
       echo "La ubicación del socket de MySQL se ha configurado correctamente."
     else
       echo "No se pudo configurar la ubicación del socket de MySQL."
+      exit 1
+    fi
+  fi
+
+   # Configurar secure_file_priv en el archivo de configuración
+  if grep -q "^secure_file_priv\s*=\s*$SECURE_FILE_PRIV" "$MYSQL_CONF"; then
+    echo "secure_file_priv ya está configurado correctamente en el archivo de configuración de MySQL."
+  else
+    if sudo sed -i "s/^\(secure_file_priv\s*=\s*\).*\$/\1$SECURE_FILE_PRIV/" "$MYSQL_CONF"; then
+      echo "La configuración de secure_file_priv se ha actualizado correctamente en el archivo de configuración de MySQL."
+    else
+      echo "No se pudo actualizar la configuración de secure_file_priv en el archivo de configuración de MySQL."
       exit 1
     fi
   fi
