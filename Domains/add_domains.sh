@@ -23,6 +23,7 @@ function read_users() {
 
 # Función para agregar un nuevo registro a la tabla de dominios
 function add_domain() {
+    flag="CREATE"
     while true; do
         read -p "¿Desea agregar un nuevo registro? (S/N): " choice
         case "$choice" in
@@ -32,7 +33,8 @@ function add_domain() {
                 read -p "Ciudad: " city
                 read -p "Estado: " state
                 read -p "Teléfono: " phone
-                sql_command="INSERT INTO $TABLE_NAME (domain, owner, city, state, phone) VALUES ('$domain', '$owner', '$city', '$state', '$phone');"
+                sql_command="INSERT INTO $TABLE_NAME (domain, owner, city, state, phone, flag) VALUES ('$domain', '$owner', '$city', '$state', '$phone', '$flag');"
+                echo "Ejecutando query: '$sql_command'"
                 mysql_command "$sql_command"
                 ;;
             *)
