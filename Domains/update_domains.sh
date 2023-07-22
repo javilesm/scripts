@@ -2,23 +2,51 @@
 
 # Variables de configuración
 CURRENT_DIR="$(cd "$(dirname "${0}")" && pwd)"
+PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
+USERS_FILE="mysql_users.csv"
+USERS_PATH="$PARENT_DIR/MySQL/$USERS_FILE"
+TABLE_NAME="domains"
 DOMAINS_FILE="domains.csv"
 CSV_FILE="$CURRENT_DIR/$DOMAINS_FILE"
-USERS_FILE="mysql_users.csv"
-USERS_PATH="$CURRENT_DIR/MySQL/$USERS_FILE"
-TABLE_NAME="domains"
-
 # Función para obtener las variables de configuración de la base de datos
 function read_users() {
-    echo "Obteniendo las variables de configuración de la base de datos..."
+    # Obtener las variables de configuración de la base de datos para el usuario "domains_admin"
+    echo "Obteniendo las variables de configuración de la base de datos para el usuario 'domains_admin'..."
     while IFS="," read -r DB_USER DB_PASSWORD DB_HOST DB_NAME DB_PRIVILEGES || [[ -n "$domain" ]]; do
-        echo "DB_USER: $DB_USER"
-        echo "DB_PASSWORD: $DB_PASSWORD"
-        echo "DB_HOST: $DB_HOST"
-        echo "DB_NAME: $DB_NAME"
-        echo "DB_PRIVILEGES: $DB_PRIVILEGES"
-        echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+        if [ "$DB_USER" == "webmaster" ]; then
+            echo "DB_USER: $DB_USER"
+            
+            # Ocultar parcialmente la contraseña para el usuario "domains_admin"
+            password_length=${#DB_PASSWORD}
+            hidden_password="${DB_PASSWORD:0:1}"
+            hidden_password+="******"
+            hidden_password+="${DB_PASSWORD: -1}"
+            echo "DB_PASSWORD: $hidden_password"
+            
+            echo "DB_HOST: $DB_HOST"
+            echo "DB_NAME: $DB_NAME"
+            echo "DB_PRIVILEGES: $DB_PRIVILEGES"
+            echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+            break
+        fi
     done < <(grep -v '^$' "$USERS_PATH")
+}
+
+# Función para leer los dominios del archivo CSV
+function read_domains() {
+    echo "Leyendo la lista de dominios: '$CSV_FILE'..."
+    echo "-------------------------------------------------------------"
+    # Imprimir encabezados de columnas
+    printf "%-20s %-20s %-20s %-20s %-15s %-10s\n" "Dominio" "Propietario" "Ciudad" "Estado" "Teléfono" "Flag"
+    
+    # Leer cada línea del archivo CSV y mostrar los datos en forma tabulada
+    while IFS="," read -r domain owner city state phone flag || [[ -n "$domain" ]]; do
+        # Imprimir datos de cada dominio en columnas
+        printf "%-20s %-20s %-20s %-20s %-15s %-10s\n" "$domain" "$owner" "$city" "$state" "$phone" "$flag"
+    done < <(grep -v '^$' "$CSV_FILE")
+    echo "-------------------------------------------------------------"
+    echo "Todos los dominios han sido leídos."
+    
 }
 
 # Función para actualizar la tabla de dominios
@@ -48,13 +76,14 @@ function update_domains_table() {
 # Función para ejecutar comandos SQL en la base de datos MySQL
 function mysql_command() {
     local sql_command="$1"
-    mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "$sql_command"
+    sudo mysql -u root -h "$DB_HOST" "$DB_NAME" -e "$sql_command"
 }
 
 # Función principal
 function update_domains() {
     read_users
-    update_domains_table
+    read_domains
+    #update_domains_table
     echo "Actualización de dominios completada."
 }
 
