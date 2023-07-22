@@ -49,7 +49,13 @@ function read_domains() {
     done < <(grep -v '^$' "$CSV_FILE")
     echo "Todos los dominios han sido leídos."
 }
-
+# Función para Configurar el directorio /home/ubuntu/scripts/Domains/ como directorio autorizado para MySQL
+function auth_dir() {
+    # Configurar el directorio /home/ubuntu/scripts/Domains/ como directorio autorizado para MySQL
+    echo "Configurando el directorio '$CURRENT_DIR' como directorio autorizado para MySQL..."
+    local authorize_dir="GRANT FILE ON *.* TO '$DB_USER'@'$DB_HOST' IDENTIFIED BY '$DB_PASSWORD';"
+    mysql_command "authorize_dir"
+}
 # Función para crear la tabla en la base de datos
 function create_table() {
     local create_table_sql="CREATE TABLE IF NOT EXISTS $TABLE_NAME (
@@ -86,6 +92,7 @@ function create_domains() {
     echo "***************CREATE DOMAINS***************"
     read_users
     read_domains
+    auth_dir
     create_table
     import_csv
     echo "***************ALL DONE***************"
