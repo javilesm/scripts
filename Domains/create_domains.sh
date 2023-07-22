@@ -53,8 +53,9 @@ function read_domains() {
 function auth_dir() {
     # Configurar el directorio /home/ubuntu/scripts/Domains/ como directorio autorizado para MySQL
     echo "Configurando el directorio '$CURRENT_DIR' como directorio autorizado para MySQL..."
-    local authorize_dir="GRANT FILE ON *.* TO '$DB_USER'@'$DB_HOST' IDENTIFIED BY '$DB_PASSWORD';"
-    mysql_command "authorize_dir"
+    local authorize_dir="GRANT FILE ON *.* TO '$DB_USER'@'$DB_HOST';"
+    echo "Ejecutando query: '$authorize_dir'..."
+    mysql_command "$authorize_dir"
 }
 # Función para crear la tabla en la base de datos
 function create_table() {
