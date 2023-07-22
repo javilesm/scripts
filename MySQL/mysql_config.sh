@@ -9,7 +9,7 @@ DOMAINS_DIR="$PARENT_DIR/Domains"
 DOMAINS_PATH="$DOMAINS_DIR/$DOMAINS_FILE"
 MYSQL_CONF="/etc/mysql/mysql.conf.d/mysqld.cnf"
 MYSQL_SOCKET="/var/run/mysqld/mysqld.sock"
-SECURE_FILE_PRIV=""
+SECURE_FILE_PRIV="$PARENT_DIR/Domains"
 GID="mysql"
 UID="mysql"
 # Vector de sub-scripts a ejecutar recursivamente
@@ -91,10 +91,8 @@ function set_mysql_socket() {
     fi
   fi
 
-  # Agregar la línea local-infile al archivo de configuración
-  if grep -q "^local-infile\s*=\s*1" "$MYSQL_CONF"; then
-    echo "La opción local-infile ya está configurada correctamente en el archivo de configuración de MySQL."
-  else
+    # Agregar la línea local-infile al archivo de configuración si no existe
+  if ! grep -q "^local-infile\s*=\s*1" "$MYSQL_CONF"; then
     if sudo sed -i "/\[mysqld\]/a local-infile=1" "$MYSQL_CONF"; then
       echo "La opción local-infile se ha configurado correctamente en el archivo de configuración de MySQL."
     else
@@ -103,18 +101,19 @@ function set_mysql_socket() {
     fi
   fi
 
-  # Configurar secure_file_priv en el archivo de configuración
-  if grep -q "^secure_file_priv\s*=\s*$SECURE_FILE_PRIV" "$MYSQL_CONF"; then
-    echo "secure_file_priv ya está configurado correctamente en el archivo de configuración de MySQL."
-  else
-    if sudo sed -i "s/^\(secure_file_priv\s*=\s*\).*\$/\1$SECURE_FILE_PRIV/" "$MYSQL_CONF"; then
-      echo "La configuración de secure_file_priv se ha actualizado correctamente en el archivo de configuración de MySQL."
+  # Configurar secure_file_priv en el archivo de configuración si no existe
+  if ! grep -q "^secure_file_priv\s*=" "$MYSQL_CONF"; then
+    if sudo sed -i "/\[mysqld\]/a secure_file_priv=" "$MYSQL_CONF"; then
+      echo "La opción secure_file_priv se ha configurado correctamente en el archivo de configuración de MySQL."
     else
-      echo "No se pudo actualizar la configuración de secure_file_priv en el archivo de configuración de MySQL."
+      echo "No se pudo configurar la opción secure_file_priv en el archivo de configuración de MySQL."
       exit 1
     fi
   fi
-
+}
+# Función para cambiar propiedad
+function chown() {
+  echo "Cambiand propiedades..."
   # Cambiar permisos del archivo domains.csv
   if sudo chown "$UID":"$GID" "$DOMAINS_PATH"; then
     echo "Los permisos del archivo '$DOMAINS_PATH' se han cambiado correctamente."
@@ -131,7 +130,6 @@ function set_mysql_socket() {
     exit 1
   fi
 }
-
 # Función para iniciar el servicio MySQL
 function start_mysql() {
   sudo usermod -d /var/lib/mysql/ mysql
@@ -188,6 +186,7 @@ function mysql_config() {
     backup_mysql_config_file
     modify_mysql_config_file
     set_mysql_socket
+    chown
     start_mysql
     validate_mysql_scripts
     execute_mysql_scripts
