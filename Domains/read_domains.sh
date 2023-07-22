@@ -9,6 +9,11 @@ EXPORT_PATH="$EXPORT_DIR/$EXPORT_FILE"
 USERS_FILE="mysql_users.csv"
 USERS_PATH="$PARENT_DIR/MySQL/$USERS_FILE"
 TABLE_NAME="domains"
+# Función para eliminar el archivo anterior
+function rm_export_file() {
+    echo "Eliminando '$EXPORT_PATH'... "
+    sudo rm "$EXPORT_PATH"
+}
 # Función para obtener el UID y GID de la sesión actual
 function get_session_info() {
   local current_user=$(whoami)
@@ -64,6 +69,7 @@ function chown() {
 }
 # Función principal
 function read_domains() {
+    rm_export_file
     get_session_info
     read_users
     export_domains
