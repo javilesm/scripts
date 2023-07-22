@@ -1,10 +1,10 @@
 #!/bin/bash
-# export_domains_csv.sh
+# read_domains.sh
 # Variables de configuración
 CURRENT_DIR="$(cd "$(dirname "${0}")" && pwd)"
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 EXPORT_FILE="export_domains.csv"
-EXPORT_DIR="/tmp"
+EXPORT_DIR="$CURRENT_DIR"
 EXPORT_PATH="$EXPORT_DIR/$EXPORT_FILE"
 USERS_FILE="mysql_users.csv"
 USERS_PATH="$PARENT_DIR/MySQL/$USERS_FILE"
@@ -50,14 +50,14 @@ function mysql_command() {
 # Función para cambiar la propiedad del archivo CSV
 function chown() {
     echo "Cambiando la propiedad del archivo '$EXPORT_PATH'..."
-    sudo chown ubuntu:ubuntu "$EXPORT_PATH"
+    sudo chown $USER:$USER "$EXPORT_PATH"
 }
 # Función principal
-function export_domains_csv() {
+function read_domains() {
     read_users
     export_domains
     chown
 }
 
 # Llamar a la función principal
-export_domains_csv
+read_domains
