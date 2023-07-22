@@ -9,6 +9,16 @@ EXPORT_PATH="$EXPORT_DIR/$EXPORT_FILE"
 USERS_FILE="mysql_users.csv"
 USERS_PATH="$PARENT_DIR/MySQL/$USERS_FILE"
 TABLE_NAME="domains"
+# Función para obtener el UID y GID de la sesión actual
+function get_session_info() {
+  local current_user=$(whoami)
+  local uid=$(id -u "$current_user")
+  local gid=$(id -g "$current_user")
+
+  echo "Usuario actual: $current_user"
+  echo "UID: $uid"
+  echo "GID: $gid"
+}
 
 # Función para obtener las variables de configuración de la base de datos
 function read_users() {
@@ -50,10 +60,11 @@ function mysql_command() {
 # Función para cambiar la propiedad del archivo CSV
 function chown() {
     echo "Cambiando la propiedad del archivo '$EXPORT_PATH'..."
-    sudo chown $USER:$USER "$EXPORT_PATH"
+    sudo chown  $uid:$gid "$EXPORT_PATH"
 }
 # Función principal
 function read_domains() {
+    get_session_info
     read_users
     export_domains
     chown
