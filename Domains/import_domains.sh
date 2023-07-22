@@ -1,5 +1,5 @@
 #!/bin/bash
-# create_domains.sh
+# import_domains.sh
 # Variables
 CURRENT_DIR="$(cd "$(dirname "${0}")" && pwd)" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
@@ -38,16 +38,18 @@ function read_users() {
 # Función para leer los dominios del archivo CSV
 function read_domains() {
     echo "Leyendo la lista de dominios: '$CSV_FILE'..."
-    while IFS="," read -r domain owner city state phone flag|| [[ -n "$domain" ]]; do
-        echo "Dominio: $domain"
-        echo "Propietario: $owner"
-        echo "Ciudad: $city"
-        echo "Estado: $state"
-        echo "Tel: $phone"
-        echo "Flag: $flag"
-        echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+    echo "-------------------------------------------------------------"
+    # Imprimir encabezados de columnas
+    printf "%-20s %-20s %-20s %-20s %-15s %-10s\n" "Dominio" "Propietario" "Ciudad" "Estado" "Teléfono" "Flag"
+    
+    # Leer cada línea del archivo CSV y mostrar los datos en forma tabulada
+    while IFS="," read -r domain owner city state phone flag || [[ -n "$domain" ]]; do
+        # Imprimir datos de cada dominio en columnas
+        printf "%-20s %-20s %-20s %-20s %-15s %-10s\n" "$domain" "$owner" "$city" "$state" "$phone" "$flag"
     done < <(grep -v '^$' "$CSV_FILE")
+    echo "-------------------------------------------------------------"
     echo "Todos los dominios han sido leídos."
+    
 }
 # Función para Configurar el directorio /home/ubuntu/scripts/Domains/ como directorio autorizado para MySQL
 function auth_dir() {
@@ -73,19 +75,38 @@ function create_table() {
 
 # Función para importar los datos del archivo CSV a la tabla
 function import_csv() {
-    local import_csv_sql="LOAD DATA LOCAL INFILE '$CSV_FILE'
-    INTO TABLE $TABLE_NAME
-    FIELDS TERMINATED BY ','
-    LINES TERMINATED BY '\n'
-    ;"
+    local filtered_csv="$CURRENT_DIR/filtered_domains.csv"
+    local status1="CREATE"
+    local status2="IMPORTED"
+    # Filtrar los registros "CREATE" en el archivo CSV
+    sudo grep "$status1" "$CSV_FILE" > "$filtered_csv"
+
+    local import_csv_sql="LOAD DATA LOCAL INFILE '$filtered_csv'
+        INTO TABLE $TABLE_NAME
+        FIELDS TERMINATED BY ','
+        LINES TERMINATED BY '\n'
+        IGNORE 1 LINES
+        SET flag = '$status2';"
+
     echo "Ejecutando query: $import_csv_sql"
     mysql_command "$import_csv_sql"
+
+    # Eliminar el archivo temporal de registros filtrados
+    sudo rm "$filtered_csv"
 }
 
 # Función para ejecutar comandos SQL en la base de datos MySQL
 function mysql_command() {
     local sql_command="$1"
     sudo mysql --local-infile=1 -u root -h "$DB_HOST" "$DB_NAME" -e "$sql_command"
+}
+# Función para actualizar el campo "flag" en el archivo CSV a "SERVED"
+function update_flag() {
+    local status1="CREATE"
+    local status2="IMPORTED"
+    echo "Actualizando el campo 'flag' en el archivo '$CSV_FILE' de '$status1' a '$status2'..."
+    sudo sed -i "s/,$status1/,$status2/g" "$CSV_FILE"
+    echo "El campo 'flag' se ha actualizado de '$status1' a '$status2' en el archivo '$CSV_FILE'."
 }
 
 # Función principal
@@ -96,6 +117,7 @@ function create_domains() {
     auth_dir
     create_table
     import_csv
+    update_flag
     echo "***************ALL DONE***************"
 }
 # Llamar a la función principal
