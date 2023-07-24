@@ -51,14 +51,17 @@ function read_domains() {
 
 # Función para actualizar la tabla de dominios
 function update_domains_table() {
+    local status1="CREATE"
+    local status2="IMPORTED"
+    local status3="DELETE"
     echo "Actualizando la tabla de dominios..."
     while IFS="," read -r domain owner city state phone flag || [[ -n "$domain" ]]; do
         case "$flag" in
-            "CREATE")
-                # Insertar nuevo registro
-                sql_command="INSERT INTO $TABLE_NAME (domain, owner, city, state, phone) VALUES ('$domain', '$owner', '$city', '$state', '$phone');"
+            "$status1")
+                # Insertar nuevo registro y cambiar el valor de "flag" a "IMPORTED" ($status2)
+                sql_command="INSERT INTO $TABLE_NAME (domain, owner, city, state, phone, flag) VALUES ('$domain', '$owner', '$city', '$state', '$phone', '$status2') ON DUPLICATE KEY UPDATE flag='$status2';"
                 ;;
-            "DELETE")
+            "$status3")
                 # Eliminar registro existente
                 sql_command="DELETE FROM $TABLE_NAME WHERE domain='$domain';"
                 ;;
@@ -73,6 +76,8 @@ function update_domains_table() {
     done < <(grep -v '^$' "$CSV_FILE")
 }
 
+
+
 # Función para ejecutar comandos SQL en la base de datos MySQL
 function mysql_command() {
     local sql_command="$1"
@@ -83,7 +88,7 @@ function mysql_command() {
 function update_domains() {
     read_users
     read_domains
-    #update_domains_table
+    update_domains_table
     echo "Actualización de dominios completada."
 }
 
