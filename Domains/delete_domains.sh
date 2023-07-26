@@ -50,7 +50,7 @@ function read_domains() {
     
 }
 
-# Función para marcar un registro de dominio como "DELETE" en el archivo CSV
+#  Función para marcar un registro de dominio como "DELETE" en el archivo CSV
 function delete_domain() {
     echo "Marcar un registro de dominio como 'DELETE':"
     read -p "Ingrese el dominio que desea marcar como 'DELETE': " domain_to_mark
@@ -69,7 +69,7 @@ function delete_domain() {
             tmp_file=$(mktemp)
 
             # Utilizar awk para marcar el dominio a "DELETE" en el archivo CSV
-            awk -F ',' -v markdomain="$domain_to_mark" '{
+            awk -F ',' -v OFS=',' -v markdomain="$domain_to_mark" '{
                 if ($1 == markdomain) {
                     $6 = "DELETE";   # Cambiar el valor del campo "flag" a "DELETE"
                 }
