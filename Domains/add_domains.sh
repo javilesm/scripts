@@ -78,7 +78,7 @@ function add_domain() {
 }
 
 # Función principal
-function update_domains() {
+function add_domains() {
     read_users
     read_domains
     add_domain
@@ -87,4 +87,4 @@ function update_domains() {
 }
 
 # Llamar a la función principal
-update_domains
+add_domains
