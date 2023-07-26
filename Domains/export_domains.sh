@@ -1,5 +1,5 @@
 #!/bin/bash
-# read_domains.sh
+# export_domains.sh
 # Variables de configuración
 CURRENT_DIR="$(cd "$(dirname "${0}")" && pwd)"
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
@@ -68,7 +68,7 @@ function chown() {
     sudo chown  $uid:$gid "$EXPORT_PATH"
 }
 # Función principal
-function read_domains() {
+function export_domains() {
     rm_export_file
     get_session_info
     read_users
@@ -77,4 +77,4 @@ function read_domains() {
 }
 
 # Llamar a la función principal
-read_domains
+export_domains
