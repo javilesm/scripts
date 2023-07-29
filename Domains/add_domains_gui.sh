@@ -8,7 +8,7 @@ ENDPOINT="$CURRENT_DIR/$DOMAINS_DIR"     # Directorio donde se almacenarán los 
 CSV_FILE="domains.csv"
 CSV_PATH="$CURRENT_DIR/$CSV_FILE"
 CSV_PREFIX="form_"  # Variable para el prefijo del nombre de los archivos CSV
-LOG_FILE="$CURRENT_DIR/domain_log.txt" # Archivo de log
+LOG_FILE="$ENDPOINT/forms_log.txt" # Archivo de log
 # Función para comprobar y crear el directorio de dominios si no existe
 function ensure_ENDPOINTectory() {
     # comprobar y crear el directorio de dominios si no existe
@@ -33,12 +33,6 @@ function get_next_consecutive() {
     else
         printf "%05d" "$((10#$last_consecutive + 1))"
     fi
-}
-
-# Función para escribir en el archivo de log
-function write_to_log() {
-    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-    echo "$timestamp | $CSV_PREFIX$new_consecutive | Dominio: $domain, Propietario: $owner, Ciudad: $city, Estado: $state, Teléfono: $phone" >> "$LOG_FILE"
 }
 
 # Función para limpiar las variables y salir
@@ -109,10 +103,18 @@ function confirm_registration() {
 
 # Función para escribir los datos en un nuevo archivo CSV
 function write_to_new_csv() {
+    flag="CREATE"
     local new_consecutive=$(get_next_consecutive)
     local new_CSV_PATH="$ENDPOINT/${CSV_PREFIX}${new_consecutive}.csv"
-    echo "$CSV_PREFIX$new_consecutive,$domain,$owner,$city,$state,$phone,CREATE" > "$new_CSV_PATH"
+    new_record="$CSV_PREFIX$new_consecutive,$domain,$owner,$city,$state,$phone,$flag"
+    echo "$new_record" > "$new_CSV_PATH"
     write_to_log  # Llamada a la función para escribir en el log
+}
+
+# Función para escribir en el archivo de log
+function write_to_log() {
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "$timestamp | $CSV_PREFIX$new_consecutive | Dominio: $domain, Propietario: $owner, Ciudad: $city, Estado: $state, Teléfono: $phone, Status:$flag" >> "$LOG_FILE"
 }
 
 # Función principal
