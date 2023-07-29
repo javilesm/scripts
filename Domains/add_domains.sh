@@ -5,33 +5,7 @@ CURRENT_DIR="$(cd "$(dirname "${0}")" && pwd)"
 PARENT_DIR="$(dirname "$CURRENT_DIR")" # Get the parent directory of the current directory
 DOMAINS_FILE="domains.csv"
 CSV_FILE="$CURRENT_DIR/$DOMAINS_FILE"
-USERS_FILE="mysql_users.csv"
-USERS_PATH="$PARENT_DIR/MySQL/$USERS_FILE"
 TABLE_NAME="domains"
-
-# Función para obtener las variables de configuración de la base de datos
-function read_users() {
-    # Obtener las variables de configuración de la base de datos para el usuario "domains_admin"
-    echo "Obteniendo las variables de configuración de la base de datos para el usuario 'domains_admin'..."
-    while IFS="," read -r DB_USER DB_PASSWORD DB_HOST DB_NAME DB_PRIVILEGES || [[ -n "$domain" ]]; do
-        if [ "$DB_USER" == "webmaster" ]; then
-            echo "DB_USER: $DB_USER"
-            
-            # Ocultar parcialmente la contraseña para el usuario "domains_admin"
-            password_length=${#DB_PASSWORD}
-            hidden_password="${DB_PASSWORD:0:1}"
-            hidden_password+="******"
-            hidden_password+="${DB_PASSWORD: -1}"
-            echo "DB_PASSWORD: $hidden_password"
-            
-            echo "DB_HOST: $DB_HOST"
-            echo "DB_NAME: $DB_NAME"
-            echo "DB_PRIVILEGES: $DB_PRIVILEGES"
-            echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-            break
-        fi
-    done < <(grep -v '^$' "$USERS_PATH")
-}
 
 # Función para leer los dominios del archivo CSV y mostrarlos en forma tabulada
 function read_domains() {
@@ -79,7 +53,6 @@ function add_domain() {
 
 # Función principal
 function add_domains() {
-    read_users
     read_domains
     add_domain
     echo "Actualización de dominios completada."
