@@ -9,8 +9,9 @@ CSV_FILE="domains.csv"
 CSV_PATH="$CURRENT_DIR/$CSV_FILE"
 CSV_PREFIX="form_"  # Variable para el prefijo del nombre de los archivos CSV
 LOG_FILE="$ENDPOINT/forms_log.txt" # Archivo de log
+
 # Función para comprobar y crear el directorio de dominios si no existe
-function ensure_ENDPOINTectory() {
+function check_dir() {
     # comprobar y crear el directorio de dominios si no existe
     echo "Comprobando y crear el Endpoint si no existe..."
     if [ ! -d "$ENDPOINT" ]; then
@@ -106,8 +107,18 @@ function write_to_new_csv() {
     flag="CREATE"
     local new_consecutive=$(get_next_consecutive)
     local new_CSV_PATH="$ENDPOINT/${CSV_PREFIX}${new_consecutive}.csv"
+    
+    # Reemplazar saltos de línea dentro de los campos con un espacio en blanco
+    domain="${domain//[$'\n\r']/ }"
+    owner="${owner//[$'\n\r']/ }"
+    city="${city//[$'\n\r']/ }"
+    state="${state//[$'\n\r']/ }"
+    phone="${phone//[$'\n\r']/ }"
+    flag="${flag//[$'\n\r']/ }"
+    
+    # Formatear la cadena sin saltos de línea al final del último campo
     new_record="$CSV_PREFIX$new_consecutive,$domain,$owner,$city,$state,$phone,$flag"
-    echo "$new_record" > "$new_CSV_PATH"
+    printf "%s" "$new_record" > "$new_CSV_PATH"
     write_to_log  # Llamada a la función para escribir en el log
 }
 
@@ -120,7 +131,7 @@ function write_to_log() {
 # Función principal
 function add_domains_gui() {
     # Comprobar y crear el directorio de dominios si no existe
-    ensure_ENDPOINTectory
+    check_dir
 
     while true; do
         show_main_menu
