@@ -7,7 +7,10 @@ host="samava-cloud"
 nextcloud_dir="nextcloud"
 react_dir="react-app"
 django_dir="django_project"
-HTML_PATH="/var/www/$host"
+orion_dir="orion_project"
+antares_dir="antares_project"
+WEB_DIR="/var/www"
+HTML_PATH="$WEB_DIR/$host"
 NGINX_DIR="/etc/nginx"
 PMA_PASS_FILE="$NGINX_DIR/pma_pass"
 NGINX_SITES_ENABLED="$NGINX_DIR/sites-enabled/"
@@ -15,6 +18,8 @@ config_path="$NGINX_DIR/sites-available/$host"
 nextcloud_root="$HTML_PATH/$nextcloud_dir"
 react_root="$HTML_PATH/$react_dir"
 django_root="$HTML_PATH/$django_dir"
+orion_root="$HTML_PATH/$orion_dir"
+antares_root="$HTML_PATH/$antares_dir"
 GID_NAME="www-data"
 UID_NAME="www-data"
 CERTS_FILE="nginx_generate_certs.sh"
@@ -104,7 +109,7 @@ function create_nginx_configs() {
     }
 
     location /home {
-        alias /var/www/samava-cloud/html;
+        alias $HTML_PATH/html;
         index index.html;
     }
 
@@ -124,6 +129,23 @@ function create_nginx_configs() {
 
     location /nextcloud {
         alias $nextcloud_root;
+        index index.php;
+    
+        location ~ \.php\$ {
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME \$request_filename;
+            fastcgi_pass unix:/var/run/php/php$version_number-fpm.sock;
+        }
+      
+        location ~* \.(?:css|js|svg|gif|png|html|ttf|woff|ico|jpg|jpeg)$ {
+            try_files \$uri \$uri/ /nextcloud/index.php\$request_uri;
+            expires 30d;
+            access_log off;
+        }
+    }
+
+    location /antares {
+        alias $antares_root;
         index index.php;
     
         location ~ \.php\$ {
@@ -220,7 +242,7 @@ function create_nginx_configs() {
     }
 
     location /postfixadmin {
-        alias /var/www/samava-cloud/postfixadmin/public;
+        alias $HTML_PATH/postfixadmin/public;
         index index.php;
         access_log off;
         error_log off;
