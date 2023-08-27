@@ -4,15 +4,32 @@
 API_URL="https://api.github.com" # API para autenticación en GitHub
 GITHUB_ORGANIZATION="TCS2211194M1"
 REPOSITORY="Antares_project" # Respositorio Github a clonar
-REPOSITORY_PATH="$GITHUB_ORGANIZATION/$REPOSITORY"
+REPOSITORY_PATH="https://github.com/TCS2211194M1/Antares_project.git"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 GRAND_PARENT_DIR="$( dirname "$PARENT_DIR" )" # Get the parent directory of the parent directory of the current directory
-WEB_DIR="var/www/samava-cloud"
 CREDENTIALS_FILE="git_credentials.txt"
 CREDENTIALS_PATH="$GRAND_PARENT_DIR/$CREDENTIALS_FILE" # Directorio del archivo git_credentials.txt
-REPOSITORY_ENDPOINT="$WEB_DIR/$REPOSITORY" # Directorio final
+REPOSITORY_ENDPOINT="/var/www/samava-cloud" # Directorio final
 
+# Función para verificar si el directorio de destino ya existe y clonar/actualizar Git
+function check_directory() {
+    echo "Verificando si el directorio de destino '$REPOSITORY_ENDPOINT/$REPOSITORY' ya existe..."
+  if [ -d "$REPOSITORY_ENDPOINT/$REPOSITORY" ]; then
+      echo "El directorio de destino '$REPOSITORY_ENDPOINT/$REPOSITORY' ya existe. Realizando actualización..."
+      update_git
+  else
+    echo "El directorio de destino '$REPOSITORY_ENDPOINT/$REPOSITORY' no existe."
+    echo "Creando directorio '$REPOSITORY_ENDPOINT'..."
+    if sudo mkdir "$REPOSITORY_ENDPOINT"; then
+      echo "¡Directorio '$REPOSITORY_ENDPOINT' creado exitosamente!"
+    else
+        echo "Error al crear el directorio '$REPOSITORY_ENDPOINT'."
+    fi
+    
+    clone_repository
+  fi
+}
 # Función para leer credenciales desde archivo de texto
 function read_credentials() {
   echo "Leyendo cedenciales..."
@@ -30,36 +47,24 @@ function read_credentials() {
     fi 
 }
 
-# Función para verificar si el directorio de destino ya existe y clonar/actualizar Git
-function check_directory() {
-    echo "Verificando si el directorio de destino '$REPOSITORY_ENDPOINT' ya existe..."
-  if [ -d "$REPOSITORY_ENDPOINT" ]; then
-      echo "El directorio de destino '$REPOSITORY_ENDPOINT' ya existe. Realizando actualización..."
-      update_git
-  else
-      echo "El directorio de destino '$REPOSITORY_ENDPOINT' no existe."
-      clone_repository
-  fi
-}
+
 # Función para clonar repositorios
 function clone_repository() {
-  echo "Creando directorio '$REPOSITORY_ENDPOINT'..."
-  sudo mkdir "$REPOSITORY_ENDPOINT"
+    cd "$REPOSITORY_ENDPOINT"
   echo "Clonando '$REPOSITORY_PATH' en '$REPOSITORY_ENDPOINT'..."
-  if git clone "$REPOSITORY_PATH" "$REPOSITORY_ENDPOINT"; then
+  if git clone "$REPOSITORY_PATH"; then
       echo "¡Clonado exitoso!"
   else
       echo "Error al clonar el repositorio '$REPOSITORY_PATH'."
-      exit 0
   fi
 }
 # Función para actualizar repositorios
 function update_git () {
-    cd "$REPOSITORY_ENDPOINT"
+    cd "$REPOSITORY_ENDPOINT/$REPOSITORY"
     if response=$(curl -s -H "Authorization: token $token" "$API_URL/$username"); then
         echo "¡Inicio de sesión exitoso en GitHub!"
-        echo "Actualizando '$REPOSITORY_ENDPOINT' desde '$REPOSITORY_PATH'..."
-        if git pull "$REPOSITORY_PATH"; then
+        echo "Actualizando '$REPOSITORY_ENDPOINT/$REPOSITORY' desde '$REPOSITORY_PATH'..."
+        if git pull origin master; then
             echo "Actualización exitosa."
         else
             echo "Error al actualizar el repositorio. Por favor, verifique su conexión a Internet e inténtelo de nuevo."
