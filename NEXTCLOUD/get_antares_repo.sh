@@ -7,9 +7,10 @@ REPOSITORY="Antares_project" # Respositorio Github a clonar
 REPOSITORY_PATH="$GITHUB_ORGANIZATION/$REPOSITORY"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
+GRAND_PARENT_DIR="$( dirname "$PARENT_DIR" )" # Get the parent directory of the parent directory of the current directory
 WEB_DIR="var/www/samava-cloud"
 CREDENTIALS_FILE="git_credentials.txt"
-CREDENTIALS_PATH="$PARENT_DIR/$CREDENTIALS_FILE" # Directorio del archivo git_credentials.txt
+CREDENTIALS_PATH="$GRAND_PARENT_DIR/$CREDENTIALS_FILE" # Directorio del archivo git_credentials.txt
 REPOSITORY_ENDPOINT="$WEB_DIR/$REPOSITORY" # Directorio final
 
 # Función para leer credenciales desde archivo de texto
