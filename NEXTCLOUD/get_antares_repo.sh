@@ -2,7 +2,6 @@
 # get_antares_repo.sh
 # Variables
 API_URL="https://api.github.com" # API para autenticación en GitHub
-GITHUB_ORGANIZATION="TCS2211194M1"
 REPOSITORY="Antares_project" # Respositorio Github a clonar
 REPOSITORY_PATH="https://github.com/TCS2211194M1/Antares_project.git"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
@@ -10,7 +9,9 @@ PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the curre
 GRAND_PARENT_DIR="$( dirname "$PARENT_DIR" )" # Get the parent directory of the parent directory of the current directory
 CREDENTIALS_FILE="git_credentials.txt"
 CREDENTIALS_PATH="$GRAND_PARENT_DIR/$CREDENTIALS_FILE" # Directorio del archivo git_credentials.txt
-REPOSITORY_ENDPOINT="/var/www/samava-cloud" # Directorio final
+HOST="samava-cloud"
+WEB_DIR="/var/www"
+REPOSITORY_ENDPOINT="$WEB_DIR/$HOST" # Directorio final
 
 # Función para verificar si el directorio de destino ya existe y clonar/actualizar Git
 function check_directory() {
