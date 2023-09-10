@@ -31,7 +31,7 @@ function read_credentials() {
 
 function change_directory() {
     # Cambia al directorio local donde tienes tu repositorio Git
-    echo "Cambiando al directorio local donde tienes tu repositorio Git..."
+    echo "Cambiando al directorio local donde tienes tu repositorio Git: '$SCRIPT_DIR'..."
     cd "$SCRIPT_DIR"
 }
 
