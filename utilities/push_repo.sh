@@ -61,7 +61,7 @@ function push_git() {
         echo "$spacer"
         fix_git_ownership
         echo "$spacer"
-        initialize_repository
+        #initialize_repository
         echo "$spacer"
         configure_remote_url
         echo "$spacer"
