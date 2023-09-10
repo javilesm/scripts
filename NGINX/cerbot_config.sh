@@ -4,7 +4,10 @@
 CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 MAIL_ADDRESS="creativeering@outlook.com"
-DOMAINS_LIST="$PARENT_DIR/Postfix/domains.txt"
+DOMAINS_FILE="domains.csv"
+DOMAINS_ENDPOINT="Domains"
+DOMAINS_LIST="$PARENT_DIR/$DOMAINS_ENDPOINT/$DOMAINS_FILE"
+
 # Detener Nginx si está en ejecución
 function stop_nginx() {
     echo "Deteniendo Nginx si está en ejecución..."
@@ -18,11 +21,20 @@ function stop_nginx() {
 # Leear la lista de dominios
 function read_domains_list() {
     echo "Leyendo la lista de dominios: '$DOMAINS_LIST'..."
-    while IFS= read -r hostname; do
-        echo "Hostname: $hostname"
-        generate_ssl_certificate "$hostname"
-        #dry_run "$hostname"
+    while IFS= read -r hostname owner city state cellphone flag; do
+        if [ "$flag" == "CREATE" ]; then
+          local host="${hostname#*@}"
+          host="${host}"
+          echo "Hostname: $host"
+          contador=$((contador + 1))
+          echo "Hostname: $host"
+          generate_ssl_certificate "$host"
+          #dry_run "$hostname"
+        fi
+
     done < <(grep -v '^$' "$DOMAINS_LIST")
+    
+    echo "El archivo '$DOMAINS_LIST' tiene '$contador' elementos con flag 'CREATE'."
     echo "Todos los dominios han sido procesados."
 }
 # Generar el certificado SSL con Certbot
