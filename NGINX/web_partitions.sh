@@ -125,8 +125,9 @@ function iteration() {
     
     # Obtenemos el dominio correspondiente
     dominio="${dominios[i]}"
-    host="${dominio}"
-    mounting_point=$target_dir/$host
+    # Tomamos el primer valor antes del signo de coma (',') como nombre de dominio
+    cleaned_host=$(echo "$dominio" | cut -d',' -f1)
+    mounting_point="$target_dir/$cleaned_host"
 
     # Montar la partición
     echo "Montando la partición: $particion $mounting_point"
@@ -137,16 +138,15 @@ function iteration() {
       echo "Asegúrese de que la partición exista y el punto de montaje esté disponible."
       echo "Revise los permisos y la configuración del sistema."
     fi
-    lsblk --paths | grep $unidad
+    lsblk --paths | grep "$unidad"
     sleep 3
     
     # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
     echo "${particion//\"/} ${mounting_point//\"/} ${formato//\"/} defaults 0 0" | sudo tee -a /etc/fstab
     echo "-------------------------------------------------------------------------"
   done
-  lsblk --paths | grep $unidad
+  lsblk --paths | grep "$unidad"
 }
-
 
 function web_partitions() {
   echo "****************WEB PARTITIONS****************"
