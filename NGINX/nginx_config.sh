@@ -5,7 +5,7 @@ HTML_PATH="/var/www"
 WEB_DIR="html"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
-WORDPRESS_DIR="$PARENT_DIR/Wordpress"
+WORDPRESS_DIR="$HTML_PATH/wp_template"
 DOMAINS_FILE="domains.csv"
 DOMAINS_ENDPOINT="Domains"
 DOMAINS_PATH="$PARENT_DIR/$DOMAINS_ENDPOINT/$DOMAINS_FILE"
@@ -24,6 +24,21 @@ MYSQL_USERS_PATH="$PARENT_DIR/MySQL/$MYSQL_USERS_FILE"
 NGINX_PATH="/etc/nginx"
 NGINX_CONF="$NGINX_PATH/nginx.conf"
 CERBOT_SCRIPT="$CURRENT_DIR/cerbot_config.sh"
+CLONE_REPO_SCRIPT="$PARENT_DIR/utilities/clone_repo.sh"
+
+# Función para ejecutar el script de clonado de repositorio Git
+function clone_repo() {
+  echo "Ejecutando el script '$CLONE_REPO_SCRIPT'..."
+    # Intentar ejecutar el script de clonado de repositorio Git
+  if sudo bash "$CLONE_REPO_SCRIPT"; then
+    echo "El script '$CLONE_REPO_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el script '$CLONE_REPO_SCRIPT'."
+    exit 1
+  fi
+  echo "Script '$CLONE_REPO_SCRIPT' ejecutado."
+}
+
 # Función para agregar una entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema
 function add_cron_entry() {
   local cron_entry="@reboot sudo service nginx restart"
@@ -89,6 +104,7 @@ function validate_script() {
   fi
   echo "El archivo '$PARTITIONS_SCRIPT' existe."
 }
+
 # Función para ejecutar el configurador de Postfix
 function run_script() {
   echo "Ejecutando el script '$PARTITIONS_SCRIPT'..."
@@ -234,7 +250,7 @@ function install_wp() {
 
         # Desempaquietar WordPress
         echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host'..."
-        if ! unzip -oq "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host"; then
+        if ! unzip -oq "$HTML_PATH/$host/latest.zip" -d "$site_root"; then
             echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
             return 1
         fi
@@ -338,6 +354,7 @@ function restart_services() {
 # Función principal
 function nginx_config() {
   echo "**********NGINX CONFIG***********"
+  clone_repo
   add_cron_entry
   mkdir
   read_domains
