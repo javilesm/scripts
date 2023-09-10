@@ -11,6 +11,8 @@ CREDENTIALS_FILE="git_credentials.txt"
 CREDENTIALS_PATH="$CURRENT_DIR/$CREDENTIALS_FILE" # Directorio del archivo git_credentials.txt
 REPOSITORY="www" # Respositorio Github a clonar
 SCRIPT_DIR="/var/$REPOSITORY" # Directorio final
+spacer="-------------------------------------------------------------------------------"
+
 # Función para leer credenciales desde archivo de texto
 function read_credentials() {
   echo "Leyendo credenciales..."
@@ -77,6 +79,7 @@ function update_git () {
 function clone_repo() {
     echo "**********CLONE REPO***********"
     read_credentials
+    echo "$spacer"
     check_directory
     echo "**************ALL DONE***************"
 }
