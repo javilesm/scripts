@@ -25,6 +25,7 @@ NGINX_PATH="/etc/nginx"
 NGINX_CONF="$NGINX_PATH/nginx.conf"
 CERBOT_SCRIPT="$CURRENT_DIR/cerbot_config.sh"
 CLONE_REPO_SCRIPT="$PARENT_DIR/utilities/clone_repo.sh"
+PUSH_REPO_SCRIPT="$PARENT_DIR/utilities/push_repo.sh"
 
 # Función para ejecutar el script de clonado de repositorio Git
 function clone_repo() {
@@ -351,6 +352,18 @@ function restart_services() {
   sleep 2
   clear
 }
+# Función para ejecutar el script de commit de repositorio Git
+function push_repo() {
+  echo "Ejecutando el script '$PUSH_REPO_SCRIPT'..."
+    # Intentar ejecutar el script de commit de repositorio Git
+  if sudo bash "$PUSH_REPO_SCRIPT"; then
+    echo "El script '$PUSH_REPO_SCRIPT' se ha ejecutado correctamente."
+  else
+    echo "ERROR: No se pudo ejecutar el script '$PUSH_REPO_SCRIPT'."
+    exit 1
+  fi
+  echo "Script '$PUSH_REPO_SCRIPT' ejecutado."
+}
 # Función principal
 function nginx_config() {
   echo "**********NGINX CONFIG***********"
@@ -369,6 +382,7 @@ function nginx_config() {
   install_wp
   edit_wp_config
   restart_services
+  push_repo
   echo "*************ALL DONE**************"
 }
 # Llamar a la funcion princial
