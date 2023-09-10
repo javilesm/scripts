@@ -7,6 +7,7 @@ CONFIRM_SCRIPT="$PARENT_DIR/utilities/confirm"
 DOMAINS_FILE="domains.csv"
 DOMAINS_ENDPOINT="Domains"
 DOMAINS_PATH="$PARENT_DIR/$DOMAINS_ENDPOINT/$DOMAINS_FILE"
+target_dir="/var/www"
 
 # Función para leer la lista de dominios y contar cuantos dominios existen
 function count_domains() {
@@ -105,25 +106,28 @@ function format_parts() {
 }
 
 function iteration() {
-  target_dir="/var/www"
   # Leer la lista de dominios
-  IFS=$'\n' read -d '' -r -a dominios < "$DOMAINS_PATH"
+  echo "Leyendo la lista de dominios..."
+  IFS=$'\n' read -d '' -r -a dominios < <(grep -v '^$' "$DOMAINS_PATH" | grep 'CREATE')
   
   # Verificar que la cantidad de dominios sea suficiente
+  echo "Verificando que la cantidad de dominios sea suficiente..."
   if (( ${#dominios[@]} < num_particiones )); then
     echo "No hay suficientes dominios disponibles."
     return
   fi
 
   # Iteramos sobre la lista de particiones
+  echo "Iterando sobre la lista de particiones..."
   for ((i=0; i<num_particiones; i++)); do
     # Obtenemos la partición correspondiente
     particion="/dev/${unidad}$((i+1))"
     
     # Obtenemos el dominio correspondiente
     dominio="${dominios[i]}"
-    host="${dominio%%.*}"
+    host="${dominio}"
     mounting_point=$target_dir/$host
+
     # Montar la partición
     echo "Montando la partición: $particion $mounting_point"
     if sudo mount "$particion" "$mounting_point"; then
@@ -135,12 +139,14 @@ function iteration() {
     fi
     lsblk --paths | grep $unidad
     sleep 3
+    
     # Agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
     echo "${particion//\"/} ${mounting_point//\"/} ${formato//\"/} defaults 0 0" | sudo tee -a /etc/fstab
     echo "-------------------------------------------------------------------------"
   done
   lsblk --paths | grep $unidad
 }
+
 
 function web_partitions() {
   echo "****************WEB PARTITIONS****************"
