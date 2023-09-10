@@ -59,6 +59,7 @@ function clone_repository() {
 
 # Función para actualizar repositorios
 function update_git () {
+    git init
     cd "$SCRIPT_DIR"
     if response=$(curl -s -H "Authorization: token $token" "$API_URL/$username"); then
         echo "¡Inicio de sesión exitoso en GitHub!"
