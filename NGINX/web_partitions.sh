@@ -4,23 +4,28 @@
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 CONFIRM_SCRIPT="$PARENT_DIR/utilities/confirm"
-DOMAINS_FILE="domains.txt"
-DOMAINS_PATH="$PARENT_DIR/Postfix/$DOMAINS_FILE"
+DOMAINS_FILE="domains.csv"
+DOMAINS_ENDPOINT="Domains"
+DOMAINS_PATH="$PARENT_DIR/$DOMAINS_ENDPOINT/$DOMAINS_FILE"
+
 # Función para leer la lista de dominios y contar cuantos dominios existen
 function count_domains() {
   # Leer la lista de dominios
   echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
   contador=0
   
-  while read -r hostname; do
-    local host="${hostname#*@}"
-    host="${host%%.*}"
-    echo "Hostname: $host"
-    contador=$((contador + 1))
+  while IFS="," read -r hostname owner city state cellphone flag; do
+    if [ "$flag" == "CREATE" ]; then
+      local host="${hostname#*@}"
+      host="${host}"
+      echo "Hostname: $host"
+      contador=$((contador + 1))
+    fi
   done < <(grep -v '^$' "$DOMAINS_PATH")
   
-  echo "El archivo '$DOMAINS_PATH' tiene '$contador' elementos."
+  echo "El archivo '$DOMAINS_PATH' tiene '$contador' elementos con flag 'CREATE'."
 }
+
 # Obtener la unidad a particionar y el número de particiones del usuario
 function get_dev() {
   unidades=$(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep -e '^NAME' -e 'disk' | awk '{print $1, $2}')
