@@ -6,8 +6,9 @@ WEB_DIR="html"
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 WORDPRESS_DIR="$PARENT_DIR/Wordpress"
-DOMAINS_FILE="domains.txt"
-DOMAINS_PATH="$PARENT_DIR/Postfix/$DOMAINS_FILE"
+DOMAINS_FILE="domains.csv"
+DOMAINS_ENDPOINT="Domains"
+DOMAINS_PATH="$PARENT_DIR/$DOMAINS_ENDPOINT/$DOMAINS_FILE"
 PARTITIONS_SCRIPT="web_partitions.sh"
 PARTITIONS_PATH="$CURRENT_DIR/$PARTITIONS_SCRIPT"
 INDEX_SAMPLE="index.html"
@@ -20,7 +21,7 @@ WP_CONFIG_FILE="wp-config.php"
 WP_CONFIG_PATH="$WORDPRESS_DIR/$WP_CONFIG_FILE"
 MYSQL_USERS_FILE="mysql_users.csv"
 MYSQL_USERS_PATH="$PARENT_DIR/MySQL/$MYSQL_USERS_FILE"
-NGINX_PATH="/etc/nginx/"
+NGINX_PATH="/etc/nginx"
 NGINX_CONF="$NGINX_PATH/nginx.conf"
 CERBOT_SCRIPT="$CURRENT_DIR/cerbot_config.sh"
 # Función para agregar una entrada al crontab para automatizar el reinicio del servicio nginx tras cada reinicio del sistema
@@ -63,16 +64,19 @@ function mkdir() {
 function read_domains() {
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
-    while read -r hostname; do
-      local host="${hostname#*@}"
-      host="${host%%.*}"
-      echo "Hostname: $host"
-      # crear subdirectorios para cada dominio
-      echo "Creando el subdirectorio: '$HTML_PATH/$host'..."
-      sudo mkdir -p "$HTML_PATH/$host"
-      # cambiar permisos del subdirectorio
-      echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host'..."
-      sudo chmod -R 755 "$HTML_PATH/$host"
+    while IFS="," read -r hostname owner city state cellphone flag; do
+      if [ "$flag" == "CREATE" ]; then
+        local host="${hostname#*@}"
+        host="${host}"
+        echo "Hostname: $host"
+        contador=$((contador + 1))
+        # crear subdirectorios para cada dominio
+        echo "Creando el subdirectorio: '$HTML_PATH/$host'..."
+        sudo mkdir -p "$HTML_PATH/$host"
+        # cambiar permisos del subdirectorio
+        echo "Cambiando los permisos del subdirectorio '$HTML_PATH/$host'..."
+        sudo chmod -R 755 "$HTML_PATH/$host"
+      fi
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -101,22 +105,27 @@ function run_script() {
 function create_webdirs() {
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
-    while read -r hostname; do
-      local host="${hostname#*@}"
-      host="${host%%.*}"
-      echo "Hostname: $host"
-      local site_root="$HTML_PATH/$host/$WEB_DIR"
-       # crear directorio web
-      echo "Creando el directorio web: '$site_root'..."
-      sudo mkdir -p "$site_root"
-      # Copiar plantilla index
-      echo "Copiando plantilla '$INDEX_PATH' al directorio web '$site_root'..."
-      sudo cp "$INDEX_PATH" "$site_root"
+    while IFS="," read -r hostname owner city state cellphone flag; do
+      if [ "$flag" == "CREATE" ]; then
+        local host="${hostname#*@}"
+        host="${host}"
+        echo "Hostname: $host"
+        contador=$((contador + 1))
+        local site_root="$HTML_PATH/$host/$WEB_DIR"
+        # crear directorio web
+        echo "Creando el directorio web: '$site_root'..."
+        sudo mkdir -p "$site_root"
+        # Copiar plantilla index
+        echo "Copiando plantilla '$INDEX_PATH' al directorio web '$site_root'..."
+        sudo cp "$INDEX_PATH" "$site_root"
+      fi
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
+# Función para obtener la versión de PHP-FPM
 function get_php_fpm_version() {
     # Obtener la versión de PHP-FPM
+    echo "Obteniendo la versión de PHP-FPM..."
     version_output=$(php -v 2>&1)
     regex="PHP ([0-9]+\.[0-9]+)"
 
@@ -133,14 +142,17 @@ function create_nginx_configs() {
   local sites_enabled="/etc/nginx/sites-enabled/"
   echo "Creando archivos de configuración de Nginx..."
 
-  while read -r hostname; do
-    local host="${hostname#*@}"
-    host="${host%%.*}"
-    local site_root="$HTML_PATH/$host/$WEB_DIR"
-    echo "Creando archivo de configuración para el dominio: $host"
-    config_path="/etc/nginx/sites-available/$host"
-    # Crear el archivo de configuración
-    echo "server {
+  while IFS="," read -r hostname owner city state cellphone flag; do
+    if [ "$flag" == "CREATE" ]; then
+      local host="${hostname#*@}"
+      host="${host}"
+      echo "Hostname: $host"
+      contador=$((contador + 1))
+      local site_root="$HTML_PATH/$host/$WEB_DIR"
+      echo "Creando archivo de configuración para el dominio: $host"
+      config_path="/etc/nginx/sites-available/$host"
+      # Crear el archivo de configuración
+      echo "server {
     server_name $hostname *.$hostname;
     root $site_root;
     index index.php;
@@ -165,6 +177,8 @@ function create_nginx_configs() {
     echo "Archivo de configuración creado: $config_path"
     echo "Creando un vínculo simbólico del archivo '$config_path' y el archivo '$sites_enabled'..."
     sudo ln -s "$config_path" "$sites_enabled"
+
+    fi
   done < <(grep -v '^$' "$DOMAINS_PATH")
 
   echo "Todos los archivos de configuración de Nginx han sido creados."
@@ -205,45 +219,48 @@ function run_cerbot_script() {
 function install_wp() {
     # leer la lista de dominios
     echo "Leyendo la lista de dominios: '$DOMAINS_PATH'..."
-    while read -r hostname; do
-      local host="${hostname#*@}"
-      host="${host%%.*}"
-      echo "Hostname: $host"
-      local site_root="$HTML_PATH/$host/$WEB_DIR"
-      sudo rm "$site_root/$INDEX_SAMPLE"
+    while IFS="," read -r hostname owner city state cellphone flag; do
+      if [ "$flag" == "CREATE" ]; then
+        local host="${hostname#*@}"
+        host="${host}"
+        echo "Hostname: $host"
+        contador=$((contador + 1))
+        local site_root="$HTML_PATH/$host/$WEB_DIR"
+        sudo rm "$site_root/$INDEX_SAMPLE"
 
-      # Copiar WordPress
-      echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
-      sudo cp "$WORDPRESS" "$HTML_PATH/$host"
+        # Copiar WordPress
+        echo "Copiando plantilla '$WORDPRESS' al directorio web '$HTML_PATH/$host'..."
+        sudo cp "$WORDPRESS" "$HTML_PATH/$host"
 
-      # Desempaquietar WordPress
-      echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host'..."
-      if ! unzip -oq "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host"; then
-          echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
-          return 1
+        # Desempaquietar WordPress
+        echo "Desempaquetando plantilla '$HTML_PATH/$host/latest.zip' en el directorio '$HTML_PATH/$host'..."
+        if ! unzip -oq "$HTML_PATH/$host/latest.zip" -d "$HTML_PATH/$host"; then
+            echo "ERROR: Ha ocurrido un error al desempaquetar '$HTML_PATH/$host/latest.zip'."
+            return 1
+        fi
+        echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$HTML_PATH/$host'."
+        echo "$HTML_PATH/$host:"
+        ls "$HTML_PATH/$host"
+
+        # Eliminar el archivo comprimido
+        echo "Eliminando el archivo comprimido '$HTML_PATH/$host/latest.zip'..."
+        if sudo rm "$HTML_PATH/$host/latest.zip"; then
+          echo "El archivo comprimido '$HTML_PATH/$host/latest.zip' se eliminó correctamente."
+        else
+          echo "ERROR: Error al eliminar el archivo comprimido '$HTML_PATH/$host/latest.zip'."
+          return
+        fi
+        echo "$HTML_PATH/$host:"
+        ls "$HTML_PATH/$host"
       fi
-      echo "El archivo '$HTML_PATH/$host/latest.zip' se ha desempaquetado correctamente en el directorio '$HTML_PATH/$host'."
-      echo "$HTML_PATH/$host:"
-      ls "$HTML_PATH/$host"
-
-      # Eliminar el archivo comprimido
-      echo "Eliminando el archivo comprimido '$HTML_PATH/$host/latest.zip'..."
-      if sudo rm "$HTML_PATH/$host/latest.zip"; then
-        echo "El archivo comprimido '$HTML_PATH/$host/latest.zip' se eliminó correctamente."
-      else
-        echo "ERROR: Error al eliminar el archivo comprimido '$HTML_PATH/$host/latest.zip'."
-        return
-      fi
-      echo "$HTML_PATH/$host:"
-      ls "$HTML_PATH/$host"
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
 # Función para leer la lista de dominios y editar el archivo wp-config.php de cada sitio
 function edit_wp_config() {
   # Leer la lista de dominios
-  IFS=$'\n' read -d '' -r -a dominios < "$DOMAINS_PATH"
-
+  IFS=$'\n' read -d '' -r -a dominios < <(grep -v '^$' "$DOMAINS_PATH" | grep 'CREATE')
+  
   # Leer el archivo de usuarios de MySQL
   IFS=$'\n' read -d '' -r -a usuarios < "$MYSQL_USERS_PATH"
 
@@ -251,8 +268,12 @@ function edit_wp_config() {
   contador=0
   for ((i=0; i<${#dominios[@]}; i++)); do
     dominio="${dominios[i]}"
-    host="${dominio%%.*}"
-    local site_root="$HTML_PATH/$host/$WEB_DIR"
+    # Obtenemos el dominio correspondiente
+    dominio="${dominios[i]}"
+    # Tomamos el primer valor antes del signo de coma (',') como nombre de dominio
+    cleaned_host=$(echo "$dominio" | cut -d',' -f1)
+    site_root="$HTML_PATH/$cleaned_host/$WEB_DIR"
+
     # Verificar que el dominio tenga un usuario correspondiente
     if (( i >= ${#usuarios[@]} )); then
       echo "No hay suficientes usuarios de MySQL disponibles para todos los dominios."
