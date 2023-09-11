@@ -15,6 +15,8 @@ SCRIPT_DIR="/var/$REPOSITORY" # Directorio final
 COMMIT_MESSAGE="Mensaje de commit"
 spacer="-------------------------------------------------------------------------------"
 
+git config --global user.email "jorgeluis.mmedina@gmail.com"
+git config --global user.name "javilesm"
 # Función para solucionar problemas de propiedad en el repositorio Git
 function fix_git_ownership() {
     # Agregar una excepción para el directorio /var/www
@@ -41,8 +43,12 @@ function read_credentials() {
         source "$CREDENTIALS_PATH"
         export username=${username%%[[:space:]]}  # Eliminar espacios en blanco finales
         export token=${token##+[[:space:]]}       # Eliminar espacios en blanco iniciales
-        export git="https://${username}:${token}@github.com/${username}/${REPOSITORY}.git"
-    else
+        export git="git@github.com:${username}/${REPOSITORY}.git"
+        echo "***Credenciales de acceso***"
+        echo "--> username: $username"
+        echo "--> token: ${token:0:3}*********"
+        echo "--> URL: $git"
+     else
         echo "El archivo '$CREDENTIALS_FILE' no existe en la ubicación '$CREDENTIALS_PATH'. Por favor, cree el archivo con las variables username y token, y vuelva a intentarlo."
         exit 1
     fi 
@@ -50,7 +56,7 @@ function read_credentials() {
 
 # Función para actualizar repositorios
 function push_git() {
-    echo "Actualizando '$git' desde '$SCRIPT_DIR'..."
+    echo "Actualizando '$GitHubRepoURL' desde '$SCRIPT_DIR'..."
     change_directory
     echo "$spacer"
     #fix_git_ownership
@@ -58,6 +64,8 @@ function push_git() {
     #initialize_repository
     echo "$spacer"
     configure_remote_url
+    echo "$spacer"
+    pull_changes
     echo "$spacer"
     add_changes_to_staging
     echo "$spacer"
@@ -85,8 +93,19 @@ function initialize_repository() {
 # Función para configurar la URL del repositorio remoto
 function configure_remote_url() {
     # Configurar la URL del repositorio remoto
-    echo "Configurando la URL del repositorio remoto '$git'..."
-    sudo git remote add origin "$git"
+    echo "Configurando la URL del repositorio remoto '$GitHubRepoURL'..."
+    sudo git remote set-url origin "$git"
+}
+function pull_changes(){
+    # pull changes
+    echo "Realizando el push al repositorio remoto en GitHub..."
+    if response=$(curl -s -H "Authorization: token $token" "$API_URL/$username"); then
+        echo "¡Inicio de sesión exitoso en GitHub!"
+        sudo git pull origin master
+    else
+        echo "Error al iniciar sesión en GitHub. Por favor, verifica tu token de acceso."
+        exit 1
+    fi
 }
 # Función para
 function add_changes_to_staging() {
@@ -104,10 +123,6 @@ function commit_changes() {
 function push_to_github() {
     # Realizar el push al repositorio remoto en GitHub
     echo "Realizando el push al repositorio remoto en GitHub..."
-    echo "***Credenciales de acceso***"
-    echo "--> username: $username"
-    echo "--> token: ${token:0:3}*********"
-    echo "--> URL: $git"
     if response=$(curl -s -H "Authorization: token $token" "$API_URL/$username"); then
         echo "¡Inicio de sesión exitoso en GitHub!"
         sudo git push origin main
@@ -116,7 +131,7 @@ function push_to_github() {
         exit 1
     fi
 }
-# Función para
+# Función para verificar el estado después del push (opcional)
 function check_status() {
     # Verifica el estado después del push (opcional)
     echo "Verificando el estado después del push..."
