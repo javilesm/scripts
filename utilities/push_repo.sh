@@ -15,8 +15,6 @@ SCRIPT_DIR="/var/$REPOSITORY" # Directorio final
 COMMIT_MESSAGE="Mensaje de commit"
 spacer="-------------------------------------------------------------------------------"
 
-git config --global user.email "jorgeluis.mmedina@gmail.com"
-git config --global user.name "javilesm"
 # Función para solucionar problemas de propiedad en el repositorio Git
 function fix_git_ownership() {
     # Agregar una excepción para el directorio /var/www
@@ -43,7 +41,7 @@ function read_credentials() {
         source "$CREDENTIALS_PATH"
         export username=${username%%[[:space:]]}  # Eliminar espacios en blanco finales
         export token=${token##+[[:space:]]}       # Eliminar espacios en blanco iniciales
-        export git="git@github.com:${username}/${REPOSITORY}.git"
+        export git="https://${username}:${token}@github.com/${username}/${REPOSITORY}.git"
         echo "***Credenciales de acceso***"
         echo "--> username: $username"
         echo "--> token: ${token:0:3}*********"
@@ -93,8 +91,8 @@ function initialize_repository() {
 # Función para configurar la URL del repositorio remoto
 function configure_remote_url() {
     # Configurar la URL del repositorio remoto
-    echo "Configurando la URL del repositorio remoto '$GitHubRepoURL'..."
-    sudo git remote set-url origin "$git"
+    echo "Configurando la URL del repositorio remoto 'https://${username}:${token}@github.com/${username}/${REPOSITORY}.git'"
+    sudo git remote set-url origin "https://${username}:${token}@github.com/${username}/${REPOSITORY}.git"
 }
 function pull_changes(){
     # pull changes
