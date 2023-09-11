@@ -39,13 +39,9 @@ function read_credentials() {
   echo "Leyendo credenciales..."
     if [ -f "$CREDENTIALS_PATH" ]; then
         source "$CREDENTIALS_PATH"
-        username=${username%%[[:space:]]}  # Eliminar espacios en blanco finales
-        token=${token##+[[:space:]]}       # Eliminar espacios en blanco iniciales
-        export git="https://github.com/${username}/${REPOSITORY}.git"
-        echo "***Credenciales de acceso***"
-        echo "--> username: $username"
-        echo "--> token: ${token:0:3}*********"
-        echo "--> URL: $git"
+        export username=${username%%[[:space:]]}  # Eliminar espacios en blanco finales
+        export token=${token##+[[:space:]]}       # Eliminar espacios en blanco iniciales
+        export git="https://${username}:${token}@github.com/${username}/${REPOSITORY}.git"
     else
         echo "El archivo '$CREDENTIALS_FILE' no existe en la ubicación '$CREDENTIALS_PATH'. Por favor, cree el archivo con las variables username y token, y vuelva a intentarlo."
         exit 1
@@ -54,46 +50,30 @@ function read_credentials() {
 
 # Función para actualizar repositorios
 function push_git() {
-    if response=$(curl -s -H "Authorization: token $token" "$API_URL/$username"); then
-        echo "¡Inicio de sesión exitoso en GitHub!"
-        echo "Actualizando '$git' desde '$SCRIPT_DIR'..."
-        change_directory
-        echo "$spacer"
-        fix_git_ownership
-        echo "$spacer"
-        #initialize_repository
-        echo "$spacer"
-        configure_remote_url
-        echo "$spacer"
-            echo "Asegúrandose de haber agregado los cambios a la zona de preparación (staging)..."
-            if ! add_changes_to_staging; then
-                echo "Error al agregar cambios al área de preparación (staging)."
-                return 1
-            fi
-
-            # Verifica si hubo advertencias relacionadas con repositorios Git internos
-            if [[ "$(git add . 2>&1)" == *"warning: adding embedded git repository:"* ]]; then
-                echo "Advertencias relacionadas con repositorios Git internos detectadas."
-                find_internal_git_repo
-            fi
-        echo "$spacer"
-        commit_changes
-        echo "$spacer"
-        push_to_github
-        echo "$spacer"
-        check_status
-    else
-        echo "Error al iniciar sesión en GitHub. Por favor, verifica tu token de acceso."
-        exit 1
-    fi
+    echo "Actualizando '$git' desde '$SCRIPT_DIR'..."
+    change_directory
+    echo "$spacer"
+    #fix_git_ownership
+    echo "$spacer"
+    #initialize_repository
+    echo "$spacer"
+    configure_remote_url
+    echo "$spacer"
+    add_changes_to_staging
+    echo "$spacer"
+    commit_changes
+    echo "$spacer"
+    push_to_github
+    echo "$spacer"
+    check_status
 }
-
+# Función para cambiar al directorio local donde tienes tu repositorio Git
 function change_directory() {
-    # Cambia al directorio local donde tienes tu repositorio Git
+    # Cambiar al directorio local donde tienes tu repositorio Git
     echo "Cambiando al directorio local donde tienes tu repositorio Git: '$SCRIPT_DIR'..."
     cd "$SCRIPT_DIR" && ls "$SCRIPT_DIR"
 }
-
+# Función para inicializar un nuevo repositorio Git si no existe
 function initialize_repository() {
     # Inicializa un nuevo repositorio Git si no existe
     echo "Inicializando un nuevo repositorio Git si no existe..."
@@ -102,37 +82,46 @@ function initialize_repository() {
         sudo git init
     fi
 }
-
+# Función para configurar la URL del repositorio remoto
 function configure_remote_url() {
-    # Configura la URL del repositorio remoto
+    # Configurar la URL del repositorio remoto
     echo "Configurando la URL del repositorio remoto '$git'..."
     sudo git remote add origin "$git"
 }
-
+# Función para
 function add_changes_to_staging() {
     # Asegúrate de haber agregado los cambios a la zona de preparación (staging)
     echo "Asegúrandose de haber agregado los cambios a la zona de preparación (staging)..."
     sudo git add .
 }
-
+# Función para
 function commit_changes() {
     # Realiza un commit con un mensaje
     echo "Realiza un commit con un mensaje..."
     sudo git commit -m "$COMMIT_MESSAGE"
 }
-
+# Función para realizar el push al repositorio remoto en GitHub
 function push_to_github() {
-    # Realiza el push al repositorio remoto en GitHub
+    # Realizar el push al repositorio remoto en GitHub
     echo "Realizando el push al repositorio remoto en GitHub..."
-    sudo git push origin main
+    echo "***Credenciales de acceso***"
+    echo "--> username: $username"
+    echo "--> token: ${token:0:3}*********"
+    echo "--> URL: $git"
+    if response=$(curl -s -H "Authorization: token $token" "$API_URL/$username"); then
+        echo "¡Inicio de sesión exitoso en GitHub!"
+        sudo git push origin main
+    else
+        echo "Error al iniciar sesión en GitHub. Por favor, verifica tu token de acceso."
+        exit 1
+    fi
 }
-
+# Función para
 function check_status() {
     # Verifica el estado después del push (opcional)
     echo "Verificando el estado después del push..."
     sudo git status
 }
-
 # Función para encontrar un repositorio Git interno en una ruta específica
 function find_internal_git_repo() {
     # Obtén la ruta del directorio superior del repositorio Git actual
@@ -169,7 +158,7 @@ function find_internal_git_repo() {
         echo "No se encontraron advertencias relacionadas con repositorios Git internos."
     fi
 }
-
+# Función principal
 function push_repo() {
     echo "**********PUSH REPO***********"
     read_credentials
@@ -177,6 +166,5 @@ function push_repo() {
     push_git
     echo "**************ALL DONE***************"
 }
-
-# Llama a la función principal
+# Llamar a la función principal
 push_repo
