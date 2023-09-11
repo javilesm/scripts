@@ -135,6 +135,7 @@ function create_webdirs() {
         # Copiar plantilla index
         echo "Copiando plantilla '$INDEX_PATH' al directorio web '$site_root'..."
         sudo cp "$INDEX_PATH" "$site_root"
+        push_repo
       fi
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
@@ -269,6 +270,7 @@ function install_wp() {
         fi
         echo "$HTML_PATH/$host:"
         ls "$HTML_PATH/$host"
+        push_repo
       fi
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
@@ -327,6 +329,7 @@ function edit_wp_config() {
     sudo sed -i "s/localhost/$mysql_host/g" "$site_root/$WP_CONFIG_FILE"
 
     contador=$((contador + 1))
+    push_repo
   done
 
   echo "La plantilla '$WP_CONFIG_PATH' ha sido copiada y configurada en '$contador' directorios."
