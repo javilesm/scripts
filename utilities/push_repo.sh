@@ -63,6 +63,8 @@ function push_git() {
     echo "$spacer"
     configure_remote_url
     echo "$spacer"
+    tune_settings
+    echo "$spacer"
     pull_changes
     echo "$spacer"
     add_changes_to_staging
@@ -111,11 +113,17 @@ function add_changes_to_staging() {
     echo "Asegúrandose de haber agregado los cambios a la zona de preparación (staging)..."
     sudo git add .
 }
+function tune_settings(){
+    echo "Afinando ajustes..."
+    sudo git config --global http.postBuffer 1048576000
+    sudo git config --global http.lowSpeedLimit 0
+    sudo git config --global http.lowSpeedTime 999999
+}
 # Función para
 function commit_changes() {
     # Realiza un commit con un mensaje
     echo "Realiza un commit con un mensaje..."
-    sudo git commit -m "$COMMIT_MESSAGE"
+    sudo git commit -m "$COMMIT_MESSAGE" 
 }
 # Función para realizar el push al repositorio remoto en GitHub
 function push_to_github() {
