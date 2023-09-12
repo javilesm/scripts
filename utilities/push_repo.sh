@@ -13,6 +13,7 @@ CREDENTIALS_PATH="$GRAND_PARENT_DIR/$CREDENTIALS_FILE" # Directorio del archivo 
 REPOSITORY="www" # Respositorio Github a clonar
 SCRIPT_DIR="/var/$REPOSITORY" # Directorio final
 COMMIT_MESSAGE="Mensaje de commit"
+GITIGNORE_FILE=".gitignore" # Archivo donde se almacenarán las rutas para .gitignore
 spacer="-------------------------------------------------------------------------------"
 
 # Función para solucionar problemas de propiedad en el repositorio Git
@@ -52,29 +53,6 @@ function read_credentials() {
     fi 
 }
 
-# Función para actualizar repositorios
-function push_git() {
-    echo "Actualizando '$GitHubRepoURL' desde '$SCRIPT_DIR'..."
-    change_directory
-    echo "$spacer"
-    #fix_git_ownership
-    echo "$spacer"
-    #initialize_repository
-    echo "$spacer"
-    configure_remote_url
-    echo "$spacer"
-    tune_settings
-    echo "$spacer"
-    pull_changes
-    echo "$spacer"
-    add_changes_to_staging
-    echo "$spacer"
-    commit_changes
-    echo "$spacer"
-    push_to_github
-    echo "$spacer"
-    check_status
-}
 # Función para cambiar al directorio local donde tienes tu repositorio Git
 function change_directory() {
     # Cambiar al directorio local donde tienes tu repositorio Git
@@ -101,12 +79,41 @@ function pull_changes(){
     echo "Realizando el push al repositorio remoto en GitHub..."
     if response=$(curl -s -H "Authorization: token $token" "$API_URL/$username"); then
         echo "¡Inicio de sesión exitoso en GitHub!"
-        sudo git pull origin master
+        sudo git pull origin main
     else
         echo "Error al iniciar sesión en GitHub. Por favor, verifica tu token de acceso."
         exit 1
     fi
 }
+# Función para comprobar la existencia del archivo .gitignore y crearlo si no existe.
+function check_gitignore() {
+    # comprobar la existencia del archivo .gitignore y crearlo si no existe.
+    echo "Comprobando la existencia del archivo $GITIGNORE_FILE y crearlo si no existe..."
+    if [ ! -f .gitignore ]; then
+        git add .gitignore
+    fi
+}
+# Función para excluir subdirectorios no deseados en el archivo .gitignore
+function exclude_unwanted_subdirectories() {
+    local level="$1"
+    local indent=""
+    for ((i = 0; i < level; i++)); do
+        indent+=" "
+    done
+
+    for dir in */; do
+        if [ -d "$dir" ]; then
+            local subdir_name="${dir%/}"
+            if [[ "$level" -eq 0 || ( "$subdir_name" == "html" && "$level" -eq 1 ) ]]; then
+                echo "#$(pwd)/$dir"
+            else
+                echo "!$(pwd)/$dir"
+            fi
+            (cd "$dir" && exclude_unwanted_subdirectories $((level + 1)))
+        fi
+    done
+}
+
 # Función para
 function add_changes_to_staging() {
     # Asegúrate de haber agregado los cambios a la zona de preparación (staging)
@@ -184,7 +191,29 @@ function push_repo() {
     echo "**********PUSH REPO***********"
     read_credentials
     echo "$spacer"
-    push_git
+    change_directory
+    echo "$spacer"
+    #fix_git_ownership
+    echo "$spacer"
+    #initialize_repository
+    echo "$spacer"
+    configure_remote_url
+    echo "$spacer"
+    tune_settings
+    echo "$spacer"
+    pull_changes
+    echo "$spacer"
+    check_gitignore
+    echo "$spacer"
+    exclude_unwanted_subdirectories
+    echo "$spacer"
+    #add_changes_to_staging
+    echo "$spacer"
+    #commit_changes
+    echo "$spacer"
+    #push_to_github
+    echo "$spacer"
+    #check_status
     echo "**************ALL DONE***************"
 }
 # Llamar a la función principal
