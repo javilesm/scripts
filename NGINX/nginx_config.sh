@@ -135,8 +135,8 @@ function create_webdirs() {
         # Copiar plantilla index
         echo "Copiando plantilla '$INDEX_PATH' al directorio web '$site_root'..."
         sudo cp "$INDEX_PATH" "$site_root"
-        push_repo
       fi
+      push_repo
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -270,8 +270,8 @@ function install_wp() {
         fi
         echo "$HTML_PATH/$host:"
         ls "$HTML_PATH/$host"
-        push_repo
       fi
+      push_repo
     done < <(grep -v '^$' "$DOMAINS_PATH")
     echo "Todas los permisos y propiedades han sido actualizados."
 }
@@ -385,7 +385,6 @@ function nginx_config() {
   install_wp
   edit_wp_config
   restart_services
-  push_repo
   echo "*************ALL DONE**************"
 }
 # Llamar a la funcion princial
