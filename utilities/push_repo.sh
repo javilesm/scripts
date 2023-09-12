@@ -14,6 +14,7 @@ REPOSITORY="www" # Respositorio Github a clonar
 SCRIPT_DIR="/var/$REPOSITORY" # Directorio final
 COMMIT_MESSAGE="Mensaje de commit"
 GITIGNORE_FILE=".gitignore" # Archivo donde se almacenarán las rutas para .gitignore
+GITIGNORE_PATH="$SCRIPT_DIR/$GITIGNORE_FILE"
 spacer="-------------------------------------------------------------------------------"
 
 # Función para solucionar problemas de propiedad en el repositorio Git
@@ -89,8 +90,8 @@ function pull_changes(){
 function check_gitignore() {
     # comprobar la existencia del archivo .gitignore y crearlo si no existe.
     echo "Comprobando la existencia del archivo $GITIGNORE_FILE y crearlo si no existe..."
-    if [ ! -f .gitignore ]; then
-        git add .gitignore
+    if [ ! -f "$GITIGNORE_PATH" ]; then
+        git add "$GITIGNORE_PATH"
     fi
 }
 # Función para excluir subdirectorios no deseados en el archivo .gitignore
@@ -105,9 +106,9 @@ function exclude_unwanted_subdirectories() {
         if [ -d "$dir" ]; then
             local subdir_name="${dir%/}"
             if [[ "$level" -eq 0 || ( "$subdir_name" == "html" && "$level" -eq 1 ) ]]; then
-                echo "#$(pwd)/$dir"
+                echo "#!$(pwd)/$dir" && echo "#!$(pwd)/$dir" >> "$GITIGNORE_PATH"
             else
-                echo "!$(pwd)/$dir"
+                echo "!$(pwd)/$dir" && echo "!$(pwd)/$dir" >> "$GITIGNORE_PATH"
             fi
             (cd "$dir" && exclude_unwanted_subdirectories $((level + 1)))
         fi
@@ -207,13 +208,13 @@ function push_repo() {
     echo "$spacer"
     exclude_unwanted_subdirectories
     echo "$spacer"
-    #add_changes_to_staging
+    add_changes_to_staging
     echo "$spacer"
-    #commit_changes
+    commit_changes
     echo "$spacer"
-    #push_to_github
+    push_to_github
     echo "$spacer"
-    #check_status
+    check_status
     echo "**************ALL DONE***************"
 }
 # Llamar a la función principal
