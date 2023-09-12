@@ -139,7 +139,7 @@ function push_to_github() {
     echo "Realizando el push al repositorio remoto en GitHub..."
     if response=$(curl -s -H "Authorization: token $token" "$API_URL/$username"); then
         echo "¡Inicio de sesión exitoso en GitHub!"
-        sudo git push origin main
+        sudo git push -u origin main -f
     else
         echo "Error al iniciar sesión en GitHub. Por favor, verifica tu token de acceso."
         exit 1
