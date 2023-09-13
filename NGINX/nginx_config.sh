@@ -27,6 +27,12 @@ CERBOT_SCRIPT="$CURRENT_DIR/cerbot_config.sh"
 CLONE_REPO_SCRIPT="$PARENT_DIR/utilities/clone_repo.sh"
 PUSH_REPO_SCRIPT="$PARENT_DIR/utilities/push_repo.sh"
 
+# Función para eliminar el directorio /var/html
+function rm_html_dir() {
+  # eliminar el directorio '$HTML_PATH/$WEB_DIR'
+  echo "Eliminando el directorio '$HTML_PATH/$WEB_DIR'..."
+  sudo rm -rf "$HTML_PATH/$WEB_DIR"
+}
 # Función para ejecutar el script de clonado de repositorio Git
 function clone_repo() {
   echo "Ejecutando el script '$CLONE_REPO_SCRIPT'..."
@@ -370,6 +376,7 @@ function push_repo() {
 # Función principal
 function nginx_config() {
   echo "**********NGINX CONFIG***********"
+  rm_html_dir
   clone_repo
   add_cron_entry
   mkdir
