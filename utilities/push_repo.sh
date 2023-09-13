@@ -15,6 +15,7 @@ SCRIPT_DIR="/var/$REPOSITORY" # Directorio final
 COMMIT_MESSAGE="Mensaje de commit"
 GITIGNORE_FILE=".gitignore" # Archivo donde se almacenarán las rutas para .gitignore
 GITIGNORE_PATH="$SCRIPT_DIR/$GITIGNORE_FILE"
+LIMIT_LEVEL=3 # Variable de control para limitar la recursión
 spacer="-------------------------------------------------------------------------------"
 
 # Función para solucionar problemas de propiedad en el repositorio Git
@@ -73,7 +74,7 @@ function initialize_repository() {
 function configure_remote_url() {
     # Configurar la URL del repositorio remoto
     echo "Configurando la URL del repositorio remoto 'https://${username}:${token}@github.com/${username}/${REPOSITORY}.git'"
-    sudo git remote set-url origin "https://${username}:${token}@github.com/${username}/${REPOSITORY}.git"
+    sudo git remote add origin "https://${username}:${token}@github.com/${username}/${REPOSITORY}.git"
 }
 function pull_changes(){
     # pull changes
@@ -94,27 +95,42 @@ function check_gitignore() {
         git add "$GITIGNORE_PATH"
     fi
 }
-# Función para excluir subdirectorios no deseados en el archivo .gitignore
-function exclude_unwanted_subdirectories() {
-    local level="$1"
-    local indent=""
-    for ((i = 0; i < level; i++)); do
-        indent+=" "
-    done
-
-    for dir in */; do
-        if [ -d "$dir" ]; then
-            local subdir_name="${dir%/}"
-            if [[ "$level" -eq 0 || ( "$subdir_name" == "html" && "$level" -eq 1 ) ]]; then
-                echo "#!$(pwd)/$dir" && echo "#!$(pwd)/$dir" >> "$GITIGNORE_PATH"
+# Función para listar subdirectorios en el nivel 2 y sus subdirectorios de nivel 3
+function list_level_2_and_3() {
+    #echo "Subdirectorios en el nivel 2 y sus subdirectorios en el nivel 3:"
+    
+    for dir2 in */; do
+        if [ -d "$dir2" ]; then
+            if [ "$dir2" == "wp_template/" ]; then
+                echo "!$(pwd)/$dir2*" && echo "!$(pwd)/$dir2*" >> "$GITIGNORE_PATH"
             else
-                echo "!$(pwd)/$dir" && echo "!$(pwd)/$dir" >> "$GITIGNORE_PATH"
+                echo "#$(pwd)/$dir2" && echo "#$(pwd)/$dir2" >> "$GITIGNORE_PATH"
+                
+                # Llamar a la función para listar subdirectorios en el nivel 3
+                list_level_3_in_level_2 "$dir2"
             fi
-            (cd "$dir" && exclude_unwanted_subdirectories $((level + 1)))
         fi
     done
 }
 
+# Función para listar subdirectorios en el nivel 3 de un directorio de nivel 2
+function list_level_3_in_level_2() {
+    local level_2_dir="$1"
+
+    #echo "Subdirectorios en el nivel 3 de $level_2_dir:"
+     cd "$level_2_dir"
+    
+    for dir3 in */; do
+        if [ -d "$dir3" ]; then
+            if [ "$dir3" == "html/" ]; then
+                echo "#$(pwd)/$dir3" && echo "#$(pwd)/$dir3" >> "$GITIGNORE_PATH"
+            else
+                echo "!$(pwd)/$dir3*" && echo "!$(pwd)/$dir3*" >> "$GITIGNORE_PATH"
+            fi
+        fi
+    done
+    cd ..
+}
 # Función para
 function add_changes_to_staging() {
     # Asegúrate de haber agregado los cambios a la zona de preparación (staging)
@@ -206,7 +222,7 @@ function push_repo() {
     echo "$spacer"
     check_gitignore
     echo "$spacer"
-    exclude_unwanted_subdirectories
+    list_level_2_and_3
     echo "$spacer"
     add_changes_to_staging
     echo "$spacer"
