@@ -22,8 +22,15 @@ change_record() {
   local modified_count=0
   local unchanged_count=0
   local modified_lines=()
+  local first_line_read=false
 
-  while IFS=',' read -r line; do
+  while IFS=',' read -r line || [[ -n "$line" ]]; do
+    if ! $first_line_read; then
+      echo "$line" >> "$output_file"  # Copiar la primera línea (encabezado)
+      first_line_read=true
+      continue
+    fi
+    
     IFS=',' read -ra values <<< "$line"
     if [[ ${values[6]} -eq 1 ]]; then
       values[10]=$(date +"%d-%m-%Y %H:%M:%S")
@@ -31,8 +38,6 @@ change_record() {
       values[11]="$API_USER" # Modificar el valor #12 con el valor de API_USER
       ((modified_count++))
       modified_lines+=("${values[0]}") # Agregar el primer valor de la fila modificada
-    else
-      ((unchanged_count++))
     fi
     echo "${values[*]}" >> "$output_file"
   done < "$input_file"
@@ -56,10 +61,7 @@ process_csv() {
   echo "Leyendo el archivo CSV: $file"
   echo "Total de filas: $total_lines"
   
-  # Mostrar la primera fila
-  head -n 1 "$file"
-
-  echo -e "\nDatos actuales en formato tabulado (incluyendo la primera fila):"
+  echo -e "\nDatos actuales en formato tabulado:"
   cat "$file"
 
   local temp_output_file="/tmp/workorders_temp.csv"
