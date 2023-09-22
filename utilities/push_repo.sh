@@ -129,11 +129,9 @@ function list_level_3_in_level_2() {
         if [ -d "$dir3" ]; then
             if [ "$dir3" == "html/" ]; then
                 # Aquí se agrega un comentario para el directorio html/ en el nivel 3
-                echo "#$(pwd)/$dir3" && echo "#$(pwd)/$dir3"
                 echo "#$(pwd)/$dir3" && echo "#$(pwd)/$dir3" >> "$GITIGNORE_PATH"
             else
                 # Aquí se excluye el resto de los directorios en el nivel 3
-                echo "!$(pwd)/$dir3*" && echo "!$(pwd)/$dir3*"
                 echo "!$(pwd)/$dir3*" && echo "!$(pwd)/$dir3*" >> "$GITIGNORE_PATH"
 
                 
@@ -154,8 +152,7 @@ function list_level_4_in_level_3() {
     for dir4 in */; do
         if [ -d "$dir4" ]; then
             # Puedes personalizar la lógica aquí para incluir o excluir directorios en el nivel 4
-            echo "#$(pwd)/$dir4*" && echo "!$(pwd)/$dir4*"
-            echo "#$(pwd)/$dir4*" && echo "!$(pwd)/$dir4*" >> "$GITIGNORE_PATH"
+            echo "#$(pwd)/$dir4*" && echo "#$(pwd)/$dir4*" >> "$GITIGNORE_PATH"
         fi
     done
     cd ..
@@ -239,7 +236,6 @@ function push_repo() {
     read_credentials
     echo "$spacer"
     change_directory
-    echo "$spacer"
     #fix_git_ownership
     echo "$spacer"
     #initialize_repository
