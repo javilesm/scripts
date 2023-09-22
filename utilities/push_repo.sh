@@ -97,18 +97,23 @@ function check_gitignore() {
 }
 # Función para listar subdirectorios en el nivel 2 y sus subdirectorios de nivel 3
 function list_level_2_and_3() {
-    #echo "Subdirectorios en el nivel 2 y sus subdirectorios en el nivel 3:"
+    echo "Subdirectorios en el nivel 2 y sus subdirectorios en el nivel 3:"
     
     for dir2 in */; do
         if [ -d "$dir2" ]; then
             if [ "$dir2" == "wp_template/" ]; then
+                # Aquí se excluye el directorio wp_template/ en el nivel 2
+                echo "!$(pwd)/$dir2*" && echo "!$(pwd)/$dir2*"
                 echo "!$(pwd)/$dir2*" && echo "!$(pwd)/$dir2*" >> "$GITIGNORE_PATH"
             else
+                # Aquí se agrega un comentario para el directorio en el nivel 2
+                echo "#$(pwd)/$dir2" && echo "#$(pwd)/$dir2"
                 echo "#$(pwd)/$dir2" && echo "#$(pwd)/$dir2" >> "$GITIGNORE_PATH"
                 
-                # Llamar a la función para listar subdirectorios en el nivel 3
-                list_level_3_in_level_2 "$dir2"
+                
             fi
+            # Llamar a la función para listar subdirectorios en el nivel 3
+            list_level_3_in_level_2 "$dir2"
         fi
     done
 }
@@ -117,20 +122,45 @@ function list_level_2_and_3() {
 function list_level_3_in_level_2() {
     local level_2_dir="$1"
 
-    #echo "Subdirectorios en el nivel 3 de $level_2_dir:"
-     cd "$level_2_dir"
+    echo "Subdirectorios en el nivel 3 de $level_2_dir:"
+    cd "$level_2_dir"
     
     for dir3 in */; do
         if [ -d "$dir3" ]; then
             if [ "$dir3" == "html/" ]; then
+                # Aquí se agrega un comentario para el directorio html/ en el nivel 3
+                echo "#$(pwd)/$dir3" && echo "#$(pwd)/$dir3"
                 echo "#$(pwd)/$dir3" && echo "#$(pwd)/$dir3" >> "$GITIGNORE_PATH"
             else
+                # Aquí se excluye el resto de los directorios en el nivel 3
+                echo "!$(pwd)/$dir3*" && echo "!$(pwd)/$dir3*"
                 echo "!$(pwd)/$dir3*" && echo "!$(pwd)/$dir3*" >> "$GITIGNORE_PATH"
+
+                
             fi
+            # Llamar a la función para listar subdirectorios en el nivel 4
+            list_level_4_in_level_3 "$dir3"
         fi
     done
     cd ..
 }
+
+function list_level_4_in_level_3() {
+    local level_3_dir="$1"
+
+    echo "Subdirectorios en el nivel 4 de $level_3_dir:"
+    cd "$level_3_dir"
+    
+    for dir4 in */; do
+        if [ -d "$dir4" ]; then
+            # Puedes personalizar la lógica aquí para incluir o excluir directorios en el nivel 4
+            echo "#$(pwd)/$dir4*" && echo "!$(pwd)/$dir4*"
+            echo "#$(pwd)/$dir4*" && echo "!$(pwd)/$dir4*" >> "$GITIGNORE_PATH"
+        fi
+    done
+    cd ..
+}
+
 # Función para
 function add_changes_to_staging() {
     # Asegúrate de haber agregado los cambios a la zona de preparación (staging)
