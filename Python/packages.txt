@@ -6,3 +6,5 @@ psycopg2
 pycryptodome
 Django
 Flask
+pandas
+unidecode
