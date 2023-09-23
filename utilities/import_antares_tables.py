@@ -282,8 +282,6 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
 # Llamar a la función obtener_encabezados_csv
 obtener_encabezados_csv(directorio_csv, Headings_Dir)
 
-
-
 # Crear tablas SQL desde CSV   
 def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql):
     tablas_sql = []  # Lista para almacenar los nombres de las tablas SQL creadas
@@ -315,9 +313,16 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
 
             # Obtener el nombre de la tabla a partir del nombre del archivo
             nombre_tabla = os.path.splitext(archivo_sql)[0]
-            
+
             # Agregar el nombre de la tabla a la lista tablas_sql
             tablas_sql.append(nombre_tabla)
+
+            # Sentencia SQL para eliminar la tabla si ya existe
+            drop_table_sql = f"DROP TABLE IF EXISTS {nombre_tabla}"
+
+            # Ejecutar la sentencia SQL para eliminar la tabla si existe
+            cursor.execute(drop_table_sql)
+            conn.commit()
 
             # Leer el contenido del archivo de texto
             with open(ruta_sql, 'r') as sql_file:
@@ -326,7 +331,7 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
                 sql_query = sql_file.read()
                 print(f"{sql_query}")
 
-                # Ejecutar la sentencia SQL
+                # Ejecutar la sentencia SQL para crear la tabla
                 cursor.execute(sql_query)
                 conn.commit()
 
@@ -341,11 +346,12 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
             cursor.close()
             conn.close()
             print("Conexión a MySQL cerrada.")
-    
+
     return tablas_sql  # Devuelve la lista de nombres de tablas SQL creadas
 
+
 # Llamar a la función crear_tablas_mysql_desde_archivos para obtener la lista de tablas SQL creadas
-#tablas_sql_creadas = crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql)
+tablas_sql_creadas = crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql)
 
 # Importar datos a SQL
 def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
@@ -400,7 +406,7 @@ def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
         print(f"Error general: {e}")
 
 # Llama a la función importar_datos_a_sql
-importar_datos_a_sql(conexion, directorio_csv, tablas_sql_creadas)
+#importar_datos_a_sql(conexion, directorio_csv, tablas_sql_creadas)
 
 def script_footer():
     print("****************ALL DONE****************")
@@ -425,4 +431,4 @@ def eliminar_directorio(directorio):
         print(f"Error al eliminar el directorio '{directorio}': {e}")
 
 # Llama a la función para eliminar el directorio ruta_archivos_sql
-#eliminar_directorio(ruta_archivos_sql)
+eliminar_directorio(ruta_archivos_sql)
