@@ -92,6 +92,44 @@ print(f"Configurando '{ruta_config_mysql}'...")
 # Llamar a la función configurar_secure_file_priv
 configurar_secure_file_priv(ruta_config_mysql, nueva_ubicacion)
 
+def configurar_charset_mysql(ruta_config_mysql):
+    # Verificar si el archivo de configuración existe
+    if not os.path.isfile(ruta_config_mysql):
+        print(f"El archivo de configuración MySQL '{ruta_config_mysql}' no existe.")
+        return
+
+    try:
+        # Crear una copia de seguridad del archivo de configuración
+        ruta_copia_seguridad = ruta_config_mysql + '.bak'
+        shutil.copy2(ruta_config_mysql, ruta_copia_seguridad)
+
+        # Abrir el archivo de configuración de MySQL
+        config = configparser.ConfigParser()
+        config.read(ruta_config_mysql)
+
+        # Cambiar la ubicación de secure-file-priv en el archivo de configuración
+        if 'mysqld' not in config:
+            config.add_section('mysqld')
+        config['mysqld']['character-set-server'] = 'utf8mb4'
+        config['mysqld']['collation-server'] = 'utf8mb4_unicode_ci'
+
+        # Guardar los cambios en el archivo de configuración
+        with open(ruta_config_mysql, 'w') as configfile:
+            config.write(configfile)
+
+        # Reiniciar el servidor MySQL para que los cambios surtan efecto
+        subprocess.call(['service', 'mysql', 'restart'])  # Esto puede variar según tu sistema operativo
+
+        print("La configuración de caracteres en MySQL se ha actualizado a utf8mb4.")
+        print(f"Se ha creado una copia de seguridad en '{ruta_copia_seguridad}'.")
+
+    except Exception as e:
+        print(f"Error al configurar el conjunto de caracteres en MySQL: {str(e)}")
+
+configurar_charset_mysql(ruta_config_mysql)
+
+
+
 # Función para crear el directorio si no existe
 def create_directory():
     # Comprueba si el directorio existe
@@ -198,17 +236,16 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
     if not os.path.exists(ruta_Headings_Dir):
         os.mkdir(ruta_Headings_Dir)
 
-    # Mapear los tipos de datos de pandas a tipos de datos SQL
+    # Mapear los tipos de datos de pandas a tipos de datos SQL, incluyendo números de teléfono
     tipos_de_datos_sql = {
-    'int64': 'BIGINT',
-    'float64': 'FLOAT',
-    'object': 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',  # Agregar la longitud deseada (por ejemplo, 1000)
-    'datetime64': 'DATETIME',
-    'date': 'DATE',  # Agregar tipo DATE para las columnas de fecha
-    'phone_number': 'VARCHAR(20)'  # Cambiar la longitud según tus necesidades
+        'int64': 'BIGINT NOT NULL',
+        'float64': 'FLOAT NOT NULL',
+        'object': 'VARCHAR(500) NOT NULL',  # Agregar la longitud deseada (por ejemplo, 100)
+        'datetime64': 'DATETIME',
+        'date': 'DATE',  # Agregar tipo DATE para las columnas de fecha
+        'phone_number': 'VARCHAR(20) NOT NULL'  # Cambiar la longitud según tus necesidades
     }
 
-    
     # Crear un conjunto para realizar un seguimiento de los encabezados procesados
     encabezados_procesados = set()
 
@@ -221,22 +258,24 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
         ruta_archivo_texto = os.path.join(ruta_Headings_Dir, archivo_texto)
 
         # Leer el archivo CSV y especificar las columnas de fecha
-        df = pd.read_csv(ruta_csv, encoding='ISO-8859-1', dayfirst=True)
-        
+        df = pd.read_csv(ruta_csv, encoding='ISO-8859-1', low_memory='False')
+
         # Eliminar la extensión del nombre del archivo CSV
-        nombre_archivo_sin_extension = os.path.splitext(archivo_csv)[0]
+        nombre_tabla = os.path.splitext(archivo_csv)[0]
 
         # Crear un diccionario para rastrear los encabezados duplicados
         encabezados_duplicados = {}
 
         # Abrir el archivo de texto para el archivo CSV actual en modo escritura
-        with open(ruta_archivo_texto, 'w') as texto_file:
-            print(f"Obteniendo los encabezados y tipos de datos de '{archivo_csv}'...")
+        with open(ruta_archivo_texto, 'w', encoding='ISO-8859-1') as texto_file:
+            print(f"Creando query SQL para crear tabla:'{nombre_tabla}' desde: '{ruta_archivo_texto}'...")
 
             # Escribir la leyenda en la primera línea
-            texto_file.write(f"CREATE TABLE {nombre_archivo_sin_extension} (\n")
+            texto_file.write(f"CREATE TABLE {nombre_tabla} (\n")
 
-            # Escribir los encabezados y tipos de datos en el archivo de texto
+            # Lista para almacenar las definiciones de columna
+            column_definitions = []
+
             for i, col in enumerate(df.columns):
                 # Verificar si el encabezado ya existe y manejar duplicados
                 if col in encabezados_procesados:
@@ -265,26 +304,33 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
                 else:
                     # Determinar el tipo de dato SQL según el tipo de datos de pandas
                     tipo_dato = df[col].dtype
-                    tipo_dato_sql = tipos_de_datos_sql.get(str(tipo_dato), 'VARCHAR(1000)')  # Tipo de dato predeterminado con longitud
+                    tipo_dato_sql = tipos_de_datos_sql.get(str(tipo_dato), 'VARCHAR(500) CHARACTER SET utf8mb4  COLLATE utf8_spanish_ci')  # Tipo de dato predeterminado con longitud
 
                 # Verificar si el encabezado se refiere a un número de teléfono
                 if re.search(r'phone|cellphone|telephone|phone1|phone2|tel|telefono', col, re.IGNORECASE):
-                    tipo_dato_sql = 'VARCHAR(20)'  # Cambiar la longitud según tus necesidades para números de teléfono
+                    tipo_dato_sql = 'VARCHAR(20) NOT NULL'  # Cambiar la longitud según tus necesidades para números de teléfono
 
                 # Convertir el encabezado a mayúsculas y eliminar caracteres especiales y espacios
                 col = unidecode.unidecode(col).upper().replace(' ', '_')
 
-                if i == len(df.columns) - 1:
-                    # Última columna, escribir punto y coma y salto de línea
-                    texto_file.write(f"{col} {tipo_dato_sql}\n) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n")
-                else:
-                    # Escribir el encabezado, tipo de dato y una coma
-                    texto_file.write(f"{col} {tipo_dato_sql},\n")
+                # Agrega la definición de la columna a la lista
+                column_definitions.append(f"{col} {tipo_dato_sql}")
 
+            # Escribe las definiciones de columna en el archivo de texto
+            texto_file.write(",\n".join(column_definitions))
+
+            # Escribe la clave primaria (PRIMARY KEY) al final del último encabezado
+            texto_file.write(f",\nPRIMARY KEY ({column_definitions[0].split()[0]})")
+
+            # Finaliza la definición de la tabla y especifica el motor de la base de datos y el conjunto de caracteres
+            texto_file.write(f"\n) ENGINE=InnoDB;\n")
+
+            print(f"Tabla SQL '{nombre_tabla}' creada con éxito.")
+
+        # Mensaje de progreso y pausa
         print(f"Los encabezados y tipos de datos de '{archivo_csv}' se han guardado en: '{ruta_archivo_texto}'")
         print(f"-------------------------------------------------------------------------------------------------")
         time.sleep(1)
-
 
 # Llamar a la función obtener_encabezados_csv
 obtener_encabezados_csv(directorio_csv, Headings_Dir)
@@ -343,6 +389,7 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
                 conn.commit()
 
                 print(f"Tabla '{nombre_tabla}' creada desde '{archivo_sql}'")
+                print("----------------------------------------------------------")
 
     except mysql.connector.Error as err:
         print(f"Error al conectar a MySQL: {err}")
@@ -359,6 +406,56 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
 
 # Llamar a la función crear_tablas_mysql_desde_archivos para obtener la lista de tablas SQL creadas
 tablas_sql_creadas = crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql)
+
+def cambiar_conjunto_caracteres(mysql_host, mysql_user, mysql_password, mysql_database):
+    print("Cambiando el conjunto de caracteres a UTF-8 para admitir caracteres en español...")
+    
+    try:
+        # Establecer la conexión a MySQL
+        conn = mysql.connector.connect(
+            host=mysql_host,
+            user=mysql_user,
+            password=mysql_password,
+            database=mysql_database,
+        )
+
+        cursor = conn.cursor()
+        
+        # Obtener la lista de tablas en la base de datos
+        cursor.execute("SHOW TABLES")
+        tablas = cursor.fetchall()
+
+        # Comprobar si la conexión fue exitosa
+        if conn.is_connected():
+            print("Conexión a MySQL exitosa.")
+        else:
+            print("Error de conexión a MySQL.")
+
+        for tabla in tablas:
+            nombre_tabla = tabla[0]
+            print(f"Cambiando conjunto de caracteres para la tabla '{nombre_tabla}'...")
+            
+            # Sentencia SQL para cambiar el conjunto de caracteres de la tabla
+            alter_sql = f"ALTER TABLE {nombre_tabla} CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci;"
+            
+            # Ejecutar la sentencia SQL
+            cursor.execute(alter_sql)
+            conn.commit()
+
+            print(f"Conjunto de caracteres cambiado para la tabla '{nombre_tabla}'.")
+
+    except mysql.connector.Error as err:
+        print(f"Error al conectar a MySQL: {err}")
+    except Exception as e:
+        print(f"Error general: {e}")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+            print("Conexión a MySQL cerrada.")
+
+# Llama a la función cambiar_conjunto_caracteres antes de importar datos a MySQL
+cambiar_conjunto_caracteres(mysql_host, mysql_user, mysql_password, mysql_database)
 
 # Importar datos a SQL
 def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
@@ -384,6 +481,7 @@ def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
         print("Habilitando la funcionalidad de carga de datos locales...")
         cursor.execute("SET GLOBAL local_infile=1;")
         conn.commit()
+        print("--------------------------------------------")
 
         for tabla in tablas_sql:
             # Ruta completa del archivo CSV correspondiente a la tabla
