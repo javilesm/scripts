@@ -433,16 +433,17 @@ def cambiar_conjunto_caracteres(mysql_host, mysql_user, mysql_password, mysql_da
 
         for tabla in tablas:
             nombre_tabla = tabla[0]
-            print(f"Cambiando conjunto de caracteres para la tabla '{nombre_tabla}'...")
+            print(f"Cambiando conjunto de caracteres para la tabla '{mysql_database}.{nombre_tabla}'...")
             
             # Sentencia SQL para cambiar el conjunto de caracteres de la tabla
-            alter_sql = f"ALTER TABLE {nombre_tabla} CONVERT TO CHARACTER SET utf8 COLLATE utf8_general_ci;"
+            alter_sql = f"ALTER TABLE {mysql_database}.{nombre_tabla} CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8_general_ci;"
             
             # Ejecutar la sentencia SQL
             cursor.execute(alter_sql)
             conn.commit()
 
             print(f"Conjunto de caracteres cambiado para la tabla '{nombre_tabla}'.")
+            print("-----------------------------------------------")
 
     except mysql.connector.Error as err:
         print(f"Error al conectar a MySQL: {err}")
@@ -459,7 +460,6 @@ cambiar_conjunto_caracteres(mysql_host, mysql_user, mysql_password, mysql_databa
 
 # Importar datos a SQL
 def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
-    print("Importando datos a SQL...")
     try:
         # Conexión a la base de datos MySQL
         conn = mysql.connector.connect(
@@ -475,7 +475,7 @@ def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
         if conn.is_connected():
             print("Conexión a MySQL exitosa.")
         else:
-            print("Error de conexión a MySQL.")
+            print("\033[91mError de conexión a MySQL.\033[0m")
 
         # Habilitar la funcionalidad de carga de datos locales
         print("Habilitando la funcionalidad de carga de datos locales...")
@@ -498,21 +498,21 @@ def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
                 # Utiliza la sentencia SQL 'LOAD DATA INFILE' para importar los datos desde el CSV
                 # Encierra la ruta entre comillas simples y ajusta las barras diagonales
                 ruta_csv = ruta_csv.replace("\\", "\\\\")
-                print(f"Ejecutando query: LOAD DATA INFILE '{ruta_csv}' INTO TABLE {tabla} FIELDS TERMINATED BY ',' ENCLOSED BY '\"' IGNORE 1 LINES;")
-                query = f"LOAD DATA INFILE '{ruta_csv}' INTO TABLE {tabla} FIELDS TERMINATED BY ',' ENCLOSED BY '\"' IGNORE 1 LINES;"
+                query = f"LOAD DATA INFILE '{ruta_csv}' INTO TABLE {tabla} FIELDS TERMINATED BY ',' ENCLOSED BY '\"' IGNORE 1 LINES CHARACTER SET utf8mb4;"
+                print(f"Ejecutando query: {query}")
                 try:
                     cursor.execute(query)
                     conn.commit()
                     print(f"Datos importados exitosamente a la tabla '{tabla}'.")
                 except mysql.connector.Error as import_error:
-                    print(f"Error al importar datos a MySQL: {import_error}")
+                    print(f"\033[91mError al importar datos a MySQL: {import_error}\033[0m")
 
             print("--------------------------------------------")
 
     except mysql.connector.Error as err:
-        print(f"Error al importar datos a MySQL: {err}")
+        print(f"\033[91mError al importar datos a MySQL: {err}\033[0m")
     except Exception as e:
-        print(f"Error general: {e}")
+        print(f"\033[91mError general: {e}\033[0m")
 
 # Llama a la función importar_datos_a_sql
 importar_datos_a_sql(conexion, directorio_csv, tablas_sql_creadas)
