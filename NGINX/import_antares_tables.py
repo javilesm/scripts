@@ -239,7 +239,7 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
     # Mapear los tipos de datos de pandas a tipos de datos SQL, incluyendo números de teléfono
     tipos_de_datos_sql = {
         'int64': 'BIGINT NOT NULL',
-        'float64': 'FLOAT NOT NULL',
+        'float64': 'BIGINT NOT NULL',
         'object': 'VARCHAR(500) NOT NULL',  # Agregar la longitud deseada (por ejemplo, 100)
         'datetime64': 'DATETIME',
         'date': 'DATE',  # Agregar tipo DATE para las columnas de fecha
