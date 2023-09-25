@@ -256,7 +256,7 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
     tipos_de_datos_sql = {
         'int64': 'BIGINT NOT NULL',
         'float64': 'FLOAT NOT NULL',
-        'object': 'VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL',
+        'object': 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL',
         'datetime64': 'DATETIME',
         'date': 'DATE',
         'phone_number': 'VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL'
@@ -320,7 +320,7 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
                 else:
                     # Determinar el tipo de dato SQL según el tipo de datos de pandas
                     tipo_dato = df[col].dtype
-                    tipo_dato_sql = tipos_de_datos_sql.get(str(tipo_dato), 'VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL')
+                    tipo_dato_sql = tipos_de_datos_sql.get(str(tipo_dato), 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL')
 
                 # Verificar si el encabezado se refiere a un número de teléfono
                 if re.search(r'phone|cellphone|telephone|phone1|phone2|tel|telefono', col, re.IGNORECASE):
