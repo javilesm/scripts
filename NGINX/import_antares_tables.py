@@ -226,17 +226,21 @@ if conexion is not None:
 
 # Función para cargar un archivo CSV con codificación y manejo de caracteres no válidos
 def cargar_csv_con_codificacion(ruta_csv, codificacion):
-    with open(ruta_csv, 'r', encoding=codificacion, errors='replace') as archivo:
-        contenido = archivo.read()
-        contenido = contenido.replace('�', '')  # Elimina los caracteres no válidos
+    # Implementa tu función para cargar un archivo CSV con la codificación especificada
+    # Puedes utilizar la función pd.read_csv con el parámetro encoding=codificacion
+    return pd.read_csv(ruta_csv, encoding=codificacion)
 
-    # Crea un objeto StringIO para cargar el contenido modificado en Pandas
-    buffer = StringIO(contenido)
-
-    # Lee el archivo CSV desde el buffer
-    df = pd.read_csv(buffer)
-
-    return df
+# Función para determinar el tipo de dato de una columna
+def determinar_tipo_de_dato(columna):
+    # Implementa tu lógica para determinar el tipo de datos basándote en los valores en la columna
+    # Por ejemplo, puedes usar expresiones regulares o funciones de conversión para detectar números
+    # y manejar valores nulos según tus necesidades
+    if columna.dropna().astype(str).str.match(r'^-?\d+\.\d+$').all():
+        return 'FLOAT NOT NULL'
+    elif columna.dropna().astype(str).str.match(r'^-?\d+$').all():
+        return 'BIGINT NOT NULL'
+    else:
+        return 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL'
 
 # Función para obtener los encabezados CSV
 def obtener_encabezados_csv(directorio_csv, Headings_Dir):
@@ -254,16 +258,13 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
 
     # Mapear los tipos de datos de pandas a tipos de datos SQL, incluyendo números de teléfono
     tipos_de_datos_sql = {
-        'int64': 'BIGINT NOT NULL',
+        'int64': 'INT NOT NULL',
         'float64': 'FLOAT NOT NULL',
         'object': 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL',
         'datetime64': 'DATETIME',
         'date': 'DATE',
         'phone_number': 'VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL'
     }
-
-    # Crear un conjunto para realizar un seguimiento de los encabezados procesados
-    encabezados_procesados = set()
 
     for archivo_csv in archivos_csv:
         # Ruta completa del archivo CSV actual
@@ -279,9 +280,6 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
         # Eliminar la extensión del nombre del archivo CSV
         nombre_tabla = os.path.splitext(archivo_csv)[0]
 
-        # Crear un diccionario para rastrear los encabezados duplicados
-        encabezados_duplicados = {}
-
         # Abrir el archivo de texto para el archivo CSV actual en modo escritura
         with open(ruta_archivo_texto, 'w', encoding='utf-8') as texto_file:
             print(f"Creando query SQL para crear tabla:'{nombre_tabla}' desde: '{ruta_archivo_texto}'...")
@@ -293,20 +291,6 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
             column_definitions = []
 
             for i, col in enumerate(df.columns):
-                # Verificar si el encabezado ya existe y manejar duplicados
-                if col in encabezados_procesados:
-                    # Generar un nombre único para encabezados duplicados
-                    encabezado_duplicado = col
-                    contador = 1
-                    while encabezado_duplicado in encabezados_duplicados:
-                        contador += 1
-                        encabezado_duplicado = f"{col}_{contador}"
-                    encabezados_duplicados[col] = encabezado_duplicado
-                    col = encabezado_duplicado
-
-                # Agregar el encabezado al conjunto de encabezados procesados
-                encabezados_procesados.add(col)
-
                 # Verificar si el encabezado coincide con nombres específicos y ajustar el tipo de dato
                 if (
                     col == "Fecha de inicio de vigencia" or
@@ -318,13 +302,8 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
                 ):
                     tipo_dato_sql = "DATE"
                 else:
-                    # Determinar el tipo de dato SQL según el tipo de datos de pandas
-                    tipo_dato = df[col].dtype
-                    tipo_dato_sql = tipos_de_datos_sql.get(str(tipo_dato), 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL')
-
-                # Verificar si el encabezado se refiere a un número de teléfono
-                if re.search(r'phone|cellphone|telephone|phone1|phone2|tel|telefono', col, re.IGNORECASE):
-                    tipo_dato_sql = 'VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL'
+                    # Determinar el tipo de dato SQL según los valores en la columna
+                    tipo_dato_sql = determinar_tipo_de_dato(df[col])
 
                 # Convertir el encabezado a mayúsculas y eliminar caracteres especiales y espacios
                 col = unidecode.unidecode(col).upper().replace(' ', '_')
@@ -350,6 +329,7 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
 
 # Llamar a la función obtener_encabezados_csv
 obtener_encabezados_csv(directorio_csv, Headings_Dir)
+
 
 # Función para crear tablas SQL desde archivos SQL
 def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql):
