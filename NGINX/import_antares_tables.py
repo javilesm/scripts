@@ -25,20 +25,20 @@ script_encabezado()
 # Variables
 Repository = "Antares_project"
 GitHubRepoURL = f"https://github.com/TCS2211194M1/{Repository}.git"
-RepositoryDir = f"/var/www/{Repository}"
+RepositoryDir = f"/home/ubuntu/scripts/{Repository}"
 GitDir = os.path.join(RepositoryDir, ".git")
 directorio_csv = os.path.join(RepositoryDir, "tablas")
 Headings_Dir = 'headings'
 ruta_archivos_sql = os.path.join(directorio_csv, 'headings')
 ruta_config_mysql = "/etc/mysql/mysql.conf.d/mysqld.cnf"
-nueva_ubicacion = "/var/www/Antares_project/tablas"
+nueva_ubicacion = f"{directorio_csv}"
 
 
 # Solicitar al usuario que ingrese los valores de las variables
 mysql_user = "antares"
 mysql_password = "antares1"
 mysql_database = "antares"
-mysql_host = '127.0.0.1'
+mysql_host = 'localhost'
 
 # Función para verificar si Git está instalado
 def check_git_installed():
@@ -92,9 +92,10 @@ def configurar_secure_file_priv_y_load_data_local_infile(ruta_config_mysql, nuev
     except Exception as e:
         print(f"Error al configurar 'secure-file-priv' y 'LOAD DATA LOCAL INFILE': {str(e)}")
 
-# Llamar a la función para configurar secure-file-priv y desactivar LOAD DATA LOCAL INFILE
 print(f"Configurando '{ruta_config_mysql}'...")
-#configurar_secure_file_priv_y_load_data_local_infile(ruta_config_mysql, nueva_ubicacion)
+
+# Llamar a la función para configurar secure-file-priv y desactivar LOAD DATA LOCAL INFILE
+configurar_secure_file_priv_y_load_data_local_infile(ruta_config_mysql, nueva_ubicacion)
 
 def configurar_charset_mysql(ruta_config_mysql):
     # Verificar si el archivo de configuración existe
@@ -215,7 +216,7 @@ def connDB(host, user, password, database):
     except mysql.connector.Error as err:
         print(f"Error al conectar a MySQL: {err}")
         return None
-
+    
 # Llamar a la función connDB
 conexion = connDB(host=mysql_host, user=mysql_user, password=mysql_password, database=mysql_database)
 
@@ -226,21 +227,17 @@ if conexion is not None:
 
 # Función para cargar un archivo CSV con codificación y manejo de caracteres no válidos
 def cargar_csv_con_codificacion(ruta_csv, codificacion):
-    # Implementa tu función para cargar un archivo CSV con la codificación especificada
-    # Puedes utilizar la función pd.read_csv con el parámetro encoding=codificacion
-    return pd.read_csv(ruta_csv, encoding=codificacion)
+    with open(ruta_csv, 'r', encoding=codificacion, errors='replace') as archivo:
+        contenido = archivo.read()
+        contenido = contenido.replace('�', '')  # Elimina los caracteres no válidos
 
-# Función para determinar el tipo de dato de una columna
-def determinar_tipo_de_dato(columna):
-    # Implementa tu lógica para determinar el tipo de datos basándote en los valores en la columna
-    # Por ejemplo, puedes usar expresiones regulares o funciones de conversión para detectar números
-    # y manejar valores nulos según tus necesidades
-    if columna.dropna().astype(str).str.match(r'^-?\d+\.\d+$').all():
-        return 'FLOAT NOT NULL'
-    elif columna.dropna().astype(str).str.match(r'^-?\d+$').all():
-        return 'BIGINT NOT NULL'
-    else:
-        return 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL'
+    # Crea un objeto StringIO para cargar el contenido modificado en Pandas
+    buffer = StringIO(contenido)
+
+    # Lee el archivo CSV desde el buffer
+    df = pd.read_csv(buffer)
+
+    return df
 
 # Función para obtener los encabezados CSV
 def obtener_encabezados_csv(directorio_csv, Headings_Dir):
@@ -258,13 +255,16 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
 
     # Mapear los tipos de datos de pandas a tipos de datos SQL, incluyendo números de teléfono
     tipos_de_datos_sql = {
-        'int64': 'INT NOT NULL',
+        'int64': 'BIGINT NOT NULL',
         'float64': 'FLOAT NOT NULL',
         'object': 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL',
         'datetime64': 'DATETIME',
         'date': 'DATE',
         'phone_number': 'VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL'
     }
+
+    # Crear un conjunto para realizar un seguimiento de los encabezados procesados
+    encabezados_procesados = set()
 
     for archivo_csv in archivos_csv:
         # Ruta completa del archivo CSV actual
@@ -280,6 +280,9 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
         # Eliminar la extensión del nombre del archivo CSV
         nombre_tabla = os.path.splitext(archivo_csv)[0]
 
+        # Crear un diccionario para rastrear los encabezados duplicados
+        encabezados_duplicados = {}
+
         # Abrir el archivo de texto para el archivo CSV actual en modo escritura
         with open(ruta_archivo_texto, 'w', encoding='utf-8') as texto_file:
             print(f"Creando query SQL para crear tabla:'{nombre_tabla}' desde: '{ruta_archivo_texto}'...")
@@ -291,6 +294,20 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
             column_definitions = []
 
             for i, col in enumerate(df.columns):
+                # Verificar si el encabezado ya existe y manejar duplicados
+                if col in encabezados_procesados:
+                    # Generar un nombre único para encabezados duplicados
+                    encabezado_duplicado = col
+                    contador = 1
+                    while encabezado_duplicado in encabezados_duplicados:
+                        contador += 1
+                        encabezado_duplicado = f"{col}_{contador}"
+                    encabezados_duplicados[col] = encabezado_duplicado
+                    col = encabezado_duplicado
+
+                # Agregar el encabezado al conjunto de encabezados procesados
+                encabezados_procesados.add(col)
+
                 # Verificar si el encabezado coincide con nombres específicos y ajustar el tipo de dato
                 if (
                     col == "Fecha de inicio de vigencia" or
@@ -302,8 +319,13 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
                 ):
                     tipo_dato_sql = "DATE"
                 else:
-                    # Determinar el tipo de dato SQL según los valores en la columna
-                    tipo_dato_sql = determinar_tipo_de_dato(df[col])
+                    # Determinar el tipo de dato SQL según el tipo de datos de pandas
+                    tipo_dato = df[col].dtype
+                    tipo_dato_sql = tipos_de_datos_sql.get(str(tipo_dato), 'VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL')
+
+                # Verificar si el encabezado se refiere a un número de teléfono
+                if re.search(r'phone|cellphone|telephone|phone1|phone2|tel|telefono', col, re.IGNORECASE):
+                    tipo_dato_sql = 'VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL'
 
                 # Convertir el encabezado a mayúsculas y eliminar caracteres especiales y espacios
                 col = unidecode.unidecode(col).upper().replace(' ', '_')
@@ -329,7 +351,6 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
 
 # Llamar a la función obtener_encabezados_csv
 obtener_encabezados_csv(directorio_csv, Headings_Dir)
-
 
 # Función para crear tablas SQL desde archivos SQL
 def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql):
@@ -403,7 +424,7 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
 tablas_sql_creadas = crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql)
 
 # Función para importar datos desde archivos CSV a tablas SQL
-def importar_datos_a_sql(mysql_host, mysql_user, mysql_password, mysql_database, directorio_csv, tablas_sql):
+def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
     try:
         # Conexión a la base de datos MySQL
         conn = mysql.connector.connect(
@@ -443,8 +464,11 @@ def importar_datos_a_sql(mysql_host, mysql_user, mysql_password, mysql_database,
                 csv_reader = csv.reader(csv_file)
                 next(csv_reader)  # Saltar la primera línea (encabezados)
 
+                # Encierra la ruta entre comillas simples y ajusta las barras diagonales
+                ruta_csv = ruta_csv.replace("\\", "\\\\")
+                
                 # Utiliza la sentencia SQL 'LOAD DATA LOCAL INFILE' para importar los datos desde el CSV
-                query = f"LOAD DATA INFILE '{ruta_csv}' INTO TABLE {tabla} FIELDS TERMINATED BY ',' ENCLOSED BY '\"' IGNORE 1 LINES;"
+                query = f"LOAD DATA LOCAL INFILE '{ruta_csv}' INTO TABLE {tabla} FIELDS TERMINATED BY ',' ENCLOSED BY '\"' IGNORE 1 LINES;"
                 print(f"Ejecutando query: {query}")
                 
                 try:
@@ -467,7 +491,7 @@ def importar_datos_a_sql(mysql_host, mysql_user, mysql_password, mysql_database,
             print("Conexión a MySQL cerrada.")
 
 # Llama a la función importar_datos_a_sql
-importar_datos_a_sql(mysql_host, mysql_user, mysql_password, mysql_database, directorio_csv, tablas_sql_creadas)
+importar_datos_a_sql(conexion, directorio_csv, tablas_sql_creadas)
 
 def script_footer():
     print("****************ALL DONE****************")
@@ -492,4 +516,4 @@ def eliminar_directorio(directorio):
         print(f"Error al eliminar el directorio '{directorio}': {e}")
 
 # Llama a la función para eliminar el directorio ruta_archivos_sql
-eliminar_directorio(ruta_archivos_sql)
+#eliminar_directorio(ruta_archivos_sql)
