@@ -9,7 +9,7 @@ DOMAINS_DIR="$PARENT_DIR/Domains"
 DOMAINS_PATH="$DOMAINS_DIR/$DOMAINS_FILE"
 MYSQL_CONF="/etc/mysql/mysql.conf.d/mysqld.cnf"
 MYSQL_SOCKET="/var/run/mysqld/mysqld.sock"
-SECURE_FILE_PRIV="$PARENT_DIR/Domains"
+SECURE_FILE_PRIV=""""
 GID="mysql"
 UID="mysql"
 # Vector de sub-scripts a ejecutar recursivamente
