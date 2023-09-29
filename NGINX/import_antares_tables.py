@@ -28,10 +28,11 @@ GitHubRepoURL = f"https://github.com/TCS2211194M1/{Repository}.git"
 RepositoryDir = f"/home/ubuntu/scripts/{Repository}"
 GitDir = os.path.join(RepositoryDir, ".git")
 directorio_csv = os.path.join(RepositoryDir, "tablas")
+temp_dir = "/var/tmp/tablas"
 Headings_Dir = 'headings'
 ruta_archivos_sql = os.path.join(directorio_csv, 'headings')
 ruta_config_mysql = "/etc/mysql/mysql.conf.d/mysqld.cnf"
-nueva_ubicacion = f"{directorio_csv}"
+nueva_ubicacion = ""
 
 
 # Solicitar al usuario que ingrese los valores de las variables
@@ -39,6 +40,21 @@ mysql_user = "antares"
 mysql_password = "antares1"
 mysql_database = "antares"
 mysql_host = 'localhost'
+
+def copiar_y_ajustar_permisos(directorio_csv, temp_dir):
+    try:
+        # Copiar el directorio de origen al destino
+        shutil.copytree(directorio_csv, temp_dir)
+
+        # Ejecutar el comando para cambiar la propiedad
+        comando_chown = f"sudo chown -R mysql:mysql {temp_dir}"
+        subprocess.run(comando_chown, shell=True, check=True)
+
+        print("Directorio copiado y permisos ajustados con éxito.")
+    except Exception as e:
+        print(f"Error: {str(e)}")
+
+copiar_y_ajustar_permisos(directorio_csv, temp_dir)
 
 # Función para verificar si Git está instalado
 def check_git_installed():
@@ -95,7 +111,7 @@ def configurar_secure_file_priv_y_load_data_local_infile(ruta_config_mysql, nuev
 print(f"Configurando '{ruta_config_mysql}'...")
 
 # Llamar a la función para configurar secure-file-priv y desactivar LOAD DATA LOCAL INFILE
-configurar_secure_file_priv_y_load_data_local_infile(ruta_config_mysql, nueva_ubicacion)
+#configurar_secure_file_priv_y_load_data_local_infile(ruta_config_mysql, nueva_ubicacion)
 
 def configurar_charset_mysql(ruta_config_mysql):
     # Verificar si el archivo de configuración existe
@@ -468,7 +484,7 @@ def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
                 ruta_csv = ruta_csv.replace("\\", "\\\\")
                 
                 # Utiliza la sentencia SQL 'LOAD DATA LOCAL INFILE' para importar los datos desde el CSV
-                query = f"LOAD DATA LOCAL INFILE '{ruta_csv}' INTO TABLE {tabla} FIELDS TERMINATED BY ',' ENCLOSED BY '\"' IGNORE 1 LINES;"
+                query = f"LOAD DATA INFILE '{ruta_csv}' INTO TABLE {tabla} FIELDS TERMINATED BY ',' ENCLOSED BY '\"' IGNORE 1 LINES;"
                 print(f"Ejecutando query: {query}")
                 
                 try:
@@ -516,4 +532,4 @@ def eliminar_directorio(directorio):
         print(f"Error al eliminar el directorio '{directorio}': {e}")
 
 # Llama a la función para eliminar el directorio ruta_archivos_sql
-#eliminar_directorio(ruta_archivos_sql)
+eliminar_directorio(temp_dir)
