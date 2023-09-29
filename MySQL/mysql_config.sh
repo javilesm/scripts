@@ -102,8 +102,8 @@ function set_mysql_socket() {
   fi
 
   # Configurar secure_file_priv en el archivo de configuración si no existe
-  if ! grep -q "^secure_file_priv\s*=" "$MYSQL_CONF"; then
-    if sudo sed -i "/\[mysqld\]/a secure_file_priv=" "$MYSQL_CONF"; then
+  if ! grep -q "^secure-file-priv\s*=" "$MYSQL_CONF"; then
+    if sudo sed -i "/\[mysqld\]/a secure-file-priv= $SECURE_FILE_PRIV" "$MYSQL_CONF"; then
       echo "La opción secure_file_priv se ha configurado correctamente en el archivo de configuración de MySQL."
     else
       echo "No se pudo configurar la opción secure_file_priv en el archivo de configuración de MySQL."
