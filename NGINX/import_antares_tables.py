@@ -34,27 +34,11 @@ ruta_archivos_sql = os.path.join(directorio_csv, 'headings')
 ruta_config_mysql = "/etc/mysql/mysql.conf.d/mysqld.cnf"
 nueva_ubicacion = ""
 
-
 # Solicitar al usuario que ingrese los valores de las variables
 mysql_user = "antares"
 mysql_password = "antares1"
 mysql_database = "antares"
 mysql_host = 'localhost'
-
-def copiar_y_ajustar_permisos(directorio_csv, temp_dir):
-    try:
-        # Copiar el directorio de origen al destino
-        shutil.copytree(directorio_csv, temp_dir)
-
-        # Ejecutar el comando para cambiar la propiedad
-        comando_chown = f"sudo chown -R mysql:mysql {temp_dir}"
-        subprocess.run(comando_chown, shell=True, check=True)
-
-        print("Directorio copiado y permisos ajustados con éxito.")
-    except Exception as e:
-        print(f"Error: {str(e)}")
-
-copiar_y_ajustar_permisos(directorio_csv, temp_dir)
 
 # Función para verificar si Git está instalado
 def check_git_installed():
@@ -240,6 +224,28 @@ if conexion is not None:
     # Puedes realizar operaciones con la base de datos aquí
     # No olvides cerrar la conexión cuando hayas terminado
     conexion.close()
+
+
+def copiar_y_ajustar_permisos(directorio_csv, temp_dir):
+    try:
+        # Copiar el directorio de origen al destino
+        shutil.copytree(directorio_csv, temp_dir)
+
+        print(f"Cambiand la propiedad del directorio {temp_dir}...")
+
+        # Ejecutar el comando para cambiar la propiedad
+        comando_chown = f"sudo chown -R mysql:mysql {temp_dir}"
+        subprocess.run(comando_chown, shell=True, check=True)
+
+        # Agregar el comando para cambiar los permisos
+        comando_chmod = f"sudo chmod 755 -R {temp_dir}"
+        subprocess.run(comando_chmod, shell=True, check=True)
+
+        print("Directorio copiado y permisos ajustados con éxito.")
+    except Exception as e:
+        print(f"Error: {str(e)}")
+
+copiar_y_ajustar_permisos(directorio_csv, temp_dir)
 
 # Función para cargar un archivo CSV con codificación y manejo de caracteres no válidos
 def cargar_csv_con_codificacion(ruta_csv, codificacion):
@@ -466,7 +472,7 @@ def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
 
         for tabla in tablas_sql:
             # Ruta completa del archivo CSV correspondiente a la tabla
-            ruta_csv = os.path.join(directorio_csv, f"{tabla}.csv")
+            ruta_csv = os.path.join(temp_dir, f"{tabla}.csv")
 
             # Verificar si el archivo CSV existe
             if not os.path.exists(ruta_csv):
