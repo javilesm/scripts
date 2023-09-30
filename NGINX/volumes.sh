@@ -144,7 +144,7 @@ function write_partitions_to_mysql() {
 
     # Cambiar el propietario y grupo del archivo temporal (ajusta según tus necesidades)
     sudo chown mysql:mysql "$temp_file"
-    
+
     echo "Escribiendo en la tabla '$MYSQL_PARTITIONS_TABLE' las particiones encontradas..."
     
     # Obtener los encabezados de la tabla t_partition
@@ -158,6 +158,9 @@ function write_partitions_to_mysql() {
 
     # Crear un string con los encabezados separados por comas
     local headers_string=$(IFS=,; echo "${partition_headers[*]}")
+
+    # Obtener el ultimo registro e incrementar en +1
+    last_partition=$(mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -h "$MYSQL_HOST" -D "$MYSQL_DATABASE" -s -N -e "SELECT MAX(T_PARTITION) FROM $MYSQL_PARTITIONS_TABLE;")
 
     # Cargar datos en la tabla t_partition
     local partitions_load_query="LOAD DATA INFILE '$temp_file' INTO TABLE $MYSQL_DATABASE.$MYSQL_PARTITIONS_TABLE FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' IGNORE 1 LINES ($headers_string);"
