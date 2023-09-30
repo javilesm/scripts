@@ -3,6 +3,7 @@ import subprocess
 import mysql.connector
 import tempfile
 import json
+import datetime
 
 # Variables
 script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -213,23 +214,79 @@ def get_partition_headers():
 
 
 def update_records(output_file_path):
-    # Obtener los encabezados de la tabla t_partition como una lista
-    partition_headers = get_partition_headers()
+    try:
+        # Obtener los encabezados de la tabla t_partition como cadenas
+        partition_headers = [str(header) for header in get_partition_headers()]
 
-    # Verificar si se obtuvieron los encabezados correctamente
-    if len(partition_headers) == 0:
-        print(f"--> No se pudieron obtener los encabezados de la tabla '{MYSQL_PARTITIONS_TABLE}' correctamente.")
-        return None
+        # Verificar si se obtuvieron los encabezados correctamente
+        if len(partition_headers) == 0:
+            print(f"--> No se pudieron obtener los encabezados de la tabla '{MYSQL_PARTITIONS_TABLE}' correctamente.")
+            return
 
-    # Crear un archivo de texto para guardar los encabezados
-    with open(output_file_path, 'w') as output_file:
-        output_file.write(", ".join(partition_headers))
+        # Obtener el último registro de la tabla
+        new_partition_value = get_max_partition_value() + 1
+        partition_headers[0] = str(new_partition_value)  # Sustituir el primer encabezado
 
-    print(f"--> Encabezados guardados en el archivo '{output_file_path}'")
+        # Obtener la fecha actual en formato "aaaa-mm-dd hh:mm:ss"
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    return partition_headers
+        # Escribir en el campo "CREATE_DATE" la fecha actual si existe en la lista
+        if "CREATE_DATE" in partition_headers:
+            index = partition_headers.index("CREATE_DATE")
+            partition_headers[index] = current_datetime
+
+        # Escribir en el campo "CREATE_BY" el valor de MYSQL_USER si existe en la lista
+        if "CREATE_BY" in partition_headers:
+            index = partition_headers.index("CREATE_BY")
+            partition_headers[index] = MYSQL_USER
+
+        # Escribir en el campo "UPDATE_DATE" la fecha actual si existe en la lista
+        if "UPDATE_DATE" in partition_headers:
+            index = partition_headers.index("UPDATE_DATE")
+            partition_headers[index] = current_datetime
+
+        # Escribir en el campo "UPDATE_BY" el valor de MYSQL_USER si existe en la lista
+        if "UPDATE_BY" in partition_headers:
+            index = partition_headers.index("UPDATE_BY")
+            partition_headers[index] = MYSQL_USER
+
+        # Escribir en el campo "ENTRY_STATUS" el valor "0" si existe en la lista
+        if "ENTRY_STATUS" in partition_headers:
+            index = partition_headers.index("ENTRY_STATUS")
+            partition_headers[index] = "0"
+
+        # Crear un archivo de texto para guardar los encabezados actualizados
+        with open(output_file_path, 'w') as output_file:
+            output_file.write(", ".join(partition_headers))
+
+        print(f"--> Encabezados guardados en el archivo '{output_file_path}'")
+
+        return partition_headers
+    except Exception as e:
+        print(f"-> Error al escribir particiones en la tabla '{MYSQL_PARTITIONS_TABLE}'.")
+        print(str(e))
 
 
+def get_max_partition_value():
+    try:
+        connection = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT MAX(T_PARTITION) FROM {MYSQL_PARTITIONS_TABLE};")
+        result = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        
+        last_partition = result[0] if result else 0
+        return last_partition
+    except Exception as e:
+        print(f"No se pudo obtener el último registro de la tabla '{MYSQL_PARTITIONS_TABLE}'.")
+        print(str(e))
+        return 0
 
 def volumes():
     get_storage_headers()
