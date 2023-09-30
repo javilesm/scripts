@@ -18,7 +18,7 @@ MYSQL_PARTITIONS_TABLE="t_partitions"
 
 # Función para obtener información detallada sobre una unidad de disco
 function get_disk_info() {
-    local device_name="/dev/$1"
+    local device_name="dev/$1"
 
     # Comprobar si el dispositivo existe antes de ejecutar lsblk
     if [ -e "$device_name" ]; then
@@ -30,7 +30,7 @@ function get_disk_info() {
 
             # Extraer el tamaño de la unidad de disco
             local size=$(echo "$lsblk_info" | jq -r '.blockdevices[0].size')
-            echo "Tamaño de la unidad '$device_name': $size bytes"
+            echo "-> Tamaño de la unidad '$device_name': $size bytes"
 
             # Contador de particiones y espacio particionado
             local partition_count=0
@@ -70,9 +70,9 @@ function get_disk_info() {
                 available_space=0
             fi
 
-            echo "Cantidad de particiones: $partition_count"
-            echo "Espacio particionado: $partitioned_space bytes"
-            echo "Espacio no particionado: $available_space bytes"
+            echo "-> Cantidad de particiones: $partition_count"
+            echo "-> Espacio particionado: $partitioned_space bytes"
+            echo "-> Espacio no particionado: $available_space bytes"
         else
             echo "No se pudo obtener información para '$device_name'."
         fi
@@ -89,11 +89,15 @@ function volumes() {
 
     if [ $? -eq 0 ]; then
         # Procesar los resultados
-        echo "Lista de registros y su tercer columna:"
+        echo "Lista de registros y su segunda columna:"
+        echo "------------------------------------------------------------------------------------------------"
         while read -r record; do
             third_value=$(echo "$record" | cut -f3)
-            echo "$record, tercer columna: $third_value"
+            echo "$record, segunda columna: $third_value"
+            echo "******************************************"
             get_disk_info $third_value
+            echo "******************************************"
+            echo "------------------------------------------------------------------------------------------------"
         done <<< "$MYSQL_RESULT"
     else
         echo "Error al ejecutar la consulta SQL en MySQL."
