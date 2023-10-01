@@ -7,7 +7,7 @@ import datetime
 
 # Variables
 script_directory = os.path.dirname(os.path.abspath(__file__))
-output_file_path = os.path.join(script_directory, 'registros.txt')
+output_file_path = os.path.join(script_directory, 'registros.csv')
 
 # Configuración de la conexión a MySQL
 MYSQL_USER = "antares"
@@ -225,10 +225,8 @@ def get_partition_headers():
 
 def update_records(output_file_path, name, device_name, mountpoint):
     try:
-        new_partition_value = get_max_partition_value() + 1
-        print(f"Nuevo valor de T_PARTITION: {new_partition_value}")
+        print("Actualizando registros.....")
 
-        print("Actualisando registros.....")
         # Obtener los encabezados de la tabla t_partition como cadenas
         partition_headers = [str(header) for header in get_partition_headers()]
 
@@ -237,11 +235,14 @@ def update_records(output_file_path, name, device_name, mountpoint):
             print(f"--> No se pudieron obtener los encabezados de la tabla '{MYSQL_PARTITIONS_TABLE}' correctamente.")
             return
 
-        # Obtener el último registro de la tabla
-        partition_headers[0] = str(new_partition_value)  # Sustituir el primer encabezado
-
         # Obtener la fecha actual en formato "aaaa-mm-dd hh:mm:ss"
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Escribir en el campo "T_PARTITION" el ultimo registro incrementando en 1 si existe en la lista
+        if "T_PARTITION" in partition_headers:
+            index = partition_headers.index("T_PARTITION")
+            partition_headers[index] = str(get_max_partition_value() + 1)
+
 
         # Escribir en el campo "CREATE_DATE" la fecha actual si existe en la lista
         if "CREATE_DATE" in partition_headers:
