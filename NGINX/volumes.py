@@ -96,8 +96,8 @@ def get_disk_info(device_name):
             
             # Crear un archivo temporal para almacenar las particiones
             temp_file = tempfile.mktemp()
-            
-            # Iterar a través de las particiones y dispositivos
+
+           # Iterar a través de las particiones y dispositivos
             for entry in lsblk_info["blockdevices"][0]["children"]:
                 name = entry["name"]
                 size = entry["size"]
@@ -129,7 +129,7 @@ def get_disk_info(device_name):
             
             # Llamar a la función para escribir particiones en la tabla t_partition
             print("Llamando a la función para escribir particiones en la tabla t_partition...")
-            write_partitions_to_mysql(temp_file)
+            write_partitions_to_mysql(temp_file, name, device_name, mountpoint)
             
             # Eliminar el archivo temporal
             os.remove(temp_file)
@@ -139,16 +139,22 @@ def get_disk_info(device_name):
         print(f"No se pudo obtener información para '{device_name}'.")
         print(str(e))
 
-def write_partitions_to_mysql(temp_file):
+def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
     try:
+        print(f"--SHORT_DESCRIPTION: {name}")
+        print(f"--DEVICE_NAME_: {device_name}")
+        print(f"--ATTACHMENT_POINT,: {mountpoint}")
+        print("-------------------------------------")
+
         # Obtener los encabezados de la tabla t_partition como cadenas
         partition_headers = [str(header) for header in get_partition_headers()]
 
         # Otorgar permisos de lectura y escritura al archivo temporal
         os.chmod(temp_file, 0o644)
 
-        # Cambiar el propietario y grupo del archivo temporal (ajusta según tus necesidades)
-        # sudo chown mysql:mysql "$temp_file"
+        # Ejecutar el comando para cambiar la propiedad
+        comando_chown = f"sudo chown mysql:mysql {temp_file}"
+        subprocess.run(comando_chown, shell=True, check=True)
 
         print(f"-> Escribiendo en la tabla '{MYSQL_PARTITIONS_TABLE}' las particiones encontradas...")
 
@@ -161,7 +167,7 @@ def write_partitions_to_mysql(temp_file):
         headers_string = ", ".join([header.strip("[]'") for header in partition_headers])
 
         print("-> Actualizando registros...")
-        update_records(output_file_path)
+        update_records(output_file_path, name, device_name, mountpoint)
 
         # Cargar datos en la tabla t_partition
         partitions_load_query = f"LOAD DATA INFILE '{temp_file}' INTO TABLE {MYSQL_DATABASE}.{MYSQL_PARTITIONS_TABLE} FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' IGNORE 1 LINES ({headers_string});"
@@ -215,8 +221,9 @@ def get_partition_headers():
         return []
 
 
-def update_records(output_file_path):
+def update_records(output_file_path, name, device_name, mountpoint):
     try:
+        print("Actualisando registros.....")
         # Obtener los encabezados de la tabla t_partition como cadenas
         partition_headers = [str(header) for header in get_partition_headers()]
 
@@ -256,6 +263,21 @@ def update_records(output_file_path):
         if "ENTRY_STATUS" in partition_headers:
             index = partition_headers.index("ENTRY_STATUS")
             partition_headers[index] = "0"
+
+        # Escribir en el campo "SHORT_DESCRIPTION" el valor "short_description" si existe en la lista
+        if "SHORT_DESCRIPTION" in partition_headers:
+            index = partition_headers.index("SHORT_DESCRIPTION")
+            partition_headers[index] = name
+        
+        # Escribir en el campo "DEVICE_NAME_" el valor "device_name" si existe en la lista
+        if "DEVICE_NAME_" in partition_headers:
+            index = partition_headers.index("DEVICE_NAME_")
+            partition_headers[index] = device_name
+        
+        # Escribir en el campo "ATTACHMENT_POINT" el valor "attachment_point" si existe en la lista
+        if "ATTACHMENT_POINT" in partition_headers:
+            index = partition_headers.index("ATTACHMENT_POINT")
+            partition_headers[index] = mountpoint
 
         # Crear un archivo de texto para guardar los encabezados actualizados
         with open(output_file_path, 'w') as output_file:
