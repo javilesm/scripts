@@ -106,7 +106,7 @@ def get_disk_info(device_name):
                 # Comprobar si es una partición
                 if mountpoint is not None:
                     print(f"SHORT_DESCRIPTION: {name}")
-                    print(f"DEVICE_NAME_: {device_name}")
+                    print(f"DEVICE_NAME: {device_name}")
                     print(f"PARTITION_SIZE: {size} bytes")
                     print(f"ATTACHMENT_POINT,: {mountpoint}")
                     print("-------------------------------------")
@@ -144,7 +144,7 @@ def get_disk_info(device_name):
 def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
     try:
         print(f"--SHORT_DESCRIPTION: {name}")
-        print(f"--DEVICE_NAME_: {device_name}")
+        print(f"--DEVICE_NAME: {device_name}")
         print(f"--ATTACHMENT_POINT,: {mountpoint}")
         print("-------------------------------------")
 
@@ -243,6 +243,20 @@ def update_records(output_file_path, name, device_name, mountpoint):
             index = partition_headers.index("T_PARTITION")
             partition_headers[index] = str(get_max_partition_value() + 1)
 
+        # Escribir en el campo "SHORT_DESCRIPTION" el valor "short_description" si existe en la lista
+        if "SHORT_DESCRIPTION" in partition_headers:
+            index = partition_headers.index("SHORT_DESCRIPTION")
+            partition_headers[index] = name
+        
+        # Escribir en el campo "DEVICE_NAME" el valor "device_name" si existe en la lista
+        if "DEVICE_NAME" in partition_headers:
+            index = partition_headers.index("DEVICE_NAME")
+            partition_headers[index] = device_name
+        
+        # Escribir en el campo "ATTACHMENT_POINT" el valor "attachment_point" si existe en la lista
+        if "ATTACHMENT_POINT" in partition_headers:
+            index = partition_headers.index("ATTACHMENT_POINT")
+            partition_headers[index] = mountpoint
 
         # Escribir en el campo "CREATE_DATE" la fecha actual si existe en la lista
         if "CREATE_DATE" in partition_headers:
@@ -269,26 +283,11 @@ def update_records(output_file_path, name, device_name, mountpoint):
             index = partition_headers.index("ENTRY_STATUS")
             partition_headers[index] = "0"
 
-        # Escribir en el campo "SHORT_DESCRIPTION" el valor "short_description" si existe en la lista
-        if "SHORT_DESCRIPTION" in partition_headers:
-            index = partition_headers.index("SHORT_DESCRIPTION")
-            partition_headers[index] = name
-        
-        # Escribir en el campo "DEVICE_NAME_" el valor "device_name" si existe en la lista
-        if "DEVICE_NAME_" in partition_headers:
-            index = partition_headers.index("DEVICE_NAME_")
-            partition_headers[index] = device_name
-        
-        # Escribir en el campo "ATTACHMENT_POINT" el valor "attachment_point" si existe en la lista
-        if "ATTACHMENT_POINT" in partition_headers:
-            index = partition_headers.index("ATTACHMENT_POINT")
-            partition_headers[index] = mountpoint
-
         # Crear un archivo de texto para guardar los encabezados actualizados
         with open(output_file_path, 'w') as output_file:
             output_file.write(", ".join(partition_headers))
 
-        print(f", ".join(partition_headers))
+        print(f",".join(partition_headers))
         print(f"--> Encabezados guardados en el archivo '{output_file_path}'")
 
         return partition_headers
