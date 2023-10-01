@@ -105,9 +105,11 @@ def get_disk_info(device_name):
                 
                 # Comprobar si es una partición
                 if mountpoint is not None:
-                    print(f"Partición: {name}")
-                    print(f"Tamaño: {size} bytes")
-                    print(f"Punto de montaje: {mountpoint}")
+                    print(f"SHORT_DESCRIPTION: {name}")
+                    print(f"DEVICE_NAME_: {device_name}")
+                    print(f"PARTITION_SIZE: {size} bytes")
+                    print(f"ATTACHMENT_POINT,: {mountpoint}")
+                    print("-------------------------------------")
                     partition_count += 1
                     partitioned_space += size
                     
