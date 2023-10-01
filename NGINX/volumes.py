@@ -116,6 +116,13 @@ def get_disk_info(device_name):
                     # Escribir en la tabla t_partition las particiones encontradas
                     with open(temp_file, "a") as f:
                         f.write(f"{name},{device_name},{mountpoint}\n")
+
+                    # Llamar a la función para escribir particiones en la tabla t_partition
+                    print("Llamando a la función para escribir particiones en la tabla t_partition...")
+                    write_partitions_to_mysql(temp_file, name, device_name, mountpoint)
+                    
+                    # Eliminar el archivo temporal
+                    os.remove(temp_file)
             
             # Calcular espacio no particionado
             if size >= partitioned_space:
@@ -127,12 +134,7 @@ def get_disk_info(device_name):
             print(f"-> Espacio particionado: {partitioned_space} bytes")
             print(f"-> Espacio no particionado: {available_space} bytes")
             
-            # Llamar a la función para escribir particiones en la tabla t_partition
-            print("Llamando a la función para escribir particiones en la tabla t_partition...")
-            write_partitions_to_mysql(temp_file, name, device_name, mountpoint)
             
-            # Eliminar el archivo temporal
-            os.remove(temp_file)
         else:
             print(f"El dispositivo '{device_name}' no existe")
     except Exception as e:
@@ -170,7 +172,7 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
         update_records(output_file_path, name, device_name, mountpoint)
 
         # Cargar datos en la tabla t_partition
-        partitions_load_query = f"LOAD DATA INFILE '{temp_file}' INTO TABLE {MYSQL_DATABASE}.{MYSQL_PARTITIONS_TABLE} FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' IGNORE 1 LINES ({headers_string});"
+        partitions_load_query = f"LOAD DATA INFILE '{temp_file}' INTO TABLE {MYSQL_DATABASE}.{MYSQL_PARTITIONS_TABLE} FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' ({headers_string});"
 
         # Mostrar la consulta SQL antes de ejecutarla
         print(f"-> Consulta SQL para cargar particiones en la tabla '{MYSQL_PARTITIONS_TABLE}':")
@@ -223,6 +225,9 @@ def get_partition_headers():
 
 def update_records(output_file_path, name, device_name, mountpoint):
     try:
+        new_partition_value = get_max_partition_value() + 1
+        print(f"Nuevo valor de T_PARTITION: {new_partition_value}")
+
         print("Actualisando registros.....")
         # Obtener los encabezados de la tabla t_partition como cadenas
         partition_headers = [str(header) for header in get_partition_headers()]
@@ -233,7 +238,6 @@ def update_records(output_file_path, name, device_name, mountpoint):
             return
 
         # Obtener el último registro de la tabla
-        new_partition_value = get_max_partition_value() + 1
         partition_headers[0] = str(new_partition_value)  # Sustituir el primer encabezado
 
         # Obtener la fecha actual en formato "aaaa-mm-dd hh:mm:ss"
@@ -283,6 +287,7 @@ def update_records(output_file_path, name, device_name, mountpoint):
         with open(output_file_path, 'w') as output_file:
             output_file.write(", ".join(partition_headers))
 
+        print(f", ".join(partition_headers))
         print(f"--> Encabezados guardados en el archivo '{output_file_path}'")
 
         return partition_headers
