@@ -108,7 +108,7 @@ def get_disk_info(device_name):
                     print(f"SHORT_DESCRIPTION: {name}")
                     print(f"DEVICE_NAME: {device_name}")
                     print(f"PARTITION_SIZE: {size} bytes")
-                    print(f"ATTACHMENT_POINT,: {mountpoint}")
+                    print(f"ATTACHMENT_POINT: {mountpoint}")
                     print("-------------------------------------")
                     partition_count += 1
                     partitioned_space += size
@@ -145,7 +145,7 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
     try:
         print(f"--SHORT_DESCRIPTION: {name}")
         print(f"--DEVICE_NAME: {device_name}")
-        print(f"--ATTACHMENT_POINT,: {mountpoint}")
+        print(f"--ATTACHMENT_POINT: {mountpoint}")
         print("-------------------------------------")
 
         # Obtener los encabezados de la tabla t_partition como cadenas
@@ -172,8 +172,10 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
 
         # Verifica si se obtuvieron valores actualizados
         if updated_values:
-            # Crear la declaración INSERT INTO con los encabezados y los valores
-            partitions_load_query = f"INSERT INTO {MYSQL_DATABASE}.{MYSQL_PARTITIONS_TABLE} ({', '.join(updated_values.keys())}) VALUES ({', '.join(updated_values.values())});"
+
+            # Construir la consulta SQL con los valores reales
+            partitions_load_query = f"INSERT INTO {MYSQL_DATABASE}.{MYSQL_PARTITIONS_TABLE} (T_PARTITION, SHORT_DESCRIPTION, DEVICE_NAME, ATTACHMENT_POINT, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ({updated_values['T_PARTITION']}, '{updated_values['SHORT_DESCRIPTION']}', '{updated_values['DEVICE_NAME']}', '{updated_values['ATTACHMENT_POINT']}', {updated_values['ENTRY_STATUS']}, '{updated_values['CREATE_DATE']}', '{updated_values['CREATE_BY']}', '{updated_values['UPDATE_DATE']}', '{updated_values['UPDATE_BY']}');"
+
 
             # Mostrar la consulta SQL antes de ejecutarla
             print(f"-> Consulta SQL para cargar particiones en la tabla '{MYSQL_PARTITIONS_TABLE}':")
@@ -261,6 +263,11 @@ def update_records(output_file_path, name, device_name, mountpoint):
             index = partition_headers.index("ATTACHMENT_POINT")
             updated_values["ATTACHMENT_POINT"] = mountpoint
 
+         # Escribir en el campo "ENTRY_STATUS" el valor "0" si existe en la lista
+        if "ENTRY_STATUS" in partition_headers:
+            index = partition_headers.index("ENTRY_STATUS")
+            updated_values["ENTRY_STATUS"] = "0"
+
         # Escribir en el campo "CREATE_DATE" la fecha actual si existe en la lista
         if "CREATE_DATE" in partition_headers:
             index = partition_headers.index("CREATE_DATE")
@@ -281,10 +288,6 @@ def update_records(output_file_path, name, device_name, mountpoint):
             index = partition_headers.index("UPDATE_BY")
             updated_values["UPDATE_BY"] = MYSQL_USER
 
-        # Escribir en el campo "ENTRY_STATUS" el valor "0" si existe en la lista
-        if "ENTRY_STATUS" in partition_headers:
-            index = partition_headers.index("ENTRY_STATUS")
-            updated_values["ENTRY_STATUS"] = "0"
 
         print(f"Valores actualizados: {updated_values}")
         return updated_values
