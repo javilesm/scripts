@@ -16,6 +16,9 @@ MYSQL_HOST = "localhost"  # Cambia a la dirección de tu servidor MySQL si es ne
 MYSQL_DATABASE = "antares"
 MYSQL_STORAGE_TABLE = "t_storage"
 MYSQL_PARTITIONS_TABLE = "t_partition"
+MYSQL_WORKORDERS_TABLE = "t_workorder"
+MYSQL_WORKORDERFLAG_TABLE = "t_workorder_flag"
+MYSQL_PRODUCT_TABLE = "t_product"
 
 def get_storage_headers():
     try:
@@ -165,9 +168,6 @@ def get_disk_info(device_name):
                         print("Llamando a la función para escribir particiones en la tabla t_partition...")
                         write_partitions_to_mysql(temp_file, name, device_name, mountpoint)
 
-                    # Eliminar el archivo temporal
-                    #os.remove(temp_file)
-
             # Calcular espacio no particionado
             if size >= partitioned_space:
                 available_space = size - partitioned_space
@@ -178,10 +178,36 @@ def get_disk_info(device_name):
             print(f"-> Espacio particionado: {partitioned_space} bytes")
             print(f"-> Espacio no particionado: {available_space} bytes")
 
+            # Actualizar la columna "comitted_size" en la tabla t_storage
+            update_storage_comitted_size(device_name, partitioned_space)
+            
         else:
-            print(f"El dispositivo '{device_name}' no existe")
+            print(f"La unidad '{device_name}' no existe")
     except Exception as e:
-        print(f"No se pudo obtener información para '{device_name}'.")
+        print(f"La unidad '{device_name}' no se encuentra particionada.")
+        print(str(e))
+
+def update_storage_comitted_size(device_name, comitted_size):
+    try:
+        # Construir la consulta SQL para actualizar la columna "comitted_size"
+        update_query = f"UPDATE {MYSQL_STORAGE_TABLE} SET comitted_size = %s WHERE DEVICE_NAME = %s"
+        
+        # Ejecutar la consulta SQL
+        connection = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        cursor = connection.cursor()
+        cursor.execute(update_query, (comitted_size, device_name))
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+        print(f"-> Columna 'comitted_size' actualizada para la unidad '{device_name}' con éxito.")
+    except Exception as e:
+        print(f"Error al actualizar la columna 'comitted_size' para la unidad '{device_name}'.")
         print(str(e))
 
 def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
