@@ -165,37 +165,37 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
             print(f"-> No se pudieron obtener los encabezados de la tabla '{MYSQL_PARTITIONS_TABLE}' correctamente.")
             return
 
-        # Crear un string con los encabezados separados por comas y un espacio después de cada coma
-        headers_string = ", ".join([header.strip("[]'") for header in partition_headers])
-
         print("-> Actualizando registros...")
-        update_records(output_file_path, name, device_name, mountpoint)
 
-        # Cargar datos en la tabla t_partition
-        partitions_load_query = f"LOAD DATA INFILE '{temp_file}' INTO TABLE {MYSQL_DATABASE}.{MYSQL_PARTITIONS_TABLE} FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' ({headers_string});"
+        # En la función write_partitions_to_mysql, obtén los valores actualizados
+        updated_values = update_records(output_file_path, name, device_name, mountpoint)
 
-        # Mostrar la consulta SQL antes de ejecutarla
-        print(f"-> Consulta SQL para cargar particiones en la tabla '{MYSQL_PARTITIONS_TABLE}':")
-        print(f"{partitions_load_query}")
+        # Verifica si se obtuvieron valores actualizados
+        if updated_values:
+            # Crear la declaración INSERT INTO con los encabezados y los valores
+            partitions_load_query = f"INSERT INTO {MYSQL_DATABASE}.{MYSQL_PARTITIONS_TABLE} ({', '.join(updated_values.keys())}) VALUES ({', '.join(updated_values.values())});"
 
-        # Ejecutar la consulta SQL
-        connection = mysql.connector.connect(
-            user=MYSQL_USER,
-            password=MYSQL_PASSWORD,
-            host=MYSQL_HOST,
-            database=MYSQL_DATABASE
-        )
-        cursor = connection.cursor()
-        cursor.execute(partitions_load_query)
-        connection.commit()
-        cursor.close()
-        connection.close()
+            # Mostrar la consulta SQL antes de ejecutarla
+            print(f"-> Consulta SQL para cargar particiones en la tabla '{MYSQL_PARTITIONS_TABLE}':")
+            print(f"{partitions_load_query}")
 
-        print(f"-> Particiones escritas en la tabla '{MYSQL_PARTITIONS_TABLE}' con éxito.")
+            # Ejecutar la consulta SQL
+            connection = mysql.connector.connect(
+                user=MYSQL_USER,
+                password=MYSQL_PASSWORD,
+                host=MYSQL_HOST,
+                database=MYSQL_DATABASE
+            )
+            cursor = connection.cursor()
+            cursor.execute(partitions_load_query)
+            connection.commit()
+            cursor.close()
+            connection.close()
+
+            print(f"-> Particiones escritas en la tabla '{MYSQL_PARTITIONS_TABLE}' con éxito.")
     except Exception as e:
         print(f"-> Error al escribir particiones en la tabla '{MYSQL_PARTITIONS_TABLE}'.")
         print(str(e))
-
 
 def get_partition_headers():
     try:
@@ -233,67 +233,67 @@ def update_records(output_file_path, name, device_name, mountpoint):
         # Verificar si se obtuvieron los encabezados correctamente
         if len(partition_headers) == 0:
             print(f"--> No se pudieron obtener los encabezados de la tabla '{MYSQL_PARTITIONS_TABLE}' correctamente.")
-            return
+            return {}
 
         # Obtener la fecha actual en formato "aaaa-mm-dd hh:mm:ss"
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+         # Crear un diccionario para almacenar los valores actualizados
+        updated_values = {}
+
         # Escribir en el campo "T_PARTITION" el ultimo registro incrementando en 1 si existe en la lista
         if "T_PARTITION" in partition_headers:
             index = partition_headers.index("T_PARTITION")
-            partition_headers[index] = str(get_max_partition_value() + 1)
+            updated_values["T_PARTITION"] = str(get_max_partition_value() + 1)
 
         # Escribir en el campo "SHORT_DESCRIPTION" el valor "short_description" si existe en la lista
         if "SHORT_DESCRIPTION" in partition_headers:
             index = partition_headers.index("SHORT_DESCRIPTION")
-            partition_headers[index] = name
+            updated_values["SHORT_DESCRIPTION"] = name
         
         # Escribir en el campo "DEVICE_NAME" el valor "device_name" si existe en la lista
         if "DEVICE_NAME" in partition_headers:
             index = partition_headers.index("DEVICE_NAME")
-            partition_headers[index] = device_name
+            updated_values["DEVICE_NAME"] = device_name
         
         # Escribir en el campo "ATTACHMENT_POINT" el valor "attachment_point" si existe en la lista
         if "ATTACHMENT_POINT" in partition_headers:
             index = partition_headers.index("ATTACHMENT_POINT")
-            partition_headers[index] = mountpoint
+            updated_values["ATTACHMENT_POINT"] = mountpoint
 
         # Escribir en el campo "CREATE_DATE" la fecha actual si existe en la lista
         if "CREATE_DATE" in partition_headers:
             index = partition_headers.index("CREATE_DATE")
-            partition_headers[index] = current_datetime
+            updated_values["CREATE_DATE"] = current_datetime
 
         # Escribir en el campo "CREATE_BY" el valor de MYSQL_USER si existe en la lista
         if "CREATE_BY" in partition_headers:
             index = partition_headers.index("CREATE_BY")
-            partition_headers[index] = MYSQL_USER
+            updated_values["CREATE_BY"] = MYSQL_USER
 
         # Escribir en el campo "UPDATE_DATE" la fecha actual si existe en la lista
         if "UPDATE_DATE" in partition_headers:
             index = partition_headers.index("UPDATE_DATE")
-            partition_headers[index] = current_datetime
+            updated_values["UPDATE_DATE"] = current_datetime
 
         # Escribir en el campo "UPDATE_BY" el valor de MYSQL_USER si existe en la lista
         if "UPDATE_BY" in partition_headers:
             index = partition_headers.index("UPDATE_BY")
-            partition_headers[index] = MYSQL_USER
+            updated_values["UPDATE_BY"] = MYSQL_USER
 
         # Escribir en el campo "ENTRY_STATUS" el valor "0" si existe en la lista
         if "ENTRY_STATUS" in partition_headers:
             index = partition_headers.index("ENTRY_STATUS")
-            partition_headers[index] = "0"
+            updated_values["ENTRY_STATUS"] = "0"
 
-        # Crear un archivo de texto para guardar los encabezados actualizados
-        with open(output_file_path, 'w') as output_file:
-            output_file.write(", ".join(partition_headers))
-
-        print(f",".join(partition_headers))
-        print(f"--> Encabezados guardados en el archivo '{output_file_path}'")
+        print(f"Valores actualizados: {updated_values}")
+        return updated_values
 
         return partition_headers
     except Exception as e:
         print(f"-> Error al escribir particiones en la tabla '{MYSQL_PARTITIONS_TABLE}'.")
         print(str(e))
+        return []
 
 
 def get_max_partition_value():
