@@ -72,10 +72,52 @@ def read_storage_table():
         print("Error al ejecutar la consulta SQL en MySQL.")
         print(str(e))
 
+def is_partition_exists_in_sql(name):
+    try:
+        # Imprimir un mensaje de auditoría para indicar que se está consultando la existencia de la partición
+        print(f"Consultando si la partición '{name}' ya existe en la tabla '{MYSQL_PARTITIONS_TABLE}'...")
+
+        # Construir la consulta SQL con los valores reales
+        partion_exists_query = f"SELECT COUNT(*) FROM {MYSQL_PARTITIONS_TABLE} WHERE SHORT_DESCRIPTION = %s"
+        
+        # Ejecutar la consulta SQL
+        connection = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        cursor = connection.cursor()
+        
+        # Consultar si la partición con SHORT_DESCRIPTION ya existe en la tabla
+        cursor.execute(partion_exists_query, (name,))
+        
+        # Mostrar la consulta SQL antes de ejecutarla (Nota: debe ser cursor.statement)
+        print(f"-> Consulta SQL para verificar si la partición '{name}' ya existe en la tabla '{MYSQL_PARTITIONS_TABLE}':")
+        print(cursor.statement)
+
+        # Obtener el resultado de la consulta
+        result = cursor.fetchone()
+        
+        # Cerrar el cursor y la conexión a la base de datos
+        cursor.close()
+        connection.close()
+        
+        # Si el resultado es igual a 1, significa que la partición existe
+        return result[0] == 1
+    except mysql.connector.Error as e:
+        # Manejar errores de MySQL y tratar de reconectar
+        print(f"Error al verificar si la partición '{name}' ya existe en la tabla '{MYSQL_PARTITIONS_TABLE}': {str(e)}")
+        if "Lost connection" in str(e):
+            print("Intentando reconectar...")
+            return is_partition_exists_in_sql(name)  # Intentar reconectar
+        return False
+
+
 def get_disk_info(device_name):
     try:
         device_path = f"/dev/{device_name}"
-        
+
         # Comprobar si el dispositivo existe antes de ejecutar lsblk
         if os.path.exists(device_path):
             # Obtener información de lsblk en formato JSON
@@ -83,58 +125,59 @@ def get_disk_info(device_name):
                 ["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", device_path], text=True
             )
             lsblk_info = json.loads(lsblk_info)
-            
+
             print(f"Información para el dispositivo '{device_name}':")
-            
+
             # Extraer el tamaño de la unidad de disco
             size = lsblk_info["blockdevices"][0]["size"]
             print(f"-> Tamaño de la unidad '{device_name}': {size} bytes")
-            
+
             partition_count = 0
             partitioned_space = 0
             available_space = 0
-            
+
             # Crear un archivo temporal para almacenar las particiones
             temp_file = tempfile.mktemp()
 
-           # Iterar a través de las particiones y dispositivos
+            # Iterar a través de las particiones y dispositivos
             for entry in lsblk_info["blockdevices"][0]["children"]:
                 name = entry["name"]
                 size = entry["size"]
                 mountpoint = entry["mountpoint"]
-                
+
                 # Comprobar si es una partición
                 if mountpoint is not None:
-                    print(f"SHORT_DESCRIPTION: {name}")
-                    print(f"DEVICE_NAME: {device_name}")
-                    print(f"PARTITION_SIZE: {size} bytes")
-                    print(f"ATTACHMENT_POINT: {mountpoint}")
+                    print(f"SHORT_DESCRIPTION (name): {name}")
+                    print(f"DEVICE_NAME (device_name): {device_name}")
+                    print(f"PARTITION_SIZE (size): {size} bytes")
+                    print(f"ATTACHMENT_POINT (mountpoint): {mountpoint}")
                     print("-------------------------------------")
                     partition_count += 1
                     partitioned_space += size
-                    
-                    # Escribir en la tabla t_partition las particiones encontradas
-                    with open(temp_file, "a") as f:
-                        f.write(f"{name},{device_name},{mountpoint}\n")
 
-                    # Llamar a la función para escribir particiones en la tabla t_partition
-                    print("Llamando a la función para escribir particiones en la tabla t_partition...")
-                    write_partitions_to_mysql(temp_file, name, device_name, mountpoint)
-                    
+                    # Comprobar si la partición ya existe en la tabla SQL
+                    if not is_partition_exists_in_sql(name):
+                        # Si no existe, escribir en la tabla t_partition las particiones encontradas
+                        with open(temp_file, "a") as f:
+                            f.write(f"{name},{device_name},{mountpoint}\n")
+
+                        # Llamar a la función para escribir particiones en la tabla t_partition
+                        print("Llamando a la función para escribir particiones en la tabla t_partition...")
+                        write_partitions_to_mysql(temp_file, name, device_name, mountpoint)
+
                     # Eliminar el archivo temporal
                     os.remove(temp_file)
-            
+
             # Calcular espacio no particionado
             if size >= partitioned_space:
                 available_space = size - partitioned_space
             else:
                 available_space = 0
-            
+
             print(f"-> Cantidad de particiones: {partition_count}")
             print(f"-> Espacio particionado: {partitioned_space} bytes")
             print(f"-> Espacio no particionado: {available_space} bytes")
-            
-            
+
         else:
             print(f"El dispositivo '{device_name}' no existe")
     except Exception as e:
@@ -174,7 +217,7 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
         if updated_values:
 
             # Construir la consulta SQL con los valores reales
-            partitions_load_query = f"INSERT INTO {MYSQL_DATABASE}.{MYSQL_PARTITIONS_TABLE} (T_PARTITION, SHORT_DESCRIPTION, DEVICE_NAME, ATTACHMENT_POINT, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ({updated_values['T_PARTITION']}, '{updated_values['SHORT_DESCRIPTION']}', '{updated_values['DEVICE_NAME']}', '{updated_values['ATTACHMENT_POINT']}', {updated_values['ENTRY_STATUS']}, '{updated_values['CREATE_DATE']}', '{updated_values['CREATE_BY']}', '{updated_values['UPDATE_DATE']}', '{updated_values['UPDATE_BY']}');"
+            partitions_load_query = f"INSERT INTO {MYSQL_PARTITIONS_TABLE} (T_PARTITION, SHORT_DESCRIPTION, DEVICE_NAME, ATTACHMENT_POINT, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ({updated_values['T_PARTITION']}, '{updated_values['SHORT_DESCRIPTION']}', '{updated_values['DEVICE_NAME']}', '{updated_values['ATTACHMENT_POINT']}', {updated_values['ENTRY_STATUS']}, '{updated_values['CREATE_DATE']}', '{updated_values['CREATE_BY']}', '{updated_values['UPDATE_DATE']}', '{updated_values['UPDATE_BY']}');"
 
 
             # Mostrar la consulta SQL antes de ejecutarla
