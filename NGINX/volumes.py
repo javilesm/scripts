@@ -166,7 +166,7 @@ def get_disk_info(device_name):
                         write_partitions_to_mysql(temp_file, name, device_name, mountpoint)
 
                     # Eliminar el archivo temporal
-                    os.remove(temp_file)
+                    #os.remove(temp_file)
 
             # Calcular espacio no particionado
             if size >= partitioned_space:
@@ -195,7 +195,7 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
         partition_headers = [str(header) for header in get_partition_headers()]
 
         # Otorgar permisos de lectura y escritura al archivo temporal
-        os.chmod(temp_file, 0o644)
+        os.chmod(temp_file, 0o755)
 
         # Ejecutar el comando para cambiar la propiedad
         comando_chown = f"sudo chown mysql:mysql {temp_file}"
