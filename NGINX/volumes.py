@@ -187,10 +187,13 @@ def get_disk_info(device_name):
         print(f"La unidad '{device_name}' no se encuentra particionada.")
         print(str(e))
 
-def update_storage_comitted_size(device_name, comitted_size):
+def update_storage_committed_size(device_name, committed_size_bytes):
     try:
-        # Construir la consulta SQL para actualizar la columna "comitted_size"
-        update_query = f"UPDATE {MYSQL_STORAGE_TABLE} SET comitted_size = %s WHERE DEVICE_NAME = %s"
+        # Convertir el tamaño comprometido a gigabytes
+        committed_size_gb = committed_size_bytes / 1073741824  # 1,073,741,824 bytes en 1 gigabyte
+
+        # Construir la consulta SQL para actualizar la columna "committed_size"
+        update_query = f"UPDATE {MYSQL_STORAGE_TABLE} SET committed_size = %s WHERE DEVICE_NAME = %s"
         
         # Ejecutar la consulta SQL
         connection = mysql.connector.connect(
@@ -200,15 +203,16 @@ def update_storage_comitted_size(device_name, comitted_size):
             database=MYSQL_DATABASE
         )
         cursor = connection.cursor()
-        cursor.execute(update_query, (comitted_size, device_name))
+        cursor.execute(update_query, (committed_size_gb, device_name))
         connection.commit()
         cursor.close()
         connection.close()
 
-        print(f"-> Columna 'comitted_size' actualizada para la unidad '{device_name}' con éxito.")
+        print(f"-> Columna 'committed_size' actualizada para la unidad '{device_name}' con éxito.")
     except Exception as e:
-        print(f"Error al actualizar la columna 'comitted_size' para la unidad '{device_name}'.")
+        print(f"Error al actualizar la columna 'committed_size' para la unidad '{device_name}'.")
         print(str(e))
+
 
 def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
     try:
