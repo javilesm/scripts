@@ -22,60 +22,51 @@ MYSQL_PRODUCT_TABLE = "t_Product"
 
 def read_workorder_table():
     try:
+        # Configuración de la conexión a MySQL
+        connection = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        cursor = connection.cursor()
+
+        # Obtener los encabezados de la tabla
+        cursor.execute(f"SHOW COLUMNS FROM {MYSQL_WORKORDER_TABLE}")
+        headers = [column[0] for column in cursor.fetchall()]
+
         # Ejecutar la consulta SQL
         SQL_QUERY = f"SELECT * FROM {MYSQL_WORKORDER_TABLE}"
-        connection = mysql.connector.connect(
-            user=MYSQL_USER,
-            password=MYSQL_PASSWORD,
-            host=MYSQL_HOST,
-            database=MYSQL_DATABASE
-        )
-        cursor = connection.cursor()
         cursor.execute(SQL_QUERY)
         results = cursor.fetchall()
-        
-        print("Lista de registros y su segunda columna:")
-        print("------------------------------------------------------------------------------------------------")
-        
-        for row in results:
-            third_value = row[3]
-            print(row)
-            print("******************************************")
-            read_product_table()
-            print("******************************************")
-            print("------------------------------------------------------------------------------------------------")
-        
-        cursor.close()
-        connection.close()
-    except Exception as e:
-        print("Error al ejecutar la consulta SQL en MySQL.")
-        print(str(e))
 
-def read_product_table():
-    try:
-        # Ejecutar la consulta SQL
-        SQL_QUERY = f"SELECT * FROM {MYSQL_PRODUCT_TABLE}"
-        connection = mysql.connector.connect(
-            user=MYSQL_USER,
-            password=MYSQL_PASSWORD,
-            host=MYSQL_HOST,
-            database=MYSQL_DATABASE
-        )
-        cursor = connection.cursor()
-        cursor.execute(SQL_QUERY)
-        results = cursor.fetchall()
-        
-        print("Lista de registros y su segunda columna:")
+        print("Encabezados de la tabla:")
+        print(headers)
         print("------------------------------------------------------------------------------------------------")
-        
-        for row in results:
-            third_value = row[2]
-            print(row)
-            print("******************************************")
 
-            print("******************************************")
+        for row in results:
+            workorder_flag = row[headers.index("WORKORDER_FLAG")]
+            print(f"Registro en la tabla {MYSQL_PRODUCT_TABLE}:")
+            print(row)
+
+            if workorder_flag == 1:
+                print("******************************************")
+                # Consultar la tabla MYSQL_PRODUCT_TABLE
+                SQL_PRODUCT_QUERY = f"SELECT STORAGE_SIZE FROM {MYSQL_PRODUCT_TABLE} WHERE T_PRODUCT = {row[headers.index('T_PRODUCT')]}"
+                cursor.execute(SQL_PRODUCT_QUERY)
+                product_result = cursor.fetchone()
+
+                if product_result:
+                    product_description = product_result[0]  # Obtiene el valor de la primera columna (SHORT_DESCRIPTION)
+                    print(f"Espacio en disco requerido: {product_description}")
+                else:
+                    print("Registro no encontrado en la tabla MYSQL_PRODUCT_TABLE")
+
+
+                print("******************************************")
+
             print("------------------------------------------------------------------------------------------------")
-        
+
         cursor.close()
         connection.close()
     except Exception as e:
