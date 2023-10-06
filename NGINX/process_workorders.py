@@ -20,6 +20,10 @@ MYSQL_WORKORDER_TABLE = "t_workorder"
 MYSQL_WORKORDERFLAG_TABLE = "t_workorder_flag"
 MYSQL_PRODUCT_TABLE = "t_Product"
 
+def bytes_to_gigabytes(bytes_value):
+    gigabytes = bytes_value / 1073741824.0
+    return gigabytes
+
 def read_workorder_table():
     try:
         # Configuración de la conexión a MySQL
@@ -52,7 +56,7 @@ def read_workorder_table():
             if workorder_flag == 1:
                 print("******************************************")
                 # Consultar la tabla MYSQL_PRODUCT_TABLE
-                SQL_PRODUCT_QUERY = f"SELECT STORAGE_SIZE FROM {MYSQL_PRODUCT_TABLE} WHERE T_PRODUCT = {row[headers.index('T_PRODUCT')]}"
+                SQL_PRODUCT_QUERY = f"SELECT REQUIRED_SIZE FROM {MYSQL_PRODUCT_TABLE} WHERE T_PRODUCT = {row[headers.index('T_PRODUCT')]}"
                 cursor.execute(SQL_PRODUCT_QUERY)
                 product_result = cursor.fetchone()
 
@@ -178,6 +182,14 @@ def get_disk_info(device_name):
                 size = entry["size"]
                 mountpoint = entry["mountpoint"]
 
+                # Calcular espacio no particionado (mueve este bloque dentro del bucle)
+                partitioned_space = 0
+                for entry in lsblk_info["blockdevices"][0]["children"]:
+                    size = entry["size"]
+                    partitioned_space += size
+
+                available_space = size - partitioned_space if size >= partitioned_space else 0
+
                 # Comprobar si es una partición
                 if mountpoint is not None:
                     print(f"SHORT_DESCRIPTION (name): {name}")
@@ -196,7 +208,7 @@ def get_disk_info(device_name):
 
                         # Llamar a la función para escribir particiones en la tabla t_partition
                         print("Llamando a la función para escribir particiones en la tabla t_partition...")
-                        #write_partitions_to_mysql(temp_file, name, device_name, mountpoint)
+                        write_partitions_to_mysql(temp_file, name, device_name, mountpoint, size)
 
             # Calcular espacio no particionado
             if size >= partitioned_space:
@@ -208,8 +220,12 @@ def get_disk_info(device_name):
             print(f"-> Espacio particionado: {partitioned_space} bytes")
             print(f"-> Espacio no particionado: {available_space} bytes")
 
-            # Actualizar la columna "comitted_size" en la tabla t_storage
-            update_storage_comitted_size(device_name, partitioned_space)
+            # Calcular committed_size_bytes como espacio particionado
+            committed_size_bytes = partitioned_space
+
+            # Actualizar la columna "committed_size" en la tabla t_storage
+            print("Actualizando la columna 'committed_size' en la tabla t_storage...")
+            update_storage_committed_size(device_name, committed_size_bytes)  # Aquí se pasa el espacio particionado
             
         else:
             print(f"La unidad '{device_name}' no existe")
@@ -217,10 +233,12 @@ def get_disk_info(device_name):
         print(f"La unidad '{device_name}' no se encuentra particionada.")
         print(str(e))
 
+
+
 def update_storage_committed_size(device_name, committed_size_bytes):
     try:
         # Convertir el tamaño comprometido a gigabytes
-        committed_size_gb = committed_size_bytes / 1073741824  # 1,073,741,824 bytes en 1 gigabyte
+        committed_size_gb = bytes_to_gigabytes(committed_size_bytes)
 
         # Construir la consulta SQL para actualizar la columna "committed_size"
         update_query = f"UPDATE {MYSQL_STORAGE_TABLE} SET committed_size = %s WHERE DEVICE_NAME = %s"
@@ -243,8 +261,7 @@ def update_storage_committed_size(device_name, committed_size_bytes):
         print(f"Error al actualizar la columna 'committed_size' para la unidad '{device_name}'.")
         print(str(e))
 
-
-def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
+def write_partitions_to_mysql(temp_file, name, device_name, mountpoint, size):
     try:
         print(f"--SHORT_DESCRIPTION: {name}")
         print(f"--DEVICE_NAME: {device_name}")
@@ -271,13 +288,13 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint):
         print("-> Actualizando registros...")
 
         # En la función write_partitions_to_mysql, obtén los valores actualizados
-        updated_values = update_records(output_file_path, name, device_name, mountpoint)
+        updated_values = update_records(output_file_path, name, device_name, mountpoint, size)
 
         # Verifica si se obtuvieron valores actualizados
         if updated_values:
 
             # Construir la consulta SQL con los valores reales
-            partitions_load_query = f"INSERT INTO {MYSQL_PARTITIONS_TABLE} ({', '.join(updated_values.keys())}) VALUES ({updated_values['T_PARTITION']}, '{updated_values['SHORT_DESCRIPTION']}', '{updated_values['DEVICE_NAME']}', '{updated_values['ATTACHMENT_POINT']}', {updated_values['ENTRY_STATUS']}, '{updated_values['CREATE_DATE']}', '{updated_values['CREATE_BY']}', '{updated_values['UPDATE_DATE']}', '{updated_values['UPDATE_BY']}');"
+            partitions_load_query = f"INSERT INTO {MYSQL_PARTITIONS_TABLE} ({', '.join(updated_values.keys())}) VALUES ({updated_values['T_PARTITION']}, '{updated_values['SHORT_DESCRIPTION']}', '{updated_values['DEVICE_NAME']}', '{updated_values['ATTACHMENT_POINT']}', '{updated_values['ARTITION_SIZE']}', {updated_values['ENTRY_STATUS']}, '{updated_values['CREATE_DATE']}', '{updated_values['CREATE_BY']}', '{updated_values['UPDATE_DATE']}', '{updated_values['UPDATE_BY']}');"
 
 
             # Mostrar la consulta SQL antes de ejecutarla
@@ -328,7 +345,7 @@ def get_partition_headers():
         return []
 
 
-def update_records(output_file_path, name, device_name, mountpoint):
+def update_records(output_file_path, name, device_name, mountpoint, size):
     try:
         print("Actualizando registros.....")
 
@@ -365,6 +382,11 @@ def update_records(output_file_path, name, device_name, mountpoint):
         if "ATTACHMENT_POINT" in partition_headers:
             index = partition_headers.index("ATTACHMENT_POINT")
             updated_values["ATTACHMENT_POINT"] = mountpoint
+
+        # Escribir en el campo "PARTITION_SIZE" el valor "attachment_point" si existe en la lista
+        if "PARTITION_SIZE" in partition_headers:
+            index = partition_headers.index("PARTITION_SIZE")
+            updated_values["PARTITION_SIZE"] = size
 
          # Escribir en el campo "ENTRY_STATUS" el valor "0" si existe en la lista
         if "ENTRY_STATUS" in partition_headers:
