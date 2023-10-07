@@ -51,8 +51,8 @@ def read_workorder_table():
 
         for row in results:
             workorder_flag = row[headers.index("WORKORDER_FLAG")]
-            print(f"Registro en la tabla {MYSQL_PRODUCT_TABLE}:")
-            print(row)
+            t_workorder = row[headers.index("T_WORKORDER")]  # Obtener el valor de la clave primaria t_workorder
+            print(f"Procesando t_workorder: {t_workorder}")  # Indicar el valor de t_workorder
 
             if workorder_flag == 1:
                 print("******************************************")
@@ -62,12 +62,15 @@ def read_workorder_table():
                 product_result = cursor.fetchone()
 
                 if product_result:
-                    product_description = product_result[0]  # Obtiene el valor de la primera columna (SHORT_DESCRIPTION)
+                    product_description = product_result[0]  # Obtiene el valor de la primera columna (REQUIRED_SIZE)
                     print(f"Espacio en disco requerido: {product_description}")
                     read_storage_table(product_description)
+
+                    # Llamar a la función para actualizar el campo "workorder_flag" solo para esta t_workorder
+                    print(f"Procesos de la orden {t_workorder} completados.")
+                    update_workorder_flag(t_workorder)
                 else:
                     print("Registro no encontrado en la tabla MYSQL_PRODUCT_TABLE")
-
 
                 print("******************************************")
 
@@ -221,9 +224,19 @@ def get_disk_info(device_name, product_description):
         print(str(e))
 
 # Función para crear una partición en la unidad iterada
-def create_partition(device_name, filesystem_type, partition_type):
+def create_partition(device_name, filesystem_type, partition_type, t_workorder):
     try:
         print(f"Procediendo a particionar a la unidad: '{device_name}'.")
+
+        # Verificar si la unidad ya tiene una etiqueta de disco GPT o MBR
+        label_check_command = f"parted /dev/{device_name} print | grep -q 'Partition Table: gpt' || parted /dev/{device_name} print | grep -q 'Partition Table: msdos'"
+        subprocess.run(label_check_command, shell=True, check=True)
+
+        # Si la unidad no tiene una etiqueta de disco GPT o MBR, crea una nueva etiqueta GPT
+        if label_check_command.returncode != 0:
+            label_command = f"parted /dev/{device_name} mklabel gpt"
+            subprocess.run(label_command, shell=True, check=True)
+
         # Comando parted para crear una partición primaria ext4
         command = f"parted /dev/{device_name} mkpart {partition_type} {filesystem_type} 0% 100%"
 
@@ -231,9 +244,14 @@ def create_partition(device_name, filesystem_type, partition_type):
         subprocess.run(command, shell=True, check=True)
 
         print(f"Partición creada en la unidad '{device_name}' como {partition_type} {filesystem_type}.")
+
+        # Si la partición se crea con éxito, actualizar el campo 'workorder_flag' en la tabla correspondiente
+        #update_workorder_flag(device_name, t_workorder)
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error al crear la partición en la unidad '{device_name}': {e}")
     except Exception as e:
-        print(f"Error al crear la partición en la unidad '{device_name}'.")
-        print(str(e))
+        print(f"Error inesperado al crear la partición en la unidad '{device_name}': {str(e)}")
 
 
 def update_storage_committed_size(device_name, committed_size_bytes):
@@ -444,6 +462,31 @@ def get_max_partition_value():
         print(f"No se pudo obtener el último registro de la tabla '{MYSQL_PARTITIONS_TABLE}'.")
         print(str(e))
         return 0
+
+# Llamar a esta función después de haber creado la partición con éxito
+def update_workorder_flag(t_workorder):
+    try:
+        # Configuración de la conexión a MySQL
+        connection = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        cursor = connection.cursor()
+
+        # Actualizar el campo "workorder_flag" a "2" en la tabla MYSQL_WORKORDERFLAG_TABLE
+        SQL_UPDATE_WORKORDER_FLAG = f"UPDATE {MYSQL_WORKORDERFLAG_TABLE} SET workorder_flag = 2 WHERE T_WORKORDER = {t_workorder}"
+        cursor.execute(SQL_UPDATE_WORKORDER_FLAG)
+        
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+        print(f"Campo 'workorder_flag' actualizado a '2' para t_workorder: {t_workorder}")
+    except Exception as e:
+        print(f"Error al actualizar el campo 'workorder_flag' en la tabla MYSQL_WORKORDERFLAG_TABLE para t_workorder: {t_workorder}.")
+        print(str(e))
 
 def process_workorders():
     read_workorder_table()
