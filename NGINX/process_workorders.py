@@ -173,9 +173,7 @@ def get_disk_info(device_name, product_description):
             partition_count = 0
             partitioned_space = 0
             available_space = 0
-
-            # Crear un archivo temporal para almacenar las particiones
-            temp_file = tempfile.mktemp()
+            is_unpartitioned = True
 
             # Iterar a través de las particiones y dispositivos
             for entry in lsblk_info["blockdevices"][0]["children"]:
@@ -184,11 +182,7 @@ def get_disk_info(device_name, product_description):
                 mountpoint = entry["mountpoint"]
 
                 # Calcular espacio no particionado
-                partitioned_space = 0
-                for entry in lsblk_info["blockdevices"][0]["children"]:
-                    size = entry["size"]
-                    partitioned_space += size
-
+                partitioned_space += size
                 available_space = size - partitioned_space if size >= partitioned_space else 0
 
                 # Comprobar si es una partición
@@ -199,23 +193,7 @@ def get_disk_info(device_name, product_description):
                     print(f"ATTACHMENT_POINT (mountpoint): {mountpoint}")
                     print("-------------------------------------")
                     partition_count += 1
-                    partitioned_space += size
-
-                    # Comprobar si la partición ya existe en la tabla SQL
-                    if not is_partition_exists_in_sql(name):
-                        # Si no existe, escribir en la tabla t_partition las particiones encontradas
-                        with open(temp_file, "a") as f:
-                            f.write(f"{name},{device_name},{mountpoint}\n")
-
-                        # Llamar a la función para escribir particiones en la tabla t_partition
-                        print("Llamando a la función para escribir particiones en la tabla t_partition...")
-                        write_partitions_to_mysql(temp_file, name, device_name, mountpoint, size)
-
-            # Calcular espacio no particionado
-            if size >= partitioned_space:
-                available_space = size - partitioned_space
-            else:
-                available_space = 0
+                    is_unpartitioned = False
 
             print(f"-> Cantidad de particiones: {partition_count}")
             print(f"-> Espacio particionado: {partitioned_space} bytes")
@@ -228,22 +206,24 @@ def get_disk_info(device_name, product_description):
             print("Actualizando la columna 'committed_size' en la tabla t_storage...")
             update_storage_committed_size(device_name, committed_size_bytes)  # Aquí se pasa el espacio particionado
 
-            # Verificar si el espacio no particionado es mayor, menor o igual al espacio requerido
-            if available_space > product_description:
-                print(f"El espacio libre en la unidad '{device_name}' es mayor que el espacio requerido.")
+            # Verificar si el espacio no particionado es mayor o igual al espacio requerido
+            if available_space >= product_description:
+                print(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
                 create_partition(device_name, "ext4", "primary")
-            else:
+            elif available_space < product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es menor que el espacio requerido.")
             
         else:
             print(f"La unidad '{device_name}' no existe")
     except Exception as e:
         print(f"La unidad '{device_name}' no se encuentra particionada.")
+        create_partition(device_name, "ext4", "primary")
         print(str(e))
 
 # Función para crear una partición en la unidad iterada
 def create_partition(device_name, filesystem_type, partition_type):
     try:
+        print(f"Procediendo a particionar a la unidad: '{device_name}'.")
         # Comando parted para crear una partición primaria ext4
         command = f"parted /dev/{device_name} mkpart {partition_type} {filesystem_type} 0% 100%"
 
