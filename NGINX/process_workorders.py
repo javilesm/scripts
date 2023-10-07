@@ -21,7 +21,8 @@ MYSQL_WORKORDERFLAG_TABLE = "t_workorder_flag"
 MYSQL_PRODUCT_TABLE = "t_Product"
 
 def bytes_to_gigabytes(bytes_value):
-    gigabytes = bytes_value / 1073741824.0
+    #gigabytes = bytes_value / 1073741824.0
+    gigabytes = bytes_value
     return gigabytes
 
 def read_workorder_table():
@@ -63,7 +64,7 @@ def read_workorder_table():
                 if product_result:
                     product_description = product_result[0]  # Obtiene el valor de la primera columna (SHORT_DESCRIPTION)
                     print(f"Espacio en disco requerido: {product_description}")
-                    read_storage_table()
+                    read_storage_table(product_description)
                 else:
                     print("Registro no encontrado en la tabla MYSQL_PRODUCT_TABLE")
 
@@ -78,7 +79,7 @@ def read_workorder_table():
         print("Error al ejecutar la consulta SQL en MySQL.")
         print(str(e))
 
-def read_storage_table():
+def read_storage_table(product_description):
     try:
         # Ejecutar la consulta SQL
         SQL_QUERY = f"SELECT * FROM {MYSQL_STORAGE_TABLE}"
@@ -99,7 +100,7 @@ def read_storage_table():
             third_value = row[2]
             print(row)
             print("******************************************")
-            get_disk_info(third_value)
+            get_disk_info(third_value, product_description)
             print("******************************************")
             print("------------------------------------------------------------------------------------------------")
         
@@ -151,7 +152,7 @@ def is_partition_exists_in_sql(name):
         return False
 
 
-def get_disk_info(device_name):
+def get_disk_info(device_name, product_description):
     try:
         device_path = f"/dev/{device_name}"
 
@@ -182,7 +183,7 @@ def get_disk_info(device_name):
                 size = entry["size"]
                 mountpoint = entry["mountpoint"]
 
-                # Calcular espacio no particionado (mueve este bloque dentro del bucle)
+                # Calcular espacio no particionado
                 partitioned_space = 0
                 for entry in lsblk_info["blockdevices"][0]["children"]:
                     size = entry["size"]
@@ -226,6 +227,29 @@ def get_disk_info(device_name):
             # Actualizar la columna "committed_size" en la tabla t_storage
             print("Actualizando la columna 'committed_size' en la tabla t_storage...")
             update_storage_committed_size(device_name, committed_size_bytes)  # Aquí se pasa el espacio particionado
+
+            # Verificar si el espacio no particionado es mayor, menor o igual al espacio requerido
+            if available_space > product_description:
+                print("El espacio no particionado es mayor que el espacio requerido.")
+                create_partition(device_name, "ext4", "primary")
+            elif available_space < product_description:
+                print("El espacio no particionado es menor que el espacio requerido.")
+                
+                # Continuar iterando en las unidades de disco hasta encontrar alguna con available_space > product_description
+                found = False
+                for entry in lsblk_info["blockdevices"][0]["children"]:
+                    size = entry["size"]
+                    partitioned_space += size
+                    available_space = size - partitioned_space if size >= partitioned_space else 0
+                    if available_space > product_description:
+                        print(f"Se encontró una unidad con espacio suficiente: {entry['name']}")
+                        found = True
+                        break
+                
+                if not found:
+                    print("No se encontró una unidad con espacio suficiente.")
+            else:
+                print("El espacio no particionado es igual al espacio requerido.")
             
         else:
             print(f"La unidad '{device_name}' no existe")
@@ -233,6 +257,19 @@ def get_disk_info(device_name):
         print(f"La unidad '{device_name}' no se encuentra particionada.")
         print(str(e))
 
+# Función para crear una partición en la unidad iterada
+def create_partition(device_name, filesystem_type, partition_type):
+    try:
+        # Comando parted para crear una partición primaria ext4
+        command = f"parted /dev/{device_name} mkpart {partition_type} {filesystem_type} 0% 100%"
+
+        # Ejecutar el comando
+        subprocess.run(command, shell=True, check=True)
+
+        print(f"Partición creada en la unidad '{device_name}' como {partition_type} {filesystem_type}.")
+    except Exception as e:
+        print(f"Error al crear la partición en la unidad '{device_name}'.")
+        print(str(e))
 
 
 def update_storage_committed_size(device_name, committed_size_bytes):
@@ -288,7 +325,7 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint, size):
         print("-> Actualizando registros...")
 
         # En la función write_partitions_to_mysql, obtén los valores actualizados
-        updated_values = update_records(output_file_path, name, device_name, mountpoint, size)
+        updated_values = update_t_partition_records(output_file_path, name, device_name, mountpoint, size)
 
         # Verifica si se obtuvieron valores actualizados
         if updated_values:
@@ -345,7 +382,7 @@ def get_partition_headers():
         return []
 
 
-def update_records(output_file_path, name, device_name, mountpoint, size):
+def update_t_partition_records(output_file_path, name, device_name, mountpoint, size):
     try:
         print("Actualizando registros.....")
 
