@@ -230,26 +230,10 @@ def get_disk_info(device_name, product_description):
 
             # Verificar si el espacio no particionado es mayor, menor o igual al espacio requerido
             if available_space > product_description:
-                print("El espacio no particionado es mayor que el espacio requerido.")
+                print(f"El espacio libre en la unidad '{device_name}' es mayor que el espacio requerido.")
                 create_partition(device_name, "ext4", "primary")
-            elif available_space < product_description:
-                print("El espacio no particionado es menor que el espacio requerido.")
-                
-                # Continuar iterando en las unidades de disco hasta encontrar alguna con available_space > product_description
-                found = False
-                for entry in lsblk_info["blockdevices"][0]["children"]:
-                    size = entry["size"]
-                    partitioned_space += size
-                    available_space = size - partitioned_space if size >= partitioned_space else 0
-                    if available_space > product_description:
-                        print(f"Se encontró una unidad con espacio suficiente: {entry['name']}")
-                        found = True
-                        break
-                
-                if not found:
-                    print("No se encontró una unidad con espacio suficiente.")
             else:
-                print("El espacio no particionado es igual al espacio requerido.")
+                print(f"El espacio libre en la unidad '{device_name}' es menor que el espacio requerido.")
             
         else:
             print(f"La unidad '{device_name}' no existe")
