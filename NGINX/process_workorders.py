@@ -224,16 +224,16 @@ def get_disk_info(device_name, product_description):
         print(str(e))
 
 # Función para crear una partición en la unidad iterada
-def create_partition(device_name, filesystem_type, partition_type, t_workorder):
+def create_partition(device_name, filesystem_type, partition_type):
     try:
         print(f"Procediendo a particionar a la unidad: '{device_name}'.")
 
         # Verificar si la unidad ya tiene una etiqueta de disco GPT o MBR
         label_check_command = f"parted /dev/{device_name} print | grep -q 'Partition Table: gpt' || parted /dev/{device_name} print | grep -q 'Partition Table: msdos'"
-        subprocess.run(label_check_command, shell=True, check=True)
+        label_check_result = subprocess.run(label_check_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # Si la unidad no tiene una etiqueta de disco GPT o MBR, crea una nueva etiqueta GPT
-        if label_check_command.returncode != 0:
+        if label_check_result.returncode != 0:
             label_command = f"parted /dev/{device_name} mklabel gpt"
             subprocess.run(label_command, shell=True, check=True)
 
@@ -244,9 +244,6 @@ def create_partition(device_name, filesystem_type, partition_type, t_workorder):
         subprocess.run(command, shell=True, check=True)
 
         print(f"Partición creada en la unidad '{device_name}' como {partition_type} {filesystem_type}.")
-
-        # Si la partición se crea con éxito, actualizar el campo 'workorder_flag' en la tabla correspondiente
-        #update_workorder_flag(device_name, t_workorder)
 
     except subprocess.CalledProcessError as e:
         print(f"Error al crear la partición en la unidad '{device_name}': {e}")
