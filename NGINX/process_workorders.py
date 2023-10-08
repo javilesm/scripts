@@ -66,9 +66,6 @@ def read_workorder_table():
                     print(f"Espacio en disco requerido: {product_description}")
                     read_storage_table(product_description)
 
-                    # Llamar a la función para actualizar el campo "workorder_flag" solo para esta t_workorder
-                    print(f"Procesos de la orden {t_workorder} completados.")
-                    update_workorder_flag(t_workorder)
                 else:
                     print("Registro no encontrado en la tabla MYSQL_PRODUCT_TABLE")
 
@@ -154,7 +151,6 @@ def is_partition_exists_in_sql(name):
             return is_partition_exists_in_sql(name)  # Intentar reconectar
         return False
 
-
 def get_disk_info(device_name, product_description):
     try:
         device_path = f"/dev/{device_name}"
@@ -207,12 +203,12 @@ def get_disk_info(device_name, product_description):
 
             # Actualizar la columna "committed_size" en la tabla t_storage
             print("Actualizando la columna 'committed_size' en la tabla t_storage...")
-            update_storage_committed_size(device_name, committed_size_bytes)  # Aquí se pasa el espacio particionado
+            update_storage_committed_size(device_name, committed_size_bytes)  # Aquí se pasa solo el espacio particionado
 
             # Verificar si el espacio no particionado es mayor o igual al espacio requerido
             if available_space >= product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
-                create_partition(device_name, "ext4", "primary")
+                create_partition(device_name, "ext4", "primary", product_description)  # Aquí se pasa el tamaño requerido
             elif available_space < product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es menor que el espacio requerido.")
             
@@ -220,35 +216,47 @@ def get_disk_info(device_name, product_description):
             print(f"La unidad '{device_name}' no existe")
     except Exception as e:
         print(f"La unidad '{device_name}' no se encuentra particionada.")
-        create_partition(device_name, "ext4", "primary")
-        print(str(e))
+        try:
+            create_partition(device_name, "ext4", "primary", product_description)  # Aquí se pasa el tamaño requerido
+        except Exception as e:
+            print(f"Error inesperado al crear la partición en la unidad '{device_name}': {str(e)}")
 
 # Función para crear una partición en la unidad iterada
-def create_partition(device_name, filesystem_type, partition_type):
+def create_partition(device_name, filesystem_type, partition_type, size):
     try:
-        print(f"Procediendo a particionar a la unidad: '{device_name}'.")
-
+        print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {size} bytes.")
+        
         # Verificar si la unidad ya tiene una etiqueta de disco GPT o MBR
-        label_check_command = f"parted /dev/{device_name} print | grep -q 'Partition Table: gpt' || parted /dev/{device_name} print | grep -q 'Partition Table: msdos'"
-        label_check_result = subprocess.run(label_check_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        label_check_command = f"sudo parted /dev/{device_name} print | grep -q 'Partition Table: gpt' || parted /dev/{device_name} print | grep -q 'Partition Table: msdos'"
+        label_check_result = subprocess.run(label_check_command, shell=True, stderr=subprocess.PIPE)
 
         # Si la unidad no tiene una etiqueta de disco GPT o MBR, crea una nueva etiqueta GPT
         if label_check_result.returncode != 0:
-            label_command = f"parted /dev/{device_name} mklabel gpt"
+            print(f"La unidad '{device_name}' no tiene una etiqueta de disco válida. Creando una nueva etiqueta GPT...")
+            label_command = f"sudo parted /dev/{device_name} mklabel gpt"
             subprocess.run(label_command, shell=True, check=True)
 
-        # Comando parted para crear una partición primaria ext4
-        command = f"parted /dev/{device_name} mkpart {partition_type} {filesystem_type} 0% 100%"
+        # Comando parted para crear una partición primaria ext4 con el tamaño requerido
+        partition_command = f"sudo parted /dev/{device_name} mkpart primary ext4 0% {size}"
 
-        # Ejecutar el comando
-        subprocess.run(command, shell=True, check=True)
+        # Ejecutar el comando de partición
+        partition_result = subprocess.run(partition_command, shell=True, stderr=subprocess.PIPE)
 
-        print(f"Partición creada en la unidad '{device_name}' como {partition_type} {filesystem_type}.")
+        # Verificar si se creó la partición exitosamente
+        if partition_result.returncode == 0:
+            print(f"Partición creada en la unidad '/dev/{device_name}' como {partition_type} {filesystem_type}.")
+            # Si la partición se crea con éxito, actualizar el campo 'workorder_flag' en la tabla correspondiente
+            # Llamar a la función para actualizar el campo "workorder_flag" solo para esta t_workorder
+            print(f"Procesos de la orden {t_workorder} completados.")
+            update_workorder_table(t_workorder)
+        else:
+            print(f"Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
 
     except subprocess.CalledProcessError as e:
-        print(f"Error al crear la partición en la unidad '{device_name}': {e}")
+        print(f"Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
-        print(f"Error inesperado al crear la partición en la unidad '{device_name}': {str(e)}")
+        print(f"Error inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
+
 
 
 def update_storage_committed_size(device_name, committed_size_bytes):
@@ -273,9 +281,9 @@ def update_storage_committed_size(device_name, committed_size_bytes):
         connection.close()
 
         print(f"-> Columna 'committed_size' actualizada para la unidad '{device_name}' con éxito.")
+        pass
     except Exception as e:
-        print(f"Error al actualizar la columna 'committed_size' para la unidad '{device_name}'.")
-        print(str(e))
+        print(f"Error al actualizar la columna 'committed_size' para la unidad '{device_name}': {str(e)}")
 
 def write_partitions_to_mysql(temp_file, name, device_name, mountpoint, size):
     try:
@@ -461,7 +469,7 @@ def get_max_partition_value():
         return 0
 
 # Llamar a esta función después de haber creado la partición con éxito
-def update_workorder_flag(t_workorder):
+def update_workorder_table(t_workorder):
     try:
         # Configuración de la conexión a MySQL
         connection = mysql.connector.connect(
@@ -472,8 +480,8 @@ def update_workorder_flag(t_workorder):
         )
         cursor = connection.cursor()
 
-        # Actualizar el campo "workorder_flag" a "2" en la tabla MYSQL_WORKORDERFLAG_TABLE
-        SQL_UPDATE_WORKORDER_FLAG = f"UPDATE {MYSQL_WORKORDERFLAG_TABLE} SET workorder_flag = 2 WHERE T_WORKORDER = {t_workorder}"
+        # Actualizar el campo "workorder_flag" a "2" en la tabla MYSQL_WORKORDER_TABLE
+        SQL_UPDATE_WORKORDER_FLAG = f"UPDATE {MYSQL_WORKORDER_TABLE} SET workorder_flag = 2 WHERE T_WORKORDER = {t_workorder}"
         cursor.execute(SQL_UPDATE_WORKORDER_FLAG)
         
         connection.commit()
@@ -482,7 +490,7 @@ def update_workorder_flag(t_workorder):
 
         print(f"Campo 'workorder_flag' actualizado a '2' para t_workorder: {t_workorder}")
     except Exception as e:
-        print(f"Error al actualizar el campo 'workorder_flag' en la tabla MYSQL_WORKORDERFLAG_TABLE para t_workorder: {t_workorder}.")
+        print(f"Error al actualizar el campo 'workorder_flag' en la tabla MYSQL_WORKORDER_TABLE para t_workorder: {t_workorder}.")
         print(str(e))
 
 def process_workorders():
