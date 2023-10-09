@@ -208,7 +208,7 @@ def get_disk_info(device_name, product_description):
             # Verificar si el espacio no particionado es mayor o igual al espacio requerido
             if available_space >= product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
-                create_partition(device_name, "ext4", "primary", product_description)  # Aquí se pasa el tamaño requerido
+                create_partition(device_name, "primary", "ext4", product_description)  # Aquí se pasa el tamaño requerido
             elif available_space < product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es menor que el espacio requerido.")
             
@@ -217,27 +217,42 @@ def get_disk_info(device_name, product_description):
     except Exception as e:
         print(f"La unidad '{device_name}' no se encuentra particionada.")
         try:
-            create_partition(device_name, "ext4", "primary", product_description)  # Aquí se pasa el tamaño requerido
+            create_partition(device_name, "primary", "ext4", product_description)  # Aquí se pasa el tamaño requerido
         except Exception as e:
             print(f"Error inesperado al crear la partición en la unidad '{device_name}': {str(e)}")
 
-# Función para crear una partición en la unidad iterada
-def create_partition(device_name, filesystem_type, partition_type, size):
+def create_partition(device_name, partition_type, filesystem_type, size_in_mb):
     try:
-        print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {size} bytes.")
+        print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {size_in_mb} bytes.")
         
         # Verificar si la unidad ya tiene una etiqueta de disco GPT o MBR
-        label_check_command = f"sudo parted /dev/{device_name} print | grep -q 'Partition Table: gpt' || parted /dev/{device_name} print | grep -q 'Partition Table: msdos'"
+        label_check_command = f"sudo parted /dev/{device_name} print | grep -q 'Partition Table: gpt' || sudo parted /dev/{device_name} print | grep -q 'Partition Table: msdos'"
         label_check_result = subprocess.run(label_check_command, shell=True, stderr=subprocess.PIPE)
 
         # Si la unidad no tiene una etiqueta de disco GPT o MBR, crea una nueva etiqueta GPT
         if label_check_result.returncode != 0:
             print(f"La unidad '{device_name}' no tiene una etiqueta de disco válida. Creando una nueva etiqueta GPT...")
-            label_command = f"sudo parted /dev/{device_name} mklabel gpt"
+            label_command = f"yes | sudo parted /dev/{device_name} mklabel gpt"  # Agregamos 'yes' para confirmar automáticamente
             subprocess.run(label_command, shell=True, check=True)
 
-        # Comando parted para crear una partición primaria ext4 con el tamaño requerido
-        partition_command = f"sudo parted /dev/{device_name} mkpart primary ext4 0% {size}"
+        # Obtener información sobre las particiones existentes en el dispositivo
+        lsblk_info = subprocess.check_output(["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", f"/dev/{device_name}"], text=True)
+        lsblk_info = json.loads(lsblk_info)
+        partitions = lsblk_info.get("blockdevices", [])[0].get("children", [])
+
+        # Calcular el punto de inicio de la nueva partición
+        if partitions:
+            last_partition = partitions[-1]
+            last_partition_size = int(last_partition["size"])  # Tamaño de la última partición en bytes
+            last_partition_start = int(last_partition["start"])  # Punto de inicio de la última partición en bytes
+            new_partition_start = last_partition_start + last_partition_size
+        else:
+            # Si no hay particiones existentes, iniciar desde el principio de la unidad
+            new_partition_start = 0
+
+        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
+        partition_command = f"yes | sudo parted /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start}B {new_partition_start + (size_in_mb)}B"  # Agregamos 'yes' para confirmar automáticamente
+        print(f"Ejecutando el comando: {partition_command}")
 
         # Ejecutar el comando de partición
         partition_result = subprocess.run(partition_command, shell=True, stderr=subprocess.PIPE)
@@ -256,8 +271,6 @@ def create_partition(device_name, filesystem_type, partition_type, size):
         print(f"Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         print(f"Error inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
-
-
 
 def update_storage_committed_size(device_name, committed_size_bytes):
     try:
