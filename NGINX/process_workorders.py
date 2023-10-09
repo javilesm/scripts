@@ -221,18 +221,30 @@ def get_disk_info(device_name, product_description, t_workorder):
         except Exception as e:
             print(f"Error inesperadoo al crear la partición en la unidad '{device_name}': {str(e)}")
 
+def calculate_new_partition_start(device_name):
+    try:
+        # Obtener información sobre las particiones existentes en el dispositivo
+        print("Obteniendo información sobre las particiones existentes en el dispositivo...")
+        lsblk_info = subprocess.check_output(["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", f"/dev/{device_name}"], text=True)
+        lsblk_info = json.loads(lsblk_info)
+        device_partitions = lsblk_info.get("blockdevices", [])[0].get("children", [])
 
-def calculate_new_partition_start(device_partitions):
-    if device_partitions:
-        print("Calculando el punto de inicio de la nueva partición...")
-        last_partition_info = device_partitions[-1]
-        last_partition_size_bytes = int(last_partition_info["size"])
-        last_partition_start_bytes = int(last_partition_info["start"])
-        new_partition_start_bytes = last_partition_start_bytes + last_partition_size_bytes
-        return new_partition_start_bytes
-        print(f"Punto de inicio de la nueva particion: {new_partition_start_bytes}")
-    else:
-        return 2048
+        if device_partitions:
+            print("Calculando el punto de inicio de la nueva partición...")
+            last_partition_info = device_partitions[-1]
+            last_partition_size_bytes = int(last_partition_info.get("size", 0))
+            last_partition_start_bytes = int(last_partition_info.get("start", 0))
+            new_partition_start_bytes = last_partition_start_bytes + last_partition_size_bytes + 1
+
+            return last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes
+        else:
+            print("No se encontraron particiones existentes en el dispositivo.")
+            return None, None, None
+
+    except Exception as e:
+        print(f"Error al calcular el punto de inicio de la nueva partición: {str(e)}")
+        return None, None, None
+
 
 def create_partition(device_name, partition_type, filesystem_type, partition_size, t_workorder):
     try:
@@ -251,18 +263,15 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
             label_command = f"yes | sudo parted /dev/{device_name} mklabel gpt"  # Agregamos 'yes' para confirmar automáticamente
             subprocess.run(label_command, shell=True, check=True)
 
-        # Obtener información sobre las particiones existentes en el dispositivo
-        print("Obteniendo información sobre las particiones existentes en el dispositivo...")
-        lsblk_info = subprocess.check_output(["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", f"/dev/{device_name}"], text=True)
-        lsblk_info = json.loads(lsblk_info)
-        partitions = lsblk_info.get("blockdevices", [])[0].get("children", [])
-
         # Calcular el punto de inicio de la nueva partición
-        new_partition_start_bytes = calculate_new_partition_start(partitions)
+        last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = calculate_new_partition_start(device_name)
         
-
+        print(f"Tamaño de la última partición: {last_partition_size_bytes} bytes.")
+        print(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
+        print(f"Punto de inicio de la nueva partición: {new_partition_start_bytes} bytes.")
+        
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
-        partition_command = f"sudo parted /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + (partition_size)}B"  # Agregamos 'yes' para confirmar automáticamente
+        partition_command = f"yes | sudo parted /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"  # Agregamos 'yes' para confirmar automáticamente
         print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         print(f"Ejecutando el comando: {partition_command}")
 
