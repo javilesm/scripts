@@ -271,7 +271,7 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
         print(f"Punto de inicio de la nueva partición: {new_partition_start_bytes} bytes.")
         
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
-        partition_command = f"yes | sudo parted /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"  # Agregamos 'yes' para confirmar automáticamente
+        partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"  # Agregamos 'yes' para confirmar automáticamente
         print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         print(f"Ejecutando el comando: {partition_command}")
 
