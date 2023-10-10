@@ -224,19 +224,22 @@ def get_disk_info(device_name, product_description, t_workorder):
 def calculate_new_partition_start(device_name):
     try:
         # Obtener información sobre las particiones existentes en el dispositivo
-        print("Obteniendo información sobre las particiones existentes en el dispositivo...")
+        print(f"Obteniendo información sobre las particiones existentes en el dispositivo {device_name}...")
         lsblk_info = subprocess.check_output(["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", f"/dev/{device_name}"], text=True)
         lsblk_info = json.loads(lsblk_info)
         device_partitions = lsblk_info.get("blockdevices", [])[0].get("children", [])
 
         if device_partitions:
             print("Calculando el punto de inicio de la nueva partición...")
-            last_partition_info = device_partitions[-1]
-            last_partition_size_bytes = int(last_partition_info.get("size", 0))
-            last_partition_start_bytes = int(last_partition_info.get("start", 0))
-            new_partition_start_bytes = last_partition_start_bytes + last_partition_size_bytes + 1
+            total_partition_size_bytes = 0
 
-            return last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes
+            for partition_info in device_partitions:
+                partition_size_bytes = int(partition_info.get("size", 0))
+                total_partition_size_bytes += partition_size_bytes
+
+            new_partition_start_bytes = total_partition_size_bytes + 1
+
+            return total_partition_size_bytes, None, new_partition_start_bytes
         else:
             print("No se encontraron particiones existentes en el dispositivo.")
             return None, None, None
@@ -284,7 +287,15 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
             # Si la partición se crea con éxito, actualizar el campo 'workorder_flag' en la tabla correspondiente
             # Llamar a la función para actualizar el campo "workorder_flag" solo para esta t_workorder
             print(f"Procesos de la orden {t_workorder} completados.")
-            update_workorder_table(t_workorder)
+
+            created_partition_info = {
+                "device_name": device_name,
+                "partition_type": partition_type,
+                "filesystem_type": filesystem_type,
+                "partition_size": partition_size
+            }
+
+            update_workorder_table(t_workorder, created_partition_info)
         else:
             print(f"Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
 
@@ -505,6 +516,7 @@ def get_max_partition_value():
 # Llamar a esta función después de haber creado la partición con éxito
 def update_workorder_table(t_workorder, created_partition_info):
     try:
+        print(f"Actualizando datos en la tabla: '{MYSQL_WORKORDER_TABLE}'...")
         # Obtener información sobre la partición creada
         device_name = created_partition_info["device_name"]
         partition_type = created_partition_info["partition_type"]
@@ -531,9 +543,9 @@ def update_workorder_table(t_workorder, created_partition_info):
         cursor.close()
         connection.close()
 
-        print(f"Campo 'workorder_flag' actualizado a '2' y 't_partition', 'UPDATE_DATE', 'UPDATE_BY' actualizados para t_workorder: {t_workorder}")
+        print(f"Campo 'workorder_flag' actualizado a '2' y 't_partition', 'UPDATE_DATE', 'UPDATE_BY' actualizados para t_workorder: '{t_workorder}'")
     except Exception as e:
-        print(f"Error al actualizar los campos en la tabla MYSQL_WORKORDER_TABLE para t_workorder: {t_workorder}.")
+        print(f"Error al actualizar los campos en la tabla MYSQL_WORKORDER_TABLE para t_workorder: '{t_workorder}'.")
         print(str(e))
 
 
