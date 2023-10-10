@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import mysql.connector
 import tempfile
@@ -263,7 +264,7 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
         print("Si la unidad no tiene una etiqueta de disco GPT o MBR, crea una nueva etiqueta GPT...")
         if label_check_result.returncode != 0:
             print(f"La unidad '{device_name}' no tiene una etiqueta de disco válida. Creando una nueva etiqueta GPT...")
-            label_command = f"yes | sudo parted /dev/{device_name} mklabel gpt"  # Agregamos 'yes' para confirmar automáticamente
+            label_command = f"sudo parted /dev/{device_name} mklabel gpt"  # No es necesario el 'yes'
             subprocess.run(label_command, shell=True, check=True)
 
         # Calcular el punto de inicio de la nueva partición
@@ -274,12 +275,12 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
         print(f"Punto de inicio de la nueva partición: {new_partition_start_bytes} bytes.")
         
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
-        partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"  # Agregamos 'yes' para confirmar automáticamente
+        partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
         print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         print(f"Ejecutando el comando: {partition_command}")
 
-        # Ejecutar el comando de partición
-        partition_result = subprocess.run(partition_command, shell=True, stderr=subprocess.PIPE)
+        # Ejecutar el comando de partición con entrada estándar redirigida para responder automáticamente "yes"
+        partition_result = subprocess.run(partition_command, shell=True, stderr=subprocess.PIPE, input=b'yes\n')
 
         # Verificar si se creó la partición exitosamente
         if partition_result.returncode == 0:
@@ -303,6 +304,7 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
         print(f"Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         print(f"Error inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
+
 
 
 def update_storage_committed_size(device_name, committed_size_bytes):
