@@ -5,13 +5,18 @@ import mysql.connector
 import tempfile
 import json
 import datetime
+import logging  # Importa la biblioteca de registro
+
+# Configura el sistema de registro con la fecha y hora actual en el nombre del archivo
+log_file_name = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '_process_workorders_log.txt'
+logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Variables
 script_directory = os.path.dirname(os.path.abspath(__file__))
 output_file_path = os.path.join(script_directory, 'registros.csv')
 
 # Configuración de la conexión a MySQL
-MYSQL_USER = "antares"
+MYSQL_USER = "2309000000"
 MYSQL_PASSWORD = "antares1"
 MYSQL_HOST = "localhost"  # Cambia a la dirección de tu servidor MySQL si es necesario
 MYSQL_DATABASE = "antares"
@@ -21,13 +26,16 @@ MYSQL_WORKORDER_TABLE = "t_workorder"
 MYSQL_WORKORDERFLAG_TABLE = "t_workorder_flag"
 MYSQL_PRODUCT_TABLE = "t_Product"
 
+# función para conversionde bytes
 def bytes_to_gigabytes(bytes_value):
     #gigabytes = bytes_value / 1073741824.0
     gigabytes = bytes_value
     return gigabytes
 
+# función para leer tabla t_workorder
 def read_workorder_table():
     try:
+        print(f"Leyendo la tabla: {MYSQL_WORKORDER_TABLE}...")
         # Configuración de la conexión a MySQL
         connection = mysql.connector.connect(
             user=MYSQL_USER,
@@ -38,6 +46,7 @@ def read_workorder_table():
         cursor = connection.cursor()
 
         # Obtener los encabezados de la tabla
+        print(f"Obteniendo los encabezados de la tabla {MYSQL_WORKORDER_TABLE}...")
         cursor.execute(f"SHOW COLUMNS FROM {MYSQL_WORKORDER_TABLE}")
         headers = [column[0] for column in cursor.fetchall()]
 
@@ -46,7 +55,7 @@ def read_workorder_table():
         cursor.execute(SQL_QUERY)
         results = cursor.fetchall()
 
-        print("Encabezados de la tabla:")
+        print(f"Encabezados de la tabla {MYSQL_WORKORDER_TABLE}:")
         print(headers)
         print("------------------------------------------------------------------------------------------------")
 
@@ -68,7 +77,7 @@ def read_workorder_table():
                     read_storage_table(product_description, t_workorder)
 
                 else:
-                    print("Registro no encontrado en la tabla MYSQL_PRODUCT_TABLE")
+                    print(f"Registro no encontrado en la tabla {MYSQL_WORKORDER_TABLE}")
 
                 print("******************************************")
 
@@ -80,8 +89,10 @@ def read_workorder_table():
         print("Error al ejecutar la consulta SQL en MySQL.")
         print(str(e))
 
+# función para leer la tabla MYSQL_STORAGE_TABLE
 def read_storage_table(product_description, t_workorder):
     try:
+        print(f"Leyendo la tabla {MYSQL_STORAGE_TABLE}...")
         # Ejecutar la consulta SQL
         SQL_QUERY = f"SELECT * FROM {MYSQL_STORAGE_TABLE}"
         connection = mysql.connector.connect(
@@ -111,10 +122,11 @@ def read_storage_table(product_description, t_workorder):
         print("Error al ejecutar la consulta SQL en MySQL.")
         print(str(e))
 
+# función para verificar si la particion ya existe en SQL
 def is_partition_exists_in_sql(name):
     try:
-        # Imprimir un mensaje de auditoría para indicar que se está consultando la existencia de la partición
-        print(f"Consultando si la partición '{name}' ya existe en la tabla '{MYSQL_PARTITIONS_TABLE}'...")
+        # Imprimir un mensaje de auditoría para indicar que se está verificando la existencia de la partición
+        print(f"Verificando si la partición '{name}' ya existe en la tabla '{MYSQL_PARTITIONS_TABLE}'...")
 
         # Construir la consulta SQL con los valores reales
         partion_exists_query = f"SELECT COUNT(*) FROM {MYSQL_PARTITIONS_TABLE} WHERE SHORT_DESCRIPTION = %s"
@@ -152,9 +164,11 @@ def is_partition_exists_in_sql(name):
             return is_partition_exists_in_sql(name)  # Intentar reconectar
         return False
 
+# función para obtener informacion de la unidad de disco
 def get_disk_info(device_name, product_description, t_workorder):
     try:
         device_path = f"/dev/{device_name}"
+        print(f"Obteniendo informacion de la unidad: '{device_path}'...")
 
         # Comprobar si el dispositivo existe antes de ejecutar lsblk
         if os.path.exists(device_path):
@@ -225,13 +239,15 @@ def get_disk_info(device_name, product_description, t_workorder):
 def calculate_new_partition_start(device_name):
     try:
         # Obtener información sobre las particiones existentes en el dispositivo
-        print(f"Obteniendo información sobre las particiones existentes en el dispositivo {device_name}...")
+        print(f"Información sobre el dispositivo '{device_name}':")
+        print(f"Obteniendo información sobre las particiones existentes en el dispositivo '{device_name}'...")
+
         lsblk_info = subprocess.check_output(["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", f"/dev/{device_name}"], text=True)
         lsblk_info = json.loads(lsblk_info)
         device_partitions = lsblk_info.get("blockdevices", [])[0].get("children", [])
 
         if device_partitions:
-            print("Calculando el punto de inicio de la nueva partición...")
+            print(f"Calculando el punto de inicio de la nueva partición en el dispositivo '{device_name}'...")
             total_partition_size_bytes = 0
 
             for partition_info in device_partitions:
@@ -242,7 +258,7 @@ def calculate_new_partition_start(device_name):
 
             return total_partition_size_bytes, None, new_partition_start_bytes
         else:
-            print("No se encontraron particiones existentes en el dispositivo.")
+            print(f"No se encontraron particiones existentes en el dispositivo '{device_name}'.")
             return None, None, None
 
     except Exception as e:
@@ -274,37 +290,42 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
         print(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
         print(f"Punto de inicio de la nueva partición: {new_partition_start_bytes} bytes.")
         
-        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
-        partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
-        print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
-        print(f"Ejecutando el comando: {partition_command}")
+        if last_partition_size_bytes is not None and new_partition_start_bytes is not None:
+            # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
+            partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
+            print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
+            print(f"Ejecutando el comando: {partition_command}")
 
-        # Ejecutar el comando de partición con entrada estándar redirigida para responder automáticamente "yes"
-        partition_result = subprocess.run(partition_command, shell=True, stderr=subprocess.PIPE, input=b'yes\n')
+            # Usar 'echo' para enviar "yes" a parted
+            subprocess.run(f'echo "yes" | {partition_command}', shell=True)
 
-        # Verificar si se creó la partición exitosamente
-        if partition_result.returncode == 0:
-            print(f"Partición creada en la unidad '/dev/{device_name}' como {partition_type} {filesystem_type}.")
-            # Si la partición se crea con éxito, actualizar el campo 'workorder_flag' en la tabla correspondiente
-            # Llamar a la función para actualizar el campo "workorder_flag" solo para esta t_workorder
-            print(f"Procesos de la orden {t_workorder} completados.")
+            # Verificar si se creó la partición exitosamente
+            check_partition_command = f"sudo parted /dev/{device_name} print | grep {partition_type}"
+            partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
 
-            created_partition_info = {
-                "device_name": device_name,
-                "partition_type": partition_type,
-                "filesystem_type": filesystem_type,
-                "partition_size": partition_size
-            }
+            if partition_result.returncode == 0:
+                print(f"Partición creada en la unidad '/dev/{device_name}' como {partition_type} {filesystem_type}.")
+                # Si la partición se crea con éxito, actualizar el campo 'workorder_flag' en la tabla correspondiente
+                # Llamar a la función para actualizar el campo "workorder_flag" solo para esta t_workorder
+                print(f"Procesos de la orden {t_workorder} completados.")
 
-            update_workorder_table(t_workorder, created_partition_info)
+                created_partition_info = {
+                    "device_name": device_name,
+                    "partition_type": partition_type,
+                    "filesystem_type": filesystem_type,
+                    "partition_size": partition_size
+                }
+
+                update_workorder_table(t_workorder, created_partition_info)
+            else:
+                print(f"Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
         else:
-            print(f"Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
+            print("No se encontraron particiones existentes en el dispositivo. No es posible calcular el punto de inicio de la nueva partición.")
 
     except subprocess.CalledProcessError as e:
         print(f"Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         print(f"Error inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
-
 
 
 def update_storage_committed_size(device_name, committed_size_bytes):
