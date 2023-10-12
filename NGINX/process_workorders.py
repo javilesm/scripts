@@ -13,7 +13,6 @@ logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctim
 
 # Variables
 script_directory = os.path.dirname(os.path.abspath(__file__))
-output_file_path = os.path.join(script_directory, 'registros.csv')
 
 # Configuración de la conexión a MySQL
 MYSQL_USER = "2309000000"
@@ -226,7 +225,7 @@ def get_disk_info(device_name, product_description, t_workorder):
             # Verificar si el espacio no particionado es mayor o igual al espacio requerido
             if available_space >= product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
-                create_partition(device_name, "primary", "ext4", product_description, t_workorder)  # Aquí se pasa el tamaño requerido
+                create_partition(device_name, "primary", "ext4", product_description, t_workorder,  name, mountpoint, product_description)  # Aquí se pasa el tamaño requerido
             elif available_space < product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es menor que el espacio requerido.")
             
@@ -235,9 +234,10 @@ def get_disk_info(device_name, product_description, t_workorder):
     except Exception as e:
         print(f"La unidad '{device_name}' no se encuentra particionada.")
         try:
-            create_partition(device_name, "primary", "ext4", product_description, t_workorder)  # Aquí se pasa el tamaño requerido
+            create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description)  # Aquí se pasa el tamaño requerido
         except Exception as e:
             print(f"Error inesperadoo al crear la partición en la unidad '{device_name}': {str(e)}")
+
 
 def calculate_new_partition_start(device_name):
     try:
@@ -269,7 +269,8 @@ def calculate_new_partition_start(device_name):
         print(f"Error al calcular el punto de inicio de la nueva partición: {str(e)}")
         return None, None, None
 
-def create_partition(device_name, partition_type, filesystem_type, partition_size, t_workorder):
+
+def create_partition(device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description):
     try:
         print(f"Particionando orden: {t_workorder}")
         print(f"Información para el dispositivo '{device_name}':")
@@ -295,10 +296,18 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
             print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
             print(f"Ejecutando el comando: {partition_command}")
 
-            # Ejecutar el comando de partición sin redirigir la entrada estándar
-            partition_result = subprocess.run(partition_command, shell=True, stderr=subprocess.PIPE)
+            # Usar 'yes' para enviar automáticamente "y" a las preguntas y no detener la ejecución
+            subprocess.Popen(f"yes | {partition_command}", shell=True)
+
+            print(f"Esperando a que se complete la partición...")
+
+            # Esperar a que se complete el proceso de partición
+            subprocess.Popen(["sleep", "10"])
 
             # Verificar si se creó la partición exitosamente
+            check_partition_command = f"sudo parted /dev/{device_name} print | grep {partition_type}"
+            partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
+
             if partition_result.returncode == 0:
                 print(f"Partición creada en la unidad '/dev/{device_name}' como {partition_type} {filesystem_type}.")
                 # Si la partición se crea con éxito, actualizar el campo 'workorder_flag' en la tabla correspondiente
@@ -312,7 +321,11 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
                     "partition_size": partition_size
                 }
 
+                # Luego de crear la partición con éxito, llama a update_workorder_table
                 update_workorder_table(t_workorder, created_partition_info)
+
+                # Luego de crear la partición con éxito, llama a write_partitions_to_mysql
+                write_partitions_to_mysql(name, device_name, mountpoint, product_description)
             else:
                 print(f"Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
         else:
@@ -351,7 +364,7 @@ def update_storage_committed_size(device_name, committed_size_bytes):
     except Exception as e:
         print(f"Error al actualizar la columna 'committed_size' para la unidad '{device_name}': {str(e)}")
 
-def write_partitions_to_mysql(temp_file, name, device_name, mountpoint, size):
+def write_partitions_to_mysql(name, device_name, mountpoint, size):
     try:
         print(f"--SHORT_DESCRIPTION: {name}")
         print(f"--DEVICE_NAME: {device_name}")
@@ -360,13 +373,6 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint, size):
 
         # Obtener los encabezados de la tabla t_partition como cadenas
         partition_headers = [str(header) for header in get_partition_headers()]
-
-        # Otorgar permisos de lectura y escritura al archivo temporal
-        os.chmod(temp_file, 0o755)
-
-        # Ejecutar el comando para cambiar la propiedad
-        comando_chown = f"sudo chown mysql:mysql {temp_file}"
-        subprocess.run(comando_chown, shell=True, check=True)
 
         print(f"-> Escribiendo en la tabla '{MYSQL_PARTITIONS_TABLE}' las particiones encontradas...")
 
@@ -378,7 +384,7 @@ def write_partitions_to_mysql(temp_file, name, device_name, mountpoint, size):
         print("-> Actualizando registros...")
 
         # En la función write_partitions_to_mysql, obtén los valores actualizados
-        updated_values = update_t_partition_records(output_file_path, name, device_name, mountpoint, size)
+        updated_values = update_t_partition_records(name, device_name, mountpoint, size)
 
         # Verifica si se obtuvieron valores actualizados
         if updated_values:
@@ -434,7 +440,7 @@ def get_partition_headers():
         print(str(e))
         return []
 
-def update_t_partition_records(output_file_path, name, device_name, mountpoint, size):
+def update_t_partition_records(name, device_name, mountpoint, size):
     try:
         print(f"Actualizando registros en la tabla {MYSQL_PARTITIONS_TABLE}.....")
 
