@@ -262,33 +262,29 @@ def calculate_new_partition_start(device_name):
             return total_partition_size_bytes, None, new_partition_start_bytes
         else:
             print(f"No se encontraron particiones existentes en el dispositivo '{device_name}'.")
-            return None, None, None
+            # Retorna un punto de inicio predeterminado
+            return 0, None, 1
 
     except Exception as e:
         print(f"Error al calcular el punto de inicio de la nueva partición: {str(e)}")
         return None, None, None
-
 
 def create_partition(device_name, partition_type, filesystem_type, partition_size, t_workorder):
     try:
         print(f"Particionando orden: {t_workorder}")
         print(f"Información para el dispositivo '{device_name}':")
 
-        # Verificar si la unidad ya tiene una etiqueta de disco GPT o MBR
-        print("Verificando si la unidad ya tiene una etiqueta de disco GPT o MBR...")
-        label_check_command = f"sudo parted /dev/{device_name} print | grep -q 'Partition Table: gpt' || sudo parted /dev/{device_name} print | grep -q 'Partition Table: msdos'"
-        label_check_result = subprocess.run(label_check_command, shell=True, stderr=subprocess.PIPE)
+        # Verificar si el dispositivo tiene particiones previas
+        lsblk_info = subprocess.check_output(["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", f"/dev/{device_name}"], text=True)
+        lsblk_info = json.loads(lsblk_info)
+        device_partitions = lsblk_info.get("blockdevices", [])[0].get("children", [])
 
-        # Si la unidad no tiene una etiqueta de disco GPT o MBR, crea una nueva etiqueta GPT
-        print("Si la unidad no tiene una etiqueta de disco GPT o MBR, crea una nueva etiqueta GPT...")
-        if label_check_result.returncode != 0:
-            print(f"La unidad '{device_name}' no tiene una etiqueta de disco válida. Creando una nueva etiqueta GPT...")
-            label_command = f"sudo parted /dev/{device_name} mklabel gpt"  # No es necesario el 'yes'
-            subprocess.run(label_command, shell=True, check=True)
+        if device_partitions:
+            last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = calculate_new_partition_start(device_name)
+        else:
+            print(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
+            last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = 0, None, 1
 
-        # Calcular el punto de inicio de la nueva partición
-        last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = calculate_new_partition_start(device_name)
-        
         print(f"Tamaño de la última partición: {last_partition_size_bytes} bytes.")
         print(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
         print(f"Punto de inicio de la nueva partición: {new_partition_start_bytes} bytes.")
@@ -299,13 +295,10 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
             print(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
             print(f"Ejecutando el comando: {partition_command}")
 
-            # Usar 'echo' para enviar "yes" a parted
-            subprocess.run(f'echo "yes" | {partition_command}', shell=True)
+            # Ejecutar el comando de partición sin redirigir la entrada estándar
+            partition_result = subprocess.run(partition_command, shell=True, stderr=subprocess.PIPE)
 
             # Verificar si se creó la partición exitosamente
-            check_partition_command = f"sudo parted /dev/{device_name} print | grep {partition_type}"
-            partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
-
             if partition_result.returncode == 0:
                 print(f"Partición creada en la unidad '/dev/{device_name}' como {partition_type} {filesystem_type}.")
                 # Si la partición se crea con éxito, actualizar el campo 'workorder_flag' en la tabla correspondiente
@@ -329,6 +322,7 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
         print(f"Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         print(f"Error inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
+
 
 
 def update_storage_committed_size(device_name, committed_size_bytes):
