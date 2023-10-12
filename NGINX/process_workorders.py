@@ -62,7 +62,9 @@ def read_workorder_table():
         for row in results:
             workorder_flag = row[headers.index("WORKORDER_FLAG")]
             t_workorder = row[headers.index("T_WORKORDER")]  # Obtener el valor de la clave primaria t_workorder
-            print(f"Procesando t_workorder: {t_workorder}")  # Indicar el valor de t_workorder
+            description = row[headers.index("DESCRIPTION")]
+            
+            print(f"Procesando t_workorder: {t_workorder}, Descripción: {description}, WORKORDER_FLAG: {workorder_flag}")
 
             if workorder_flag == 1:
                 print("******************************************")
@@ -88,6 +90,7 @@ def read_workorder_table():
     except Exception as e:
         print("Error al ejecutar la consulta SQL en MySQL.")
         print(str(e))
+
 
 # función para leer la tabla MYSQL_STORAGE_TABLE
 def read_storage_table(product_description, t_workorder):
