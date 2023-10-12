@@ -321,6 +321,9 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
                     "partition_size": partition_size
                 }
 
+                # Luego de crear la partición con éxito, llama a mount_partition
+                mount_partition(device_name, mountpoint)
+                
                 # Luego de crear la partición con éxito, llama a update_workorder_table
                 update_workorder_table(t_workorder, created_partition_info)
 
@@ -573,6 +576,29 @@ def update_workorder_table(t_workorder, created_partition_info):
     except Exception as e:
         print(f"Error al actualizar los campos en la tabla MYSQL_WORKORDER_TABLE para t_workorder: '{t_workorder}'.")
         print(str(e))
+
+def mount_partition(device_name, mountpoint):
+    try:
+        print(f"Montando la partición en '{device_name}' en '{mountpoint}'...")
+
+        # Verificar si el dispositivo existe antes de montarlo
+        device_path = f"/dev/{device_name}"
+        if not os.path.exists(device_path):
+            print(f"El dispositivo '{device_name}' no existe.")
+            return
+
+        # Verificar si el punto de montaje existe
+        if not os.path.exists(mountpoint):
+            print(f"El punto de montaje '{mountpoint}' no existe. Creándolo...")
+            os.makedirs(mountpoint)
+
+        # Montar la partición
+        mount_command = f"sudo mount {device_path} {mountpoint}"
+        subprocess.Popen(mount_command, shell=True)
+
+        print(f"Partición montada con éxito en '{mountpoint}'.")
+    except Exception as e:
+        print(f"Error al montar la partición en '{device_name}': {str(e)}")
 
 
 def process_workorders():
