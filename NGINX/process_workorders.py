@@ -62,8 +62,9 @@ def read_workorder_table():
             workorder_flag = row[headers.index("WORKORDER_FLAG")]
             t_workorder = row[headers.index("T_WORKORDER")]  # Obtener el valor de la clave primaria t_workorder
             description = row[headers.index("DESCRIPTION")]
+            registered_domain = row[headers.index("REGISTERED_DOMAIN")]  # Extraer REGISTERED_DOMAIN
             
-            print(f"Procesando t_workorder: {t_workorder}, Descripción: {description}, WORKORDER_FLAG: {workorder_flag}")
+            print(f"Procesando T_WORKORDER: '{t_workorder}', DESCRIPTION: '{description}', WORKORDER_FLAG: '{workorder_flag}', REGISTERED_DOMAIN: '{registered_domain}'")
 
             if workorder_flag == 1:
                 print("******************************************")
@@ -75,7 +76,7 @@ def read_workorder_table():
                 if product_result:
                     product_description = product_result[0]  # Obtiene el valor de la primera columna (REQUIRED_SIZE)
                     print(f"Espacio en disco requerido: {product_description}")
-                    read_storage_table(product_description, t_workorder)
+                    read_storage_table(product_description, t_workorder, registered_domain)
 
                 else:
                     print(f"Registro no encontrado en la tabla {MYSQL_WORKORDER_TABLE}")
@@ -92,7 +93,7 @@ def read_workorder_table():
 
 
 # función para leer la tabla MYSQL_STORAGE_TABLE
-def read_storage_table(product_description, t_workorder):
+def read_storage_table(product_description, t_workorder, registered_domain):
     try:
         print(f"Leyendo la tabla {MYSQL_STORAGE_TABLE}...")
         # Ejecutar la consulta SQL
@@ -114,7 +115,7 @@ def read_storage_table(product_description, t_workorder):
             third_value = row[2]
             print(row)
             print("******************************************")
-            get_disk_info(third_value, product_description, t_workorder)
+            get_disk_info(third_value, product_description, t_workorder, registered_domain)
             print("******************************************")
             print("------------------------------------------------------------------------------------------------")
         
@@ -167,7 +168,7 @@ def is_partition_exists_in_sql(name):
         return False
 
 # función para obtener informacion de la unidad de disco
-def get_disk_info(device_name, product_description, t_workorder):
+def get_disk_info(device_name, product_description, t_workorder, registered_domain):
     try:
         device_path = f"/dev/{device_name}"
         print(f"Obteniendo informacion de la unidad: '{device_path}'...")
@@ -225,7 +226,7 @@ def get_disk_info(device_name, product_description, t_workorder):
             # Verificar si el espacio no particionado es mayor o igual al espacio requerido
             if available_space >= product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
-                create_partition(device_name, "primary", "ext4", product_description, t_workorder,  name, mountpoint, product_description)  # Aquí se pasa el tamaño requerido
+                create_partition(device_name, "primary", "ext4", product_description, t_workorder,  name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
             elif available_space < product_description:
                 print(f"El espacio libre en la unidad '{device_name}' es menor que el espacio requerido.")
             
@@ -234,7 +235,7 @@ def get_disk_info(device_name, product_description, t_workorder):
     except Exception as e:
         print(f"La unidad '{device_name}' no se encuentra particionada.")
         try:
-            create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description)  # Aquí se pasa el tamaño requerido
+            create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
         except Exception as e:
             print(f"Error inesperadoo al crear la partición en la unidad '{device_name}': {str(e)}")
 
@@ -270,7 +271,7 @@ def calculate_new_partition_start(device_name):
         return None, None, None
 
 
-def create_partition(device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description):
+def create_partition(device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
         print(f"Particionando orden: {t_workorder}")
         print(f"Información para el dispositivo '{device_name}':")
@@ -322,7 +323,7 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
                 }
 
                 # Luego de crear la partición con éxito, llama a mount_partition
-                mount_partition(device_name, mountpoint)
+                mount_partition(device_name, registered_domain)
                 
                 # Luego de crear la partición con éxito, llama a update_workorder_table
                 update_workorder_table(t_workorder, created_partition_info)
@@ -577,28 +578,72 @@ def update_workorder_table(t_workorder, created_partition_info):
         print(f"Error al actualizar los campos en la tabla MYSQL_WORKORDER_TABLE para t_workorder: '{t_workorder}'.")
         print(str(e))
 
-def mount_partition(device_name, mountpoint):
+# Función para montar partición con REGISTERED_DOMAIN
+def mount_partition(device_name, registered_domain):
     try:
-        print(f"Montando la partición en '{device_name}' en '{mountpoint}'...")
+        target_dir = "/var/www"  # Definir la variable target_dir
+
+        if not os.path.exists(target_dir):
+            raise Exception(f"El directorio '{target_dir}' no existe.")
+
+        # Concatenar target_dir y registered_domain para obtener mounting_path
+        mounting_path = os.path.join(target_dir, registered_domain)
+
+        print(f"Montando la partición en '{device_name}' del dominio '{registered_domain}' en '{mounting_path}'...")
 
         # Verificar si el dispositivo existe antes de montarlo
         device_path = f"/dev/{device_name}"
         if not os.path.exists(device_path):
-            print(f"El dispositivo '{device_name}' no existe.")
-            return
+            raise Exception(f"El dispositivo '{device_name}' no existe.")
 
         # Verificar si el punto de montaje existe
-        if not os.path.exists(mountpoint):
-            print(f"El punto de montaje '{mountpoint}' no existe. Creándolo...")
-            os.makedirs(mountpoint)
+        if not os.path.exists(mounting_path):
+            print(f"El punto de montaje '{mounting_path}' no existe. Creándolo...")
+            os.makedirs(mounting_path)
 
         # Montar la partición
-        mount_command = f"sudo mount {device_path} {mountpoint}"
-        subprocess.Popen(mount_command, shell=True)
+        mount_command = f"sudo mount {device_path} {mounting_path}"
+        process = subprocess.Popen(mount_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
 
-        print(f"Partición montada con éxito en '{mountpoint}'.")
+        if process.returncode == 0:
+            print(f"Partición montada con éxito en '{mounting_path}'.")
+
+            # Llamar a la funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+            add_to_fstab(device, mount_point, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
+        else:
+            error_message = err.decode("utf-8").strip()
+            raise Exception(f"Error al montar la partición en '{device_name}': {error_message}")
+
     except Exception as e:
         print(f"Error al montar la partición en '{device_name}': {str(e)}")
+
+
+# funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+def add_to_fstab(device, mount_point, filesystem_type="ext4", options="defaults", dump=0, pass_num=0):
+    try:
+        print("Agregando entradas en /etc/fstab para montar las particiones al reiniciar el sistema...")
+        # Comprobar si el archivo /etc/fstab ya contiene una entrada para el dispositivo
+        with open("/etc/fstab", "r") as fstab_file:
+            fstab_content = fstab_file.read()
+            if f"{device} " in fstab_content:
+                print(f"La entrada para '{device}' ya existe en /etc/fstab.")
+                return
+
+        # Agregar una nueva entrada al archivo /etc/fstab
+        with open("/etc/fstab", "a") as fstab_file:
+            fstab_file.write(f"{device} {mount_point} {filesystem_type} {options} {dump} {pass_num}\n")
+
+        print(f"Entrada para '{device}' agregada a /etc/fstab. La partición se montará automáticamente al reiniciar el sistema.")
+
+    except FileNotFoundError:
+        print(f"El archivo /etc/fstab no existe. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
+
+    except PermissionError:
+        print("No tienes permiso para modificar /etc/fstab. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
+
+    except Exception as e:
+        print(f"Error al agregar entrada a /etc/fstab: {str(e)}")
 
 
 def process_workorders():
