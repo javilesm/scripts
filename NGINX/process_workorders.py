@@ -149,9 +149,9 @@ def read_storage_table(product_description, t_workorder, registered_domain):
         results = cursor.fetchall()
         
         for row in results:
-            third_value = row[2]
+            device_name = row[2]  # Obtener el nombre del dispositivo de la fila
             print(row)
-            get_disk_info(product_description, t_workorder, registered_domain, cursor)  # Agregar cursor aquí
+            get_disk_info(device_name, product_description, t_workorder, registered_domain, cursor)  # Pasar el nombre del dispositivo
             print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
         print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
                 
@@ -160,6 +160,7 @@ def read_storage_table(product_description, t_workorder, registered_domain):
     except Exception as e:
         logger.error("ERROR: Error al ejecutar la consulta SQL en MySQL.")
         print(str(e))
+
 
 # función para verificar si la particion ya existe en SQL
 def is_partition_exists_in_sql(name):
@@ -204,7 +205,7 @@ def is_partition_exists_in_sql(name):
         return False
 
 # Función para obtener información de la unidad de disco
-def get_disk_info(product_description, t_workorder, registered_domain, cursor):
+def get_disk_info(device_name, product_description, t_workorder, registered_domain, cursor):
     name = None
     mountpoint = None
     device_size = 0
