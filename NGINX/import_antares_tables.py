@@ -35,7 +35,7 @@ ruta_config_mysql = "/etc/mysql/mysql.conf.d/mysqld.cnf"
 nueva_ubicacion = ""
 
 # Solicitar al usuario que ingrese los valores de las variables
-mysql_user = "antares"
+mysql_user = "2309000000"
 mysql_password = "antares1"
 mysql_database = "antares"
 mysql_host = 'localhost'
