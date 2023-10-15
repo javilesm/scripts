@@ -321,7 +321,7 @@ def calculate_next_partition_number(device_name):
 # Función para crear particiones
 def create_partition(device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
-        logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}'")
+        logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
 
         # Obtener el siguiente número de partición disponible
         next_partition_number = calculate_next_partition_number(device_name)
@@ -345,7 +345,7 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
             # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
             partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {next_partition_number} {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B > /dev/null 2>&1"
             logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
-            logger.info(f"Ejecutando el comando: {partition_command}")
+            logger.info(f"Ejecutando el comando: '{partition_command}'")
 
             # Usar 'yes' para enviar automáticamente "y" a las preguntas y no detener la ejecución
             subprocess.Popen(f"yes | {partition_command}", shell=True)
@@ -375,15 +375,13 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
                     "partition_number": next_partition_number,
                     "partition_type": partition_type,
                     "filesystem_type": filesystem_type,
+                    "registered_domain": registered_domain,
                     "partition_size": partition_size
                 }
 
                 # Luego de crear la partición con éxito, llama a format_partition
-                format_partition(device_name, partition_name, filesystem_type, registered_domain)
-                
-                # Luego de crear la partición con éxito, llama a update_workorder_table
-                update_workorder_table(t_workorder, created_partition_info)
-
+                format_partition(device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+                 
             else:
                 logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
         else:
@@ -420,7 +418,7 @@ def update_storage_committed_size(device_name, committed_size_bytes):
     except Exception as e:
         logger.error(f"ERROR: Error al actualizar la columna 'committed_size' para la unidad '{device_name}': {str(e)}")
 
-def write_partitions_to_mysql(partition_name, device_name, mounting_path, partition_size):
+def write_partitions_to_mysql(partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info):
     try:
         logger.info(f"Escribiendo en la tabla '{MYSQL_PARTITIONS_TABLE}' las particiones encontradas...")
         logger.info(f"--SHORT_DESCRIPTION: {partition_name}")
@@ -466,6 +464,10 @@ def write_partitions_to_mysql(partition_name, device_name, mounting_path, partit
             connection.close()
 
             logger.info(f"-> Particiones escritas en la tabla '{MYSQL_PARTITIONS_TABLE}' con éxito.")
+            
+            # Llamar a la funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+            add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
+
     except Exception as e:
         logger.error(f"ERROR: Error al escribir particiones en la tabla '{MYSQL_PARTITIONS_TABLE}'.")
         logger.error(str(e))
@@ -497,7 +499,7 @@ def get_partition_headers():
 
 def update_t_partition_records(partition_name, device_name, mounting_path, partition_size):
     try:
-        logger.info(f"Actualizando registros en la tabla {MYSQL_PARTITIONS_TABLE}.....")
+        logger.info(f"Actualizando registros en la tabla '{MYSQL_PARTITIONS_TABLE}'.....")
 
         # Obtener los encabezados de la tabla t_partition como cadenas
         partition_headers = [str(header) for header in get_partition_headers()]
@@ -629,19 +631,19 @@ def update_workorder_table(t_workorder, created_partition_info):
         logger.error(str(e))
 
 # Función para formatear particiones
-def format_partition(device_name, partition_name, filesystem_type, registered_domain):
+def format_partition(device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info):
     try:
         device_path = f"/dev/{device_name}"
-        logger.info(f"Procediendo a formatear la particion '{partition_name}' en la unidad '{device_path}' con sistema de archivos '{filesystem_type}'.")
+        logger.info(f"Procediendo a formatear la particion '{partition_name}' en la unidad '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
         # Formatear la partición con el sistema de archivos especificado
         format_command = f"sudo mkfs -t {filesystem_type} {device_path}"
         process = subprocess.Popen(format_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
 
         if process.returncode == 0:
-            logger.info(f"Partición '{partition_name}' formateada con éxito en '{device_path}' con sistema de archivos '{filesystem_type}'.")
+            logger.info(f"Partición '{partition_name}' formateada con éxito en '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
             # Llamar a la función para montar la partición después de formatear
-            mount_partition(device_name, registered_domain)
+            mount_partition(device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
         else:
             error_message = err.decode("utf-8").strip()
             raise Exception(f"ERROR: Error al formatear la partición '{partition_name}' en '{device_path}': {error_message}")
@@ -650,7 +652,7 @@ def format_partition(device_name, partition_name, filesystem_type, registered_do
         logger.error(f"ERROR: Error al intentar formatear la partición '{partition_name}' en '{device_path}': {str(e)}")
 
 # Función para montar partición con REGISTERED_DOMAIN
-def mount_partition(device_name, partition_name, registered_domain):
+def mount_partition(device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info):
     try:
         target_dir = "/var/www"  # Definir la variable target_dir
 
@@ -681,10 +683,8 @@ def mount_partition(device_name, partition_name, registered_domain):
             logger.info(f"Partición '{partition_name}' montada con éxito en '{mounting_path}'.")
 
             # Luego de montar la partición con éxito, llama a write_partitions_to_mysql
-            write_partitions_to_mysql(partition_name, device_name, mounting_path, partition_size)
-
-            # Llamar a la funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-            add_to_fstab(device_name, mounting_path, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
+            write_partitions_to_mysql(partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
+     
         else:
             error_message = err.decode("utf-8").strip()
             raise Exception(f"ERROR: Error al montar la partición '{partition_name}' en '{mounting_path}': {error_message}")
@@ -693,15 +693,16 @@ def mount_partition(device_name, partition_name, registered_domain):
         logger.error(f"ERROR: Error al montar la partición en '{mounting_path}': {str(e)}")
 
 # funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-def add_to_fstab(device_name, mounting_path, filesystem_type="ext4", options="defaults", dump=0, pass_num=0):
+def add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0):
     try:
         fstab_path = "/etc/fstab"
 
         logger.info(f"Agregando entradas en '{fstab_path}' para montar las particiones al reiniciar el sistema...")
+        
         # Comprobar si el archivo /etc/fstab ya contiene una entrada para el dispositivo
         with open(f"{fstab_path}", "r") as fstab_file:
             fstab_content = fstab_file.read()
-            if f"{device} " in fstab_content:
+            if f"{device_name} " in fstab_content:
                 logger.info(f"La entrada para '{device_name}' ya existe en '{fstab_path}'.")
                 return
 
@@ -710,6 +711,9 @@ def add_to_fstab(device_name, mounting_path, filesystem_type="ext4", options="de
             fstab_file.write(f"{device_name} {mounting_path} {filesystem_type} {options} {dump} {pass_num}\n")
 
         logger.info(f"Entrada para '{device_name}' agregada a '{fstab_path}'. La partición se montará automáticamente al reiniciar el sistema.")
+
+        # Luego de crear la partición con éxito, llama a update_workorder_table
+        update_workorder_table(t_workorder, created_partition_info)
 
     except FileNotFoundError:
         logger.error(f"ERROR: El archivo '{fstab_path}' no existe. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
