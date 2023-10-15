@@ -40,11 +40,32 @@ file_handler = logging.FileHandler(log_file_name)
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
 
+# Define un diccionario para realizar un seguimiento de las t_workorders que han utilizado cada dispositivo
+used_workorders = {}
+
 # función para conversionde bytes
 def bytes_to_gigabytes(bytes_value):
     #gigabytes = bytes_value / 1073741824.0
     gigabytes = bytes_value
     return gigabytes
+
+# función para obtener el valor de workorder_flag
+def get_workorder_flag(t_workorder, cursor):
+    try:
+        logger.info(f"Obteniendo el valor de workorder_flag para el registro '{t_workorder}' en la tabla '{MYSQL_WORKORDER_TABLE}'...")
+        # Ejecutar la consulta SQL para obtener WORKORDER_FLAG
+        cursor.execute(f"SELECT WORKORDER_FLAG FROM {MYSQL_WORKORDER_TABLE} WHERE T_WORKORDER = {t_workorder}")
+        result = cursor.fetchone()
+
+        if result:
+            workorder_flag = result[0]
+            return workorder_flag
+        else:
+            return None
+
+    except Exception as e:
+        logger.error(f"ERROR: Error al obtener el valor de workorder_flag para el registro '{t_workorder}' en la tabla  '{MYSQL_WORKORDER_TABLE}': {str(e)}")
+        return None
 
 # función para leer tabla t_workorder
 def read_workorder_table():
@@ -74,11 +95,12 @@ def read_workorder_table():
         logger.info("------------------------------------------------------------------------------------------------")
 
         for row in results:
-            workorder_flag = row[headers.index("WORKORDER_FLAG")]
             t_workorder = row[headers.index("T_WORKORDER")]  # Obtener el valor de la clave primaria t_workorder
             description = row[headers.index("DESCRIPTION")]
             registered_domain = row[headers.index("REGISTERED_DOMAIN")]  # Extraer REGISTERED_DOMAIN
-            
+
+            workorder_flag = get_workorder_flag(t_workorder, cursor)
+
             logger.info(f"Procesando T_WORKORDER: '{t_workorder}', DESCRIPTION: '{description}', WORKORDER_FLAG: '{workorder_flag}', REGISTERED_DOMAIN: '{registered_domain}'")
 
             if workorder_flag == 1:
@@ -92,7 +114,7 @@ def read_workorder_table():
                     product_description = product_result[0]  # Obtiene el valor de la primera columna (REQUIRED_SIZE)
                     logger.info(f"Espacio en disco requerido: '{product_description}' bytes.")
 
-                    # Llamar a la funcion read_storage_table
+                    # Llamar a la función read_storage_table
                     read_storage_table(product_description, t_workorder, registered_domain)
 
                     logger.info(f"Procesos de la orden '{t_workorder}' completados.")
@@ -113,7 +135,7 @@ def read_workorder_table():
 # función para leer la tabla MYSQL_STORAGE_TABLE
 def read_storage_table(product_description, t_workorder, registered_domain):
     try:
-        logger.info(f"Leyendo la tabla {MYSQL_STORAGE_TABLE}...")
+        logger.info(f"Leyendo la tabla '{MYSQL_STORAGE_TABLE}'...")
         # Ejecutar la consulta SQL
         SQL_QUERY = f"SELECT * FROM {MYSQL_STORAGE_TABLE}"
         connection = mysql.connector.connect(
@@ -126,17 +148,13 @@ def read_storage_table(product_description, t_workorder, registered_domain):
         cursor.execute(SQL_QUERY)
         results = cursor.fetchall()
         
-        logger.info("Lista de registros y su segunda columna:")
-        print("------------------------------------------------------------------------------------------------")
-        
         for row in results:
             third_value = row[2]
             print(row)
-            print("******************************************")
-            get_disk_info(third_value, product_description, t_workorder, registered_domain)
-            print("******************************************")
-            print("------------------------------------------------------------------------------------------------")
-        
+            get_disk_info(product_description, t_workorder, registered_domain, cursor)  # Agregar cursor aquí
+            print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
+        print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
+                
         cursor.close()
         connection.close()
     except Exception as e:
@@ -186,7 +204,7 @@ def is_partition_exists_in_sql(name):
         return False
 
 # Función para obtener información de la unidad de disco
-def get_disk_info(device_name, product_description, t_workorder, registered_domain):
+def get_disk_info(product_description, t_workorder, registered_domain, cursor):
     name = None
     mountpoint = None
     device_size = 0
@@ -196,11 +214,25 @@ def get_disk_info(device_name, product_description, t_workorder, registered_doma
     is_unpartitioned = True
 
     try:
-        device_path = f"/dev/{device_name}"
-        logger.info(f"Obteniendo información de la unidad: '{device_path}'...")
+        # Obtener el valor de workorder_flag desde la tabla t_workorder
+        workorder_flag = get_workorder_flag(t_workorder, cursor)
+
+        logger.info(f"Procesando T_WORKORDER: '{t_workorder}', WORKORDER_FLAG: '{workorder_flag}' y obteniendo información de la unidad de disco '{device_name}'...")
+
+        # Configuración de la conexión a MySQL
+        connection = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        cursor = connection.cursor()
 
         # Comprobar si el dispositivo existe antes de ejecutar lsblk
+        device_path = f"/dev/{device_name}"
         if os.path.exists(device_path):
+            logger.info(f"Obteniendo información de la unidad: '{device_path}'...")
+            
             # Obtener información de lsblk en formato JSON
             lsblk_info = subprocess.check_output(
                 ["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", device_path], text=True
@@ -218,30 +250,32 @@ def get_disk_info(device_name, product_description, t_workorder, registered_doma
             available_space = 0
             is_unpartitioned = True
 
-            # Iterar a través de las particiones y dispositivos
-            for entry in lsblk_info["blockdevices"][0]["children"]:
-                name = entry["name"]
-                size = entry["size"]
-                mountpoint = entry["mountpoint"]
+            if "children" in lsblk_info["blockdevices"][0]:
+                # Iterar a través de las particiones y dispositivos
+                for entry in lsblk_info["blockdevices"][0]["children"]:
+                    name = entry.get("name")
+                    size = entry.get("size")
+                    mountpoint = entry.get("mountpoint")
 
-                # Calcular espacio no particionado
-                partitioned_space += size
-                available_space = device_size - partitioned_space
+                    if name is not None:
+                        # Calcular espacio no particionado
+                        partitioned_space += size
+                        available_space = device_size - partitioned_space
 
-                # Comprobar si es una partición
-                if mountpoint is not None:
-                    logger.info(f"SHORT_DESCRIPTION (name): {name}")
-                    logger.info(f"DEVICE_NAME (device_name): {device_name}")
-                    logger.info(f"PARTITION_SIZE (size): {size} bytes")
-                    logger.info(f"ATTACHMENT_POINT (mountpoint): {mountpoint}")
-                    logger.info("-------------------------------------")
-                    partition_count += 1
-                    is_unpartitioned = False
+                        # Comprobar si es una partición
+                        if mountpoint is not None:
+                            logger.info(f"SHORT_DESCRIPTION (name): {name}")
+                            logger.info(f"DEVICE_NAME (device_name): {device_name}")
+                            logger.info(f"PARTITION_SIZE (size): {size} bytes")
+                            logger.info(f"ATTACHMENT_POINT (mountpoint): {mountpoint}")
+                            logger.info("-------------------------------------")
+                            partition_count += 1
+                            is_unpartitioned = False
 
-                # Verificar si el espacio no particionado es mayor o igual al espacio requerido
-                if available_space >= product_description:
-                    logger.info(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
-                    create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+                        # Verificar si el espacio no particionado es mayor o igual al espacio requerido
+                        if available_space >= product_description:
+                            logger.info(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
+                            create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
 
             logger.info(f"-> Cantidad de particiones: {partition_count}")
             logger.info(f"-> Espacio particionado: {partitioned_space} bytes")
@@ -254,14 +288,23 @@ def get_disk_info(device_name, product_description, t_workorder, registered_doma
             logger.info("Actualizando la columna 'committed_size' en la tabla t_storage...")
             update_storage_committed_size(device_name, committed_size_bytes)  # Aquí se pasa solo el espacio particionado
 
+            # Mover aquí la sección para crear partición si no está particionada
+            if is_unpartitioned:
+                logger.warning(f"La unidad '{device_name}' no se encuentra particionada.")
+                try:
+                    create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+                except Exception as e:
+                    logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_name}': {str(e)}")
+
         else:
             logger.warning(f"La unidad '{device_name}' no existe")
+
+        cursor.close()
+        connection.close()
+
     except Exception as e:
-        logger.warning(f"La unidad '{device_name}' no se encuentra particionada.")
-        try:
-            create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
-        except Exception as e:
-            logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_name}': {str(e)}")
+        logger.error(f"ERROR inesperado: {str(e)}")
+
 
 def calculate_new_partition_start(device_name):
     try:
@@ -595,41 +638,6 @@ def get_max_partition_value():
         logger.error(str(e))
         return 0
 
-# Llamar a esta función después de haber creado la partición con éxito
-def update_workorder_table(t_workorder, created_partition_info):
-    try:
-        logger.info(f"Actualizando datos en la tabla: '{MYSQL_WORKORDER_TABLE}'...")
-        # Obtener información sobre la partición creada
-        device_name = created_partition_info["device_name"]
-        partition_type = created_partition_info["partition_type"]
-        filesystem_type = created_partition_info["filesystem_type"]
-        partition_size = created_partition_info["partition_size"]
-
-        # Configuración de la conexión a MySQL
-        connection = mysql.connector.connect(
-            user=MYSQL_USER,
-            password=MYSQL_PASSWORD,
-            host=MYSQL_HOST,
-            database=MYSQL_DATABASE
-        )
-        cursor = connection.cursor()
-
-        # Obtener la fecha actual en formato "aaaa-mm-dd hh:mm:ss"
-        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Actualizar el campo "workorder_flag" a "2" en la tabla MYSQL_WORKORDER_TABLE
-        SQL_UPDATE_WORKORDER_FLAG = f"UPDATE {MYSQL_WORKORDER_TABLE} SET workorder_flag = 2, t_partition = %s, UPDATE_DATE = %s, UPDATE_BY = %s WHERE T_WORKORDER = %s"
-        cursor.execute(SQL_UPDATE_WORKORDER_FLAG, (f"{device_name}:{partition_type}:{filesystem_type}:{partition_size}", current_datetime, MYSQL_USER, t_workorder))
-        
-        connection.commit()
-        cursor.close()
-        connection.close()
-
-        logger.info(f"Campo 'workorder_flag' actualizado a '2' y 't_partition', 'UPDATE_DATE', 'UPDATE_BY' actualizados para t_workorder: '{t_workorder}'")
-    except Exception as e:
-        logger.error(f"ERROR: Error al actualizar los campos en la tabla '{MYSQL_WORKORDER_TABLE}' para la orden: '{t_workorder}'.")
-        logger.error(str(e))
-
 # Función para formatear particiones
 def format_partition(device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info):
     try:
@@ -700,19 +708,20 @@ def add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder
         logger.info(f"Agregando entradas en '{fstab_path}' para montar las particiones al reiniciar el sistema...")
         
         # Comprobar si el archivo /etc/fstab ya contiene una entrada para el dispositivo
-        with open(f"{fstab_path}", "r") as fstab_file:
+        with open(fstab_path, "r") as fstab_file:
             fstab_content = fstab_file.read()
             if f"{device_name} " in fstab_content:
                 logger.info(f"La entrada para '{device_name}' ya existe en '{fstab_path}'.")
+                update_workorder_table(t_workorder, created_partition_info)
                 return
 
         # Agregar una nueva entrada al archivo /etc/fstab
-        with open(f"{fstab_path}", "a") as fstab_file:
+        with open(fstab_path, "a") as fstab_file:
             fstab_file.write(f"{device_name} {mounting_path} {filesystem_type} {options} {dump} {pass_num}\n")
 
         logger.info(f"Entrada para '{device_name}' agregada a '{fstab_path}'. La partición se montará automáticamente al reiniciar el sistema.")
 
-        # Luego de crear la partición con éxito, llama a update_workorder_table
+        # Luego de agregar entradas en /etc/fstab con éxito, llama a update_workorder_table
         update_workorder_table(t_workorder, created_partition_info)
 
     except FileNotFoundError:
@@ -724,6 +733,48 @@ def add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder
     except Exception as e:
         logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}': {str(e)}")
 
+# Llamar a esta función después de haber creado la partición con éxito
+def update_workorder_table(t_workorder, created_partition_info):
+    try:
+        logger.info(f"Actualizando datos en la tabla: '{MYSQL_WORKORDER_TABLE}'...")
+        
+        # Obtener información sobre la partición creada
+        device_name = created_partition_info["device_name"]
+        partition_type = created_partition_info["partition_type"]
+        filesystem_type = created_partition_info["filesystem_type"]
+        partition_size = created_partition_info["partition_size"]
+        
+        # Configuración de la conexión a MySQL
+        connection = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        
+        cursor = connection.cursor()
+
+        # Obtener la fecha actual en formato "aaaa-mm-dd hh:mm:ss"
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Actualizar el campo "workorder_flag" a "2" en la tabla MYSQL_WORKORDER_TABLE
+        SQL_UPDATE_WORKORDER_FLAG = f"UPDATE {MYSQL_WORKORDER_TABLE} SET workorder_flag = 2, t_partition = %s, UPDATE_DATE = %s, UPDATE_BY = %s WHERE T_WORKORDER = %s"
+        
+        # Usar una transacción para realizar los cambios
+        try:
+            cursor.execute(SQL_UPDATE_WORKORDER_FLAG, (f"{device_name}:{partition_type}:{filesystem_type}:{partition_size}", current_datetime, MYSQL_USER, t_workorder))
+            connection.commit()  # Confirmar la transacción
+            cursor.close()
+            connection.close()
+            logger.info(f"Campo 'workorder_flag' actualizado a '2' y 't_partition', 'UPDATE_DATE', 'UPDATE_BY' actualizados para t_workorder: '{t_workorder}'")
+            logger.info(f"********************************************************************************************************************************************")
+        except Exception as e:
+            connection.rollback()  # Deshacer la transacción si ocurre un error
+            raise e  # Re-lanzar la excepción para manejarla en un nivel superior
+
+    except Exception as e:
+        logger.error(f"ERROR: Error al actualizar los campos en la tabla '{MYSQL_WORKORDER_TABLE}' para la orden: '{t_workorder}'.")
+        logger.error(str(e))
 
 def process_workorders():
     read_workorder_table()
