@@ -9,3 +9,4 @@ Django
 Flask
 pandas
 unidecode
+colorlog
