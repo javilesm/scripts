@@ -248,11 +248,11 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
             )
             lsblk_info = json.loads(lsblk_info)
 
-            logger.info(f"Información para el dispositivo '{device_name}':")
+            logger.info(f"Información para el dispositivo '{device_path}':")
 
             # Extraer el tamaño de la unidad de disco
             device_size = lsblk_info["blockdevices"][0]["size"]
-            logger.info(f"-> Tamaño de la unidad '{device_name}': {device_size} bytes")
+            logger.info(f"-> Tamaño de la unidad '{device_path}': {device_size} bytes")
 
             partition_count = 0
             partitioned_space = 0
@@ -283,7 +283,7 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
 
                         # Verificar si el espacio no particionado es mayor o igual al espacio requerido
                         if available_space >= product_description:
-                            logger.info(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
+                            logger.info(f"El espacio libre en la unidad '{device_path}' es mayor o igual que el espacio requerido.")
                             create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
 
             logger.info(f"-> Cantidad de particiones: {partition_count}")
@@ -299,14 +299,14 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
 
             # Mover aquí la sección para crear partición si no está particionada
             if is_unpartitioned:
-                logger.warning(f"La unidad '{device_name}' no se encuentra particionada.")
+                logger.warning(f"La unidad '{device_path}' no se encuentra particionada.")
                 try:
                     create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
                 except Exception as e:
-                    logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_name}': {str(e)}")
+                    logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_path}': {str(e)}")
 
         else:
-            logger.warning(f"La unidad '{device_name}' no existe")
+            logger.warning(f"La unidad '{device_path}' no existe")
 
         cursor.close()
         connection.close()
