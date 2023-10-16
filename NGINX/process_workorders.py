@@ -433,9 +433,15 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
                     "partition_size": partition_size
                 }
 
-                # Luego de crear la partición con éxito, llama a format_partition
-                format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
-                 
+                # Comprobar si la partición se creó correctamente antes de continuar
+                check_created_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
+                created_partition_result = subprocess.run(check_created_partition_command, shell=True, stderr=subprocess.PIPE)
+
+                if created_partition_result.returncode == 0:
+                    # Luego de crear la partición con éxito, llama a format_partition
+                    format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+                else:
+                    logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
             else:
                 logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
         else:
