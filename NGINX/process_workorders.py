@@ -8,6 +8,7 @@ import datetime
 from colorama import Fore, Style
 import logging
 from colorlog import getLogger
+import time
 
 # Configuración de la conexión a MySQL
 MYSQL_USER = "2309000000"
@@ -49,24 +50,6 @@ def bytes_to_gigabytes(bytes_value):
     gigabytes = bytes_value
     return gigabytes
 
-# función para obtener el valor de workorder_flag
-def get_workorder_flag(t_workorder, cursor):
-    try:
-        logger.info(f"Obteniendo el valor de workorder_flag para el registro '{t_workorder}' en la tabla '{MYSQL_WORKORDER_TABLE}'...")
-        # Ejecutar la consulta SQL para obtener WORKORDER_FLAG
-        cursor.execute(f"SELECT WORKORDER_FLAG FROM {MYSQL_WORKORDER_TABLE} WHERE T_WORKORDER = {t_workorder}")
-        result = cursor.fetchone()
-
-        if result:
-            workorder_flag = result[0]
-            return workorder_flag
-        else:
-            return None
-
-    except Exception as e:
-        logger.error(f"ERROR: Error al obtener el valor de workorder_flag para el registro '{t_workorder}' en la tabla  '{MYSQL_WORKORDER_TABLE}': {str(e)}")
-        return None
-
 # función para leer tabla t_workorder
 def read_workorder_table():
     try:
@@ -99,7 +82,13 @@ def read_workorder_table():
             description = row[headers.index("DESCRIPTION")]
             registered_domain = row[headers.index("REGISTERED_DOMAIN")]  # Extraer REGISTERED_DOMAIN
 
-            workorder_flag = get_workorder_flag(t_workorder, cursor)
+            # Obtener el valor de workorder_flag directamente de la base de datos
+            cursor.execute(f"SELECT WORKORDER_FLAG FROM {MYSQL_WORKORDER_TABLE} WHERE T_WORKORDER = {t_workorder}")
+            result = cursor.fetchone()
+            if result:
+                workorder_flag = result[0]
+            else:
+                workorder_flag = None
 
             logger.info(f"Procesando T_WORKORDER: '{t_workorder}', DESCRIPTION: '{description}', WORKORDER_FLAG: '{workorder_flag}', REGISTERED_DOMAIN: '{registered_domain}'")
 
@@ -115,7 +104,7 @@ def read_workorder_table():
                     logger.info(f"Espacio en disco requerido: '{product_description}' bytes.")
 
                     # Llamar a la función read_storage_table
-                    read_storage_table(product_description, t_workorder, registered_domain)
+                    read_storage_table(workorder_flag, product_description, t_workorder, registered_domain)
 
                     logger.info(f"Procesos de la orden '{t_workorder}' completados.")
 
@@ -133,7 +122,7 @@ def read_workorder_table():
         logger.error(str(e))
 
 # función para leer la tabla MYSQL_STORAGE_TABLE
-def read_storage_table(product_description, t_workorder, registered_domain):
+def read_storage_table(workorder_flag, product_description, t_workorder, registered_domain):
     try:
         logger.info(f"Leyendo la tabla '{MYSQL_STORAGE_TABLE}'...")
         # Ejecutar la consulta SQL
@@ -151,7 +140,7 @@ def read_storage_table(product_description, t_workorder, registered_domain):
         for row in results:
             device_name = row[2]  # Obtener el nombre del dispositivo de la fila
             print(row)
-            get_disk_info(device_name, product_description, t_workorder, registered_domain, cursor)  # Pasar el nombre del dispositivo
+            get_disk_info(workorder_flag, device_name, product_description, t_workorder, registered_domain, cursor)  # Pasar el nombre del dispositivo
             print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
         print("-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+")
                 
@@ -205,7 +194,7 @@ def is_partition_exists_in_sql(name):
         return False
 
 # Función para obtener información de la unidad de disco
-def get_disk_info(device_name, product_description, t_workorder, registered_domain, cursor):
+def get_disk_info(workorder_flag, device_name, product_description, t_workorder, registered_domain, cursor):
     name = None
     mountpoint = None
     device_size = 0
@@ -215,8 +204,10 @@ def get_disk_info(device_name, product_description, t_workorder, registered_doma
     is_unpartitioned = True
 
     try:
-        # Obtener el valor de workorder_flag desde la tabla t_workorder
-        workorder_flag = get_workorder_flag(t_workorder, cursor)
+        # Comprobar el valor de WORKORDER_FLAG antes de proceder
+        if workorder_flag != 1:
+            logger.info(f"WORKORDER_FLAG no es igual a 1 para la orden '{t_workorder}', no se procesará la unidad.")
+            return
 
         logger.info(f"Procesando T_WORKORDER: '{t_workorder}', WORKORDER_FLAG: '{workorder_flag}' y obteniendo información de la unidad de disco '{device_name}'...")
 
@@ -276,7 +267,7 @@ def get_disk_info(device_name, product_description, t_workorder, registered_doma
                         # Verificar si el espacio no particionado es mayor o igual al espacio requerido
                         if available_space >= product_description:
                             logger.info(f"El espacio libre en la unidad '{device_name}' es mayor o igual que el espacio requerido.")
-                            create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+                            create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
 
             logger.info(f"-> Cantidad de particiones: {partition_count}")
             logger.info(f"-> Espacio particionado: {partitioned_space} bytes")
@@ -293,7 +284,7 @@ def get_disk_info(device_name, product_description, t_workorder, registered_doma
             if is_unpartitioned:
                 logger.warning(f"La unidad '{device_name}' no se encuentra particionada.")
                 try:
-                    create_partition(device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+                    create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
                 except Exception as e:
                     logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_name}': {str(e)}")
 
@@ -363,7 +354,7 @@ def calculate_next_partition_number(device_name):
         return None
 
 # Función para crear particiones
-def create_partition(device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
+def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
         logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
 
@@ -424,7 +415,7 @@ def create_partition(device_name, partition_type, filesystem_type, partition_siz
                 }
 
                 # Luego de crear la partición con éxito, llama a format_partition
-                format_partition(device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+                format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
                  
             else:
                 logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
@@ -462,7 +453,69 @@ def update_storage_committed_size(device_name, committed_size_bytes):
     except Exception as e:
         logger.error(f"ERROR: Error al actualizar la columna 'committed_size' para la unidad '{device_name}': {str(e)}")
 
-def write_partitions_to_mysql(partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info):
+# Función para formatear particiones
+def format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info):
+    try:
+        device_path = f"/dev/{device_name}"
+        logger.info(f"Procediendo a formatear la particion '{partition_name}' en la unidad '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
+        # Formatear la partición con el sistema de archivos especificado
+        format_command = f"sudo mkfs -t {filesystem_type} {device_path}"
+        process = subprocess.Popen(format_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
+
+        if process.returncode == 0:
+            logger.info(f"Partición '{partition_name}' formateada con éxito en '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
+            # Llamar a la función para montar la partición después de formatear
+            mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
+        else:
+            error_message = err.decode("utf-8").strip()
+            raise Exception(f"ERROR: Error al formatear la partición '{partition_name}' en '{device_path}': {error_message}")
+
+    except Exception as e:
+        logger.error(f"ERROR: Error al intentar formatear la partición '{partition_name}' en '{device_path}': {str(e)}")
+
+# Función para montar partición con REGISTERED_DOMAIN
+def mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info):
+    try:
+        target_dir = "/var/www"  # Definir la variable target_dir
+
+        if not os.path.exists(target_dir):
+            raise Exception(f"ERROR: El directorio '{target_dir}' no existe.")
+
+        # Concatenar target_dir y registered_domain para obtener mounting_path
+        mounting_path = os.path.join(target_dir, registered_domain)
+
+        logger.info(f"Montando la partición '{partition_name}' en la unidad '{device_name}' del dominio '{registered_domain}' en '{mounting_path}'...")
+
+        # Verificar si el dispositivo existe antes de montarlo
+        device_path = f"/dev/{device_name}"
+        if not os.path.exists(device_path):
+            raise Exception(f"ERROR: El dispositivo '{device_name}' no existe.")
+
+        # Verificar si el punto de montaje existe
+        if not os.path.exists(mounting_path):
+            logger.info(f"El punto de montaje '{mounting_path}' no existe. Creándolo...")
+            os.makedirs(mounting_path)
+
+        # Montar la partición
+        mount_command = f"sudo mount {device_path} {mounting_path}"
+        process = subprocess.Popen(mount_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
+
+        if process.returncode == 0:
+            logger.info(f"Partición '{partition_name}' montada con éxito en '{mounting_path}'.")
+
+            # Luego de montar la partición con éxito, llama a write_partitions_to_mysql
+            write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
+     
+        else:
+            error_message = err.decode("utf-8").strip()
+            raise Exception(f"ERROR: Error al montar la partición '{partition_name}' en '{mounting_path}': {error_message}")
+
+    except Exception as e:
+        logger.error(f"ERROR: Error al montar la partición en '{mounting_path}': {str(e)}")
+
+def write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info):
     try:
         logger.info(f"Escribiendo en la tabla '{MYSQL_PARTITIONS_TABLE}' las particiones encontradas...")
         logger.info(f"--SHORT_DESCRIPTION: {partition_name}")
@@ -510,7 +563,7 @@ def write_partitions_to_mysql(partition_name, device_name, mounting_path, partit
             logger.info(f"-> Particiones escritas en la tabla '{MYSQL_PARTITIONS_TABLE}' con éxito.")
             
             # Llamar a la funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-            add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
+            add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
 
     except Exception as e:
         logger.error(f"ERROR: Error al escribir particiones en la tabla '{MYSQL_PARTITIONS_TABLE}'.")
@@ -639,70 +692,8 @@ def get_max_partition_value():
         logger.error(str(e))
         return 0
 
-# Función para formatear particiones
-def format_partition(device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info):
-    try:
-        device_path = f"/dev/{device_name}"
-        logger.info(f"Procediendo a formatear la particion '{partition_name}' en la unidad '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
-        # Formatear la partición con el sistema de archivos especificado
-        format_command = f"sudo mkfs -t {filesystem_type} {device_path}"
-        process = subprocess.Popen(format_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = process.communicate()
-
-        if process.returncode == 0:
-            logger.info(f"Partición '{partition_name}' formateada con éxito en '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
-            # Llamar a la función para montar la partición después de formatear
-            mount_partition(device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
-        else:
-            error_message = err.decode("utf-8").strip()
-            raise Exception(f"ERROR: Error al formatear la partición '{partition_name}' en '{device_path}': {error_message}")
-
-    except Exception as e:
-        logger.error(f"ERROR: Error al intentar formatear la partición '{partition_name}' en '{device_path}': {str(e)}")
-
-# Función para montar partición con REGISTERED_DOMAIN
-def mount_partition(device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info):
-    try:
-        target_dir = "/var/www"  # Definir la variable target_dir
-
-        if not os.path.exists(target_dir):
-            raise Exception(f"ERROR: El directorio '{target_dir}' no existe.")
-
-        # Concatenar target_dir y registered_domain para obtener mounting_path
-        mounting_path = os.path.join(target_dir, registered_domain)
-
-        logger.info(f"Montando la partición '{partition_name}' en la unidad '{device_name}' del dominio '{registered_domain}' en '{mounting_path}'...")
-
-        # Verificar si el dispositivo existe antes de montarlo
-        device_path = f"/dev/{device_name}"
-        if not os.path.exists(device_path):
-            raise Exception(f"ERROR: El dispositivo '{device_name}' no existe.")
-
-        # Verificar si el punto de montaje existe
-        if not os.path.exists(mounting_path):
-            logger.info(f"El punto de montaje '{mounting_path}' no existe. Creándolo...")
-            os.makedirs(mounting_path)
-
-        # Montar la partición
-        mount_command = f"sudo mount {device_path} {mounting_path}"
-        process = subprocess.Popen(mount_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = process.communicate()
-
-        if process.returncode == 0:
-            logger.info(f"Partición '{partition_name}' montada con éxito en '{mounting_path}'.")
-
-            # Luego de montar la partición con éxito, llama a write_partitions_to_mysql
-            write_partitions_to_mysql(partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
-     
-        else:
-            error_message = err.decode("utf-8").strip()
-            raise Exception(f"ERROR: Error al montar la partición '{partition_name}' en '{mounting_path}': {error_message}")
-
-    except Exception as e:
-        logger.error(f"ERROR: Error al montar la partición en '{mounting_path}': {str(e)}")
-
 # funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-def add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0):
+def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0):
     try:
         fstab_path = "/etc/fstab"
 
@@ -713,7 +704,7 @@ def add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder
             fstab_content = fstab_file.read()
             if f"{device_name} " in fstab_content:
                 logger.info(f"La entrada para '{device_name}' ya existe en '{fstab_path}'.")
-                update_workorder_table(t_workorder, created_partition_info)
+                update_workorder_table(workorder_flag, t_workorder, created_partition_info)
                 return
 
         # Agregar una nueva entrada al archivo /etc/fstab
@@ -723,7 +714,7 @@ def add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder
         logger.info(f"Entrada para '{device_name}' agregada a '{fstab_path}'. La partición se montará automáticamente al reiniciar el sistema.")
 
         # Luego de agregar entradas en /etc/fstab con éxito, llama a update_workorder_table
-        update_workorder_table(t_workorder, created_partition_info)
+        update_workorder_table(workorder_flag, t_workorder, created_partition_info)
 
     except FileNotFoundError:
         logger.error(f"ERROR: El archivo '{fstab_path}' no existe. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
@@ -735,9 +726,9 @@ def add_to_fstab(device_name, mounting_path, created_partition_info, t_workorder
         logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}': {str(e)}")
 
 # Llamar a esta función después de haber creado la partición con éxito
-def update_workorder_table(t_workorder, created_partition_info):
+def update_workorder_table(workorder_flag, t_workorder, created_partition_info):
     try:
-        logger.info(f"Actualizando datos en la tabla: '{MYSQL_WORKORDER_TABLE}'...")
+        logger.info(f"Actualizando WORKORDER_FLAG '{workorder_flag}' en la orden '{t_workorder}' de la tabla: '{MYSQL_WORKORDER_TABLE}'...")
         
         # Obtener información sobre la partición creada
         device_name = created_partition_info["device_name"]
@@ -768,6 +759,27 @@ def update_workorder_table(t_workorder, created_partition_info):
             cursor.close()
             connection.close()
             logger.info(f"Campo 'workorder_flag' actualizado a '2' y 't_partition', 'UPDATE_DATE', 'UPDATE_BY' actualizados para t_workorder: '{t_workorder}'")
+            time.sleep(10)
+            
+            # Repetir la consulta y mostrar el valor de workorder_flag
+            connection = mysql.connector.connect(
+                user=MYSQL_USER,
+                password=MYSQL_PASSWORD,
+                host=MYSQL_HOST,
+                database=MYSQL_DATABASE
+            )
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT workorder_flag FROM {MYSQL_WORKORDER_TABLE} WHERE T_WORKORDER = %s", (t_workorder,))
+            result = cursor.fetchone()
+            if result:
+                workorder_flag_value = result[0]
+                logger.info(f"Valor actualizado de workorder_flag para la orden '{t_workorder}': {workorder_flag_value}")
+            else:
+                logger.info(f"No se encontró la orden '{t_workorder}' en la tabla '{MYSQL_WORKORDER_TABLE}'.")
+
+            cursor.close()
+            connection.close()
+            
             logger.info(f"********************************************************************************************************************************************")
         except Exception as e:
             connection.rollback()  # Deshacer la transacción si ocurre un error
