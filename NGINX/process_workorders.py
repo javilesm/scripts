@@ -314,10 +314,9 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
     except Exception as e:
         logger.error(f"ERROR inesperado: {str(e)}")
 
-
+# Función para calcular el punto de inicio de una nueva particion
 def calculate_new_partition_start(device_name):
     try:
-        # Obtener información sobre las particiones existentes en el dispositivo
         logger.info(f"Información sobre el dispositivo '{device_name}':")
         logger.info(f"Obteniendo información sobre las particiones existentes en el dispositivo '{device_name}'...")
 
@@ -333,12 +332,13 @@ def calculate_new_partition_start(device_name):
                 partition_size_bytes = int(partition_info.get("size", 0))
                 total_partition_size_bytes += partition_size_bytes
 
-            new_partition_start_bytes = total_partition_size_bytes + 1
+            # Usar un punto de inicio de 1024 bytes (1 kilobyte) para mayor seguridad
+            new_partition_start_bytes = total_partition_size_bytes + 1024
 
             return total_partition_size_bytes, None, new_partition_start_bytes
         else:
             logger.warning(f"No se encontraron particiones existentes en el dispositivo '{device_name}'.")
-            # Retorna un punto de inicio predeterminado
+            # Retorna un punto de inicio predeterminado en bytes
             return 0, None, 1
 
     except Exception as e:
