@@ -335,6 +335,8 @@ def calculate_new_partition_start(device_name):
             # Usar un punto de inicio de 1024 bytes (1 kilobyte) para mayor seguridad
             new_partition_start_bytes = total_partition_size_bytes + 1024
 
+            logger.info(f"Punto de inicio de la nueva partición (calculate_new_partition_start): {new_partition_start_bytes} bytes")
+
             return total_partition_size_bytes, None, new_partition_start_bytes
         else:
             logger.warning(f"No se encontraron particiones existentes en el dispositivo '{device_name}'.")
@@ -387,11 +389,11 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
             last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = calculate_new_partition_start(device_name)
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
-            last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = 0, None, 1
+            last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = 1, None, 1024
 
         logger.info(f"Tamaño de la última partición: {last_partition_size_bytes} bytes.")
         logger.info(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
-        logger.info(f"Punto de inicio de la nueva partición: {new_partition_start_bytes} bytes")
+        logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
         
         if last_partition_size_bytes is not None and new_partition_start_bytes is not None:
             # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
