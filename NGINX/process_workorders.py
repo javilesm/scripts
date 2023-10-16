@@ -92,6 +92,9 @@ def read_workorder_table():
 
             logger.info(f"Procesando T_WORKORDER: '{t_workorder}', DESCRIPTION: '{description}', WORKORDER_FLAG: '{workorder_flag}', REGISTERED_DOMAIN: '{registered_domain}'")
 
+            # Agregar un registro de depuración aquí para verificar el valor de workorder_flag
+            logger.info(f"DEBUG: Valor de workorder_flag: {workorder_flag}")
+
             if workorder_flag == 1:
                 logger.info("******************************************")
                 # Consultar la tabla MYSQL_PRODUCT_TABLE
@@ -104,9 +107,18 @@ def read_workorder_table():
                     logger.info(f"Espacio en disco requerido: '{product_description}' bytes.")
 
                     # Llamar a la función read_storage_table
-                    read_storage_table(workorder_flag, product_description, t_workorder, registered_domain)
+                    created_partition_info = read_storage_table(workorder_flag, product_description, t_workorder, registered_domain)
 
-                    logger.info(f"Procesos de la orden '{t_workorder}' completados.")
+                    # Agregar un registro de depuración aquí para verificar que read_storage_table se ejecutó
+                    logger.info("DEBUG: read_storage_table ejecutada")
+
+                    if created_partition_info is not None:
+                        # Llamar a la función update_workorder_table después de haber creado la partición con éxito
+                        if update_workorder_table(workorder_flag, t_workorder, created_partition_info):
+                            # Registrar que los procesos se completaron
+                            logger.info(f"Procesos de la orden '{t_workorder}' completados.")
+                        else:
+                            logger.error(f"No se pudo actualizar la orden '{t_workorder}' en la tabla '{MYSQL_WORKORDER_TABLE}'.")
 
                 else:
                     logger.error(f"Registro no encontrado en la tabla '{MYSQL_WORKORDER_TABLE}'")
@@ -149,7 +161,6 @@ def read_storage_table(workorder_flag, product_description, t_workorder, registe
     except Exception as e:
         logger.error("ERROR: Error al ejecutar la consulta SQL en MySQL.")
         print(str(e))
-
 
 # función para verificar si la particion ya existe en SQL
 def is_partition_exists_in_sql(name):
@@ -204,13 +215,6 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
     is_unpartitioned = True
 
     try:
-        # Comprobar el valor de WORKORDER_FLAG antes de proceder
-        if workorder_flag != 1:
-            logger.info(f"WORKORDER_FLAG no es igual a 1 para la orden '{t_workorder}', no se procesará la unidad.")
-            return
-
-        logger.info(f"Procesando T_WORKORDER: '{t_workorder}', WORKORDER_FLAG: '{workorder_flag}' y obteniendo información de la unidad de disco '{device_name}'...")
-
         # Configuración de la conexión a MySQL
         connection = mysql.connector.connect(
             user=MYSQL_USER,
@@ -220,6 +224,19 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
         )
         cursor = connection.cursor()
 
+        # Consultar el valor de WORKORDER_FLAG desde la tabla MYSQL_WORKORDER_TABLE
+        cursor.execute(f"SELECT WORKORDER_FLAG FROM {MYSQL_WORKORDER_TABLE} WHERE T_WORKORDER = {t_workorder}")
+        result = cursor.fetchone()
+
+        if result:
+            workorder_flag = result[0]
+
+            if workorder_flag != 1:
+                logger.info(f"WORKORDER_FLAG is not equal to 1 for order '{t_workorder}', the unit will not be processed.")
+                return
+
+            logger.info(f"Procesando T_WORKORDER: '{t_workorder}', WORKORDER_FLAG: '{workorder_flag}' y obteniendo información de la unidad de disco '{device_name}'...")
+        
         # Comprobar si el dispositivo existe antes de ejecutar lsblk
         device_path = f"/dev/{device_name}"
         if os.path.exists(device_path):
@@ -780,7 +797,9 @@ def update_workorder_table(workorder_flag, t_workorder, created_partition_info):
             cursor.close()
             connection.close()
             
-            logger.info(f"********************************************************************************************************************************************")
+            # Forzar un cambio de registro para evitar la repetición
+            return True
+            
         except Exception as e:
             connection.rollback()  # Deshacer la transacción si ocurre un error
             raise e  # Re-lanzar la excepción para manejarla en un nivel superior
@@ -788,6 +807,7 @@ def update_workorder_table(workorder_flag, t_workorder, created_partition_info):
     except Exception as e:
         logger.error(f"ERROR: Error al actualizar los campos en la tabla '{MYSQL_WORKORDER_TABLE}' para la orden: '{t_workorder}'.")
         logger.error(str(e))
+
 
 def process_workorders():
     read_workorder_table()
