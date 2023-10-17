@@ -22,27 +22,52 @@ MYSQL_WORKORDERFLAG_TABLE = "t_workorder_flag"
 MYSQL_PRODUCT_TABLE = "t_Product"
 
 # Variables
-script_directory = os.path.dirname(os.path.abspath(__file__))   # el directorio actual del script (donde se encuentra este script)
-log_file_name = os.path.join(script_directory, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '_process_workorders_log.txt')  # el sistema de registro con la fecha y hora actual en el nombre del archivo
+script_directory = os.path.dirname(os.path.abspath(__file__))
+log_directory = os.path.join(script_directory, "logs")
+log_file_name = os.path.join(log_directory, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '_process_workorders_log.txt')  # el sistema de registro con la fecha y hora actual en el nombre del archivo
 
-logger = getLogger()
-logger.setLevel(logging.INFO)
-
-# Define un manejador de colorlog con formato personalizado
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(
-    f'{Fore.GREEN}%(asctime)s - %(levelname)s - %(message)s{Style.RESET_ALL}'
-))
-
-logger.addHandler(handler)
-
-# Añade un manejador de archivo para guardar los registros en un archivo
-file_handler = logging.FileHandler(log_file_name)
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-logger.addHandler(file_handler)
 
 # Define un diccionario para realizar un seguimiento de las t_workorders que han utilizado cada dispositivo
 used_workorders = {}
+
+def setup_logging(log_directory, log_file_name):
+    # Obtiene el nombre del usuario actual
+    current_user = os.getlogin()  # o puedes usar os.getenv("USER")
+
+    try:
+        
+        # Crear el directorio con sudo
+        subprocess.run(["sudo", "mkdir", "-p", log_directory])
+
+        # Cambiar los permisos con sudo (por ejemplo, 0o755 para propietario:lectura/escritura/ejecución, otros:lectura/ejecución)
+        subprocess.run(["sudo", "chmod", "755", log_directory])
+
+        subprocess.run(["sudo", "chown", "-R", f"{current_user}:{current_user}", log_directory])
+
+        # Ruta completa para el archivo de registro
+        log_file_path = os.path.join(log_directory, log_file_name)
+
+        logger = getLogger()
+        logger.setLevel(logging.INFO)
+
+        # Define un manejador de colorlog con formato personalizado
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(
+            f'{Fore.GREEN}%(asctime)s - %(levelname)s - %(message)s{Style.RESET_ALL}'
+        ))
+
+        logger.addHandler(handler)
+
+        # Añade un manejador de archivo para guardar los registros en un archivo
+        file_handler = logging.FileHandler(log_file_path)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logger.addHandler(file_handler)
+
+        return logger
+    except Exception as e:
+        print(f"Error al configurar el registro: {str(e)}")
+
+logger = setup_logging(log_directory, log_file_name)
 
 # función para conversionde bytes
 def bytes_to_gigabytes(bytes_value):
@@ -389,25 +414,26 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
             last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = calculate_new_partition_start(device_name)
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
-            last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = 1, None, 1024
+            last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = 1, None, 4096  # Aumentado el punto de inicio
 
         logger.info(f"Tamaño de la última partición: {last_partition_size_bytes} bytes.")
         logger.info(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
         logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
-        
+
         if last_partition_size_bytes is not None and new_partition_start_bytes is not None:
             # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
-            partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {next_partition_number} {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B > /dev/null 2>&1"
+            partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {next_partition_number} {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
+
             logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
             logger.info(f"Ejecutando el comando: '{partition_command}'")
 
-            # Usar 'yes' para enviar automáticamente "y" a las preguntas y no detener la ejecución
-            subprocess.Popen(f"yes | {partition_command}", shell=True)
+            # Ejecutar el comando de partición
+            subprocess.run(partition_command, shell=True, check=True)
 
             logger.info(f"Esperando a que se complete la partición...")
 
             # Esperar a que se complete el proceso de partición
-            subprocess.Popen(["sleep", "10"])
+            subprocess.run(["sleep", "10"])
 
             # Verificar si se creó la partición exitosamente
             check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
@@ -417,10 +443,10 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
                 # Obtener el nombre de la partición recién creada
                 partition_info = subprocess.check_output(f"sudo parted /dev/{device_name} print | grep {next_partition_number}", shell=True, text=True)
                 partition_lines = partition_info.strip().split('\n')
-                
+
                 # Extraer el nombre de la partición de las líneas obtenidas
                 partition_name = partition_lines[-1].split()[0]
-                
+
                 logger.info(f"Partición creada en la unidad '/dev/{device_name}' como '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
 
                 created_partition_info = {
