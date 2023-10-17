@@ -134,20 +134,20 @@ def configurar_charset_mysql(ruta_config_mysql):
 configurar_charset_mysql(ruta_config_mysql)
 
 # Función para crear el directorio si no existe
-def create_directory():
+def create_directory(RepositoryDir, GitDir, GitHubRepoURL):
     # Comprueba si el directorio existe
     print(f"Comprobando si el directorio '{RepositoryDir}' existe...")
     if not os.path.exists(RepositoryDir):
         print(f"El directorio '{RepositoryDir}' no existe.")
         print("Creando el directorio...")
-        
+
         try:
-            os.mkdir(RepositoryDir)
-        except OSError:
+            # Utiliza el comando sudo mkdir para crear el directorio
+            subprocess.run(["sudo", "mkdir", RepositoryDir], check=True)
+            print("Directorio creado con éxito.")
+        except subprocess.CalledProcessError:
             print("Error al crear el directorio.")
             exit(1)
-        else:
-            print("Directorio creado con éxito.")
     else:
         print(f"El directorio '{RepositoryDir}' existe...")
 
@@ -159,22 +159,22 @@ def create_directory():
     if not os.path.exists(GitDir):
         print(f"Comprobando si el directorio '{RepositoryDir}' contiene un repositorio '{GitDir}'...")
         print(f"El directorio no contiene un repositorio '{GitDir}'. Clonando el repositorio...")
-        
+
         try:
-            subprocess.check_call(["git", "clone", GitHubRepoURL, "."])
+            subprocess.check_call(["sudo", "git", "clone", GitHubRepoURL, "."])
+            print("Repositorio clonado con éxito.")
         except subprocess.CalledProcessError:
             print("Error al clonar el repositorio.")
         else:
-            print("Repositorio clonado con éxito.")
+            print("Repositorio actualizado con éxito.")
     else:
         print(f"El directorio contiene un repositorio '{GitDir}'. Actualizando el repositorio...")
-        
+
         try:
             subprocess.check_call(["git", "pull", GitHubRepoURL, "--allow-unrelated-histories"])
+            print("Repositorio actualizado con éxito.")
         except subprocess.CalledProcessError:
             print("Error al actualizar el repositorio.")
-        else:
-            print("Repositorio actualizado con éxito.")
 
 # Función para mostrar el resultado del proceso
 def show_result():
@@ -185,7 +185,7 @@ def show_result():
 
 if __name__ == "__main__":
     check_git_installed()
-    create_directory()
+    create_directory(RepositoryDir, GitDir, GitHubRepoURL)
     show_result()
     print("Fin del script.")
 
@@ -261,6 +261,35 @@ def cargar_csv_con_codificacion(ruta_csv, codificacion):
 
     return df
 
+def create_directory_with_sudo(directory_path):
+    # Obtiene el nombre del usuario actual
+    current_user = os.getlogin()  # o puedes usar os.getenv("USER")
+
+    # Comprueba si el directorio existe
+    if not os.path.exists(directory_path):
+        print(f"El directorio '{directory_path}' no existe.")
+        print(f"Creando el directorio '{directory_path}'...")
+
+        try:
+            # Crea el directorio con sudo mkdir
+            subprocess.run(["sudo", "mkdir", directory_path], check=True)
+            print(f"Directorio '{directory_path}' creado con éxito.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error al crear el directorio: {e}")
+            return
+
+        # Cambia los permisos del directorio para que el usuario pueda escribir en él
+        try:
+            # Cambia la propiedad del directorio al usuario actual y al grupo del usuario actual
+            subprocess.run(["sudo", "chown", "-R", f"{current_user}:{current_user}", directory_path])
+
+            # Cambia los permisos a 755 (ejemplo: el propietario puede leer, escribir y ejecutar)
+            subprocess.run(["sudo", "chmod", "755", directory_path])
+        except subprocess.CalledProcessError as e:
+            print(f"Error al cambiar los permisos del directorio: {e}")
+    else:
+        print(f"El directorio '{directory_path}' ya existe.")
+
 # Función para obtener los encabezados CSV
 def obtener_encabezados_csv(directorio_csv, Headings_Dir):
     print("Obteniendo los encabezados CSV...")
@@ -271,9 +300,9 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
     # Ruta completa del Headings_Dir donde se guardarán los archivos de texto
     ruta_Headings_Dir = os.path.join(directorio_csv, Headings_Dir)
 
-    # Verificar si el Headings_Dir existe y, si no existe, crearlo
+    # Verificar si el Headings_Dir existe y, si no existe, crearlo con "sudo mkdir"
     if not os.path.exists(ruta_Headings_Dir):
-        os.mkdir(ruta_Headings_Dir)
+        create_directory_with_sudo(ruta_Headings_Dir)
 
     # Mapear los tipos de datos de pandas a tipos de datos SQL, incluyendo números de teléfono
     tipos_de_datos_sql = {
@@ -530,11 +559,12 @@ script_footer()
 def eliminar_directorio(directorio):
     try:
         if os.path.exists(directorio):
-            shutil.rmtree(directorio)
-            print(f"El directorio '{directorio}' ha sido eliminado.")
+            # Utiliza el comando 'sudo rm -rf' para eliminar el directorio y su contenido recursivamente
+            subprocess.run(["sudo", "rm", "-rf", directorio], check=True)
+            print(f"El directorio '{directorio}' ha sido eliminado con éxito.")
         else:
             print(f"El directorio '{directorio}' no existe y no se pudo eliminar.")
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         print(f"Error al eliminar el directorio '{directorio}': {e}")
 
 # Llama a la función para eliminar el directorio ruta_archivos_sql
