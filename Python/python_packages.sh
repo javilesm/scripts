@@ -10,18 +10,24 @@ ENVIRONMENTS_PATH="$CURRENT_DIR/$ENVIRONMENTS_FILE"
 REPORT_FILE="report.txt"
 REPORT_PATH="$CURRENT_DIR/$REPORT_FILE"
 
+add_pip_to_path() {
+  local pip_path
+  pip_path=$(which pip)
+  
+  if [ -z "$pip_path" ]; then
+    echo "El ejecutable pip no se pudo encontrar en el sistema."
+  else
+    # Agregar pip al PATH
+    export PATH="$pip_path:$PATH"
+    echo "Ruta al ejecutable pip: $pip_path"
+    echo "Se ha agregado pip al PATH."
+  fi
+}
+
 # Función para comprobar la existencia del archivo de paquetes pip
 function verify_list1() {
   if [ ! -f "$PACKAGES_PATH" ]; then
     echo "ERROR: El archivo de paquetes pip '$PACKAGES_FILE' no se puede encontrar en la ruta '$PACKAGES_PATH'."
-    exit 1
-  fi
-}
-
-# Función para comprobar la existencia del archivo de entornos
-function verify_list2() {
-  if [ ! -f "$ENVIRONMENTS_PATH" ]; then
-    echo "ERROR: El archivo de entornos virtuales '$ENVIRONMENTS_FILE' no se puede encontrar en la ruta '$ENVIRONMENTS_PATH'."
     exit 1
   fi
 }
@@ -45,27 +51,36 @@ function read_packages() {
   fi
 }
 
-# Función para instalar paquetes en un entorno
+# Leer la lista de entornos y usar solo el primer registro
+function read_and_use_first_environment() {
+  if [[ -f "$ENVIRONMENTS_PATH" ]]; then
+    read -r first_environment < "$ENVIRONMENTS_PATH"
+  else
+    echo "Error: no se encontró '$ENVIRONMENTS_PATH'"
+    exit 1
+  fi
+  echo "Usando el entorno: $first_environment"
+}
+
+# Función para instalar paquetes en el entorno seleccionado
 function install_packages() {
-  local environment="$1"
-  source "$ENV_DIR/$environment/bin/activate"
   for package in "${packages[@]}"; do
-    echo "Instalando el paquete PIP '$package' en el entorno '$environment'..."
-    echo "$environment --> $package" >> "$REPORT_PATH"
+    echo "Instalando el paquete PIP '$package' en el entorno '$first_environment'..."
+    echo "$first_environment --> $package" >> "$REPORT_PATH"
+    source "$ENV_DIR/$first_environment/bin/activate"
     pip install "$package"
+    deactivate
   done
-  deactivate
 }
 
 # Función principal
 function main() {
+  add_pip_to_path
   verify_list1
-  verify_list2
   check_report_file
   read_packages
-  for environment in $(cat "$ENVIRONMENTS_PATH"); do
-    install_packages "$environment"
-  done
+  read_and_use_first_environment
+  install_packages
   check_pip
 }
 
