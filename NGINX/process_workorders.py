@@ -326,7 +326,12 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
             if is_unpartitioned:
                 logger.warning(f"La unidad '{device_path}' no se encuentra particionada.")
                 try:
+                    # Inicializar la unidad con una etiqueta de disco
+                    initialize_disk(device_name)
+                    
+                    # Llamar a la funcon para particionar una unidad nueva
                     create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+
                 except Exception as e:
                     logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_path}': {str(e)}")
 
@@ -358,7 +363,7 @@ def calculate_new_partition_start(device_name):
                 total_partition_size_bytes += partition_size_bytes
 
             # Usar un punto de inicio de 1024 bytes (1 kilobyte) para mayor seguridad
-            new_partition_start_bytes = total_partition_size_bytes + 1024
+            new_partition_start_bytes = total_partition_size_bytes + 1
 
             logger.info(f"Punto de inicio de la nueva partición (calculate_new_partition_start): {new_partition_start_bytes} bytes")
 
@@ -397,7 +402,6 @@ def calculate_next_partition_number(device_name):
         logger.error(f"Error al calcular el siguiente número de partición: {str(e)}")
         return None
 
-
 # Función para inicializar un disco con una tabla de particiones
 def initialize_disk(device_name):
     try:
@@ -411,13 +415,14 @@ def initialize_disk(device_name):
         # Ejecutar el comando de inicialización
         subprocess.run(initialize_command, shell=True, check=True)
 
+        # Comprobar si la inicialización se completó con éxito
         logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
     except subprocess.CalledProcessError as e:
         logger.error(f"ERROR: Error al inicializar el disco '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al inicializar el disco '/dev/{device_name}': {str(e)}")
 
-# Función para crear particiones
+# Función para particionar una unidad, independientemente de si tiene particiones previas o no
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
         logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
@@ -436,111 +441,61 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
             logger.info(f"Tamaño de la última partición: {last_partition_size_bytes} bytes.")
             logger.info(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
             logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
-
-            # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
-            partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {next_partition_number} {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
-
-            logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
-            logger.info(f"Ejecutando el comando: '{partition_command}'")
-
-            # Ejecutar el comando de partición
-            subprocess.run(partition_command, shell=True, check=True)
-
-            logger.info(f"Esperando a que se complete la partición...")
-
-            # Esperar a que se complete el proceso de partición
-            subprocess.run(["sleep", "10"])
-
-            # Verificar si se creó la partición exitosamente
-            check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
-            partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
-
-            if partition_result.returncode == 0:
-                # Obtener el nombre de la partición recién creada
-                partition_info = subprocess.check_output(f"sudo parted /dev/{device_name} print | grep {next_partition_number}", shell=True, text=True)
-                partition_lines = partition_info.strip().split('\n')
-
-                # Extraer el nombre de la partición de las líneas obtenidas
-                partition_name = partition_lines[-1].split()[0]
-
-                logger.info(f"Partición creada en la unidad '/dev/{device_name}' como '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
-
-                created_partition_info = {
-                    "device_name": device_name,
-                    "partition_name": partition_name,
-                    "partition_number": next_partition_number,
-                    "partition_type": partition_type,
-                    "filesystem_type": filesystem_type,
-                    "registered_domain": registered_domain,
-                    "partition_size": partition_size
-                }
-
-                # Comprobar si la partición se creó correctamente antes de continuar
-                check_created_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
-                created_partition_result = subprocess.run(check_created_partition_command, shell=True, stderr=subprocess.PIPE)
-
-                if created_partition_result.returncode == 0:
-                    # Luego de crear la partición con éxito, llama a format_partition
-                    format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
-                else:
-                    logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
-            else:
-                logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
-            new_partition_start_bytes = 4096  # Punto de inicio predeterminado
+            new_partition_start_bytes = 2048  # Punto de inicio predeterminado
 
             logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
 
-            # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio predeterminado
-            partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {next_partition_number} {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
+        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
+        partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
 
-            logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
-            logger.info(f"Ejecutando el comando: '{partition_command}'")
+        logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
+        logger.info(f"Ejecutando el comando: '{partition_command}'")
 
-            # Ejecutar el comando de partición
-            subprocess.run(partition_command, shell=True, check=True)
+        # Ejecutar el comando de partición
+        subprocess.run(partition_command, shell=True, check=True)
 
-            logger.info(f"Esperando a que se complete la partición...")
+        logger.info(f"Esperando a que se complete la partición...")
 
-            # Esperar a que se complete el proceso de partición
-            subprocess.run(["sleep", "10"])
+        # Esperar a que se complete el proceso de partición
+        subprocess.run(["sleep", "10"])
 
-            # Verificar si se creó la partición exitosamente
-            check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
-            partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
+        # Verificar si se creó la partición exitosamente
+        check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
+        partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
 
-            if partition_result.returncode == 0:
-                # Obtener el nombre de la partición recién creada
-                partition_info = subprocess.check_output(f"sudo parted /dev/{device_name} print | grep {next_partition_number}", shell=True, text=True)
-                partition_lines = partition_info.strip().split('\n')
+        if partition_result.returncode == 0:
+            # Obtener el nombre de la partición recién creada
+            partition_info = subprocess.check_output(f"sudo parted /dev/{device_name} print | grep {next_partition_number}", shell=True, text=True)
+            partition_lines = partition_info.strip().split('\n')
 
-                # Extraer el nombre de la partición de las líneas obtenidas
-                partition_name = partition_lines[-1].split()[0]
+            # Extraer el nombre de la partición de las líneas obtenidas
+            partition_name = partition_lines[-1].split()[0]
 
-                logger.info(f"Partición creada en la unidad '/dev/{device_name}' como '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
+            logger.info(f"Partición creada en la unidad '/dev/{device_name}' como '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
 
-                created_partition_info = {
-                    "device_name": device_name,
-                    "partition_name": partition_name,
-                    "partition_number": next_partition_number,
-                    "partition_type": partition_type,
-                    "filesystem_type": filesystem_type,
-                    "registered_domain": registered_domain,
-                    "partition_size": partition_size
-                }
+            created_partition_info = {
+                "device_name": device_name,
+                "partition_name": partition_name,
+                "partition_number": next_partition_number,
+                "partition_type": partition_type,
+                "filesystem_type": filesystem_type,
+                "registered_domain": registered_domain,
+                "partition_size": partition_size
+            }
 
-                # Comprobar si la partición se creó correctamente antes de continuar
-                check_created_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
-                created_partition_result = subprocess.run(check_created_partition_command, shell=True, stderr=subprocess.PIPE)
+            # Comprobar si la partición se creó correctamente antes de continuar
+            check_created_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
+            created_partition_result = subprocess.run(check_created_partition_command, shell=True, stderr=subprocess.PIPE)
 
-                if created_partition_result.returncode == 0:
-                    # Luego de crear la partición con éxito, llama a format_partition
-                    format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
-                else:
-                    logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
+            if created_partition_result.returncode == 0:
+                # Luego de crear la partición con éxito, llama a format_partition
+                format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
             else:
-                logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
+                logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
+        else:
+            logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
 
     except subprocess.CalledProcessError as e:
         logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
