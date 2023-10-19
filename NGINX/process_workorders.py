@@ -261,12 +261,12 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                 return
 
             logger.info(f"Procesando T_WORKORDER: '{t_workorder}', WORKORDER_FLAG: '{workorder_flag}' y obteniendo información de la unidad de disco '{device_name}'...")
-        
+
         # Comprobar si el dispositivo existe antes de ejecutar lsblk
         device_path = f"/dev/{device_name}"
         if os.path.exists(device_path):
             logger.info(f"Obteniendo información de la unidad: '{device_path}'...")
-            
+
             # Obtener información de lsblk en formato JSON
             lsblk_info = subprocess.check_output(
                 ["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", device_path], text=True
@@ -281,7 +281,6 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
 
             partition_count = 0
             partitioned_space = 0
-            available_space = 0
             is_unpartitioned = True
 
             if "children" in lsblk_info["blockdevices"][0]:
@@ -294,7 +293,6 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                     if name is not None:
                         # Calcular espacio no particionado
                         partitioned_space += size
-                        available_space = device_size - partitioned_space
 
                         # Comprobar si es una partición
                         if mountpoint is not None:
@@ -306,10 +304,8 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                             partition_count += 1
                             is_unpartitioned = False
 
-                        # Verificar si el espacio no particionado es mayor o igual al espacio requerido
-                        if available_space >= product_description:
-                            logger.info(f"El espacio libre en la unidad '{device_path}' es mayor o igual que el espacio requerido.")
-                            create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+            # Calcular espacio no particionado
+            available_space = device_size - partitioned_space
 
             logger.info(f"-> Cantidad de particiones: {partition_count}")
             logger.info(f"-> Espacio particionado: {partitioned_space} bytes")
@@ -322,15 +318,25 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
             logger.info("Actualizando la columna 'committed_size' en la tabla t_storage...")
             update_storage_committed_size(device_name, committed_size_bytes)  # Aquí se pasa solo el espacio particionado
 
-            # Mover aquí la sección para crear partición si no está particionada
             if is_unpartitioned:
                 logger.warning(f"La unidad '{device_path}' no se encuentra particionada.")
                 try:
                     # Inicializar la unidad con una etiqueta de disco
                     initialize_disk(device_name)
-                    
-                    # Llamar a la funcon para particionar una unidad nueva
-                    create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+
+                    # Usar 'sudo mkdir' para crear el directorio
+                    target_dir = "/var/www"
+                    mounting_path = os.path.join(target_dir, registered_domain)
+                    create_mount_dir_command = f"sudo mkdir -p {mounting_path}"
+                    create_mount_dir_process = subprocess.Popen(create_mount_dir_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    create_mount_dir_process.communicate()
+
+                    if create_mount_dir_process.returncode == 0:
+                        logger.info(f"Directorio '{mounting_path}' creado con éxito.")
+                        create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mounting_path, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+                    else:
+                        error_message = create_mount_dir_process.stderr.decode("utf-8").strip()
+                        raise Exception(f"ERROR: Error al crear el directorio '{mounting_path}': {error_message}")
 
                 except Exception as e:
                     logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_path}': {str(e)}")
@@ -343,6 +349,7 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
 
     except Exception as e:
         logger.error(f"ERROR inesperado: {str(e)}")
+
 
 # Función para calcular el punto de inicio de una nueva particion
 def calculate_new_partition_start(device_name):
@@ -408,12 +415,15 @@ def initialize_disk(device_name):
         logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones...")
 
         # Comando para inicializar el disco con una tabla de particiones GPT
-        initialize_command = f"sudo parted /dev/{device_name} mklabel gpt"
+        initialize_command = "sudo parted /dev/xvdc mklabel gpt"
 
         logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
 
+        # Convertir la entrada ('input') en un objeto bytes
+        input_bytes = 'Yes\n'.encode()
+
         # Ejecutar el comando de inicialización
-        subprocess.run(initialize_command, shell=True, check=True)
+        subprocess.run(initialize_command, shell=True, check=True, input=input_bytes)
 
         # Comprobar si la inicialización se completó con éxito
         logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
@@ -425,6 +435,9 @@ def initialize_disk(device_name):
 # Función para particionar una unidad, independientemente de si tiene particiones previas o no
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
+        # Definir 'new_partition_start_sectors' con un valor predeterminado
+        new_partition_start_sectors = 34  # Punto de inicio predeterminado en sectores
+        
         logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
 
         # Obtener el siguiente número de partición disponible
@@ -443,12 +456,18 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
             logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
-            new_partition_start_bytes = 2048  # Punto de inicio predeterminado
+            new_partition_start_sectors = 34  # Punto de inicio predeterminado en sectores
 
-            logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
+            logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_sectors} sectores")
 
-        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
-        partition_command = f"sudo parted --align optimal /dev/{device_name} mkpart {partition_type} {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
+        # Convertir el tamaño de la partición de bytes a sectores
+        partition_size_sectors = partition_size / 512  # 512 bytes por sector (ajusta si es necesario)
+
+        # Calcular el punto final de la partición en sectores
+        new_partition_end_sectors = new_partition_start_sectors + partition_size_sectors
+
+        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y los puntos de inicio y final en sectores
+        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {new_partition_start_sectors}s {new_partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
@@ -501,6 +520,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
+
 
 
 # Función para actualizar datos de la unidad de disco
@@ -572,7 +592,18 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
         # Verificar si el punto de montaje existe
         if not os.path.exists(mounting_path):
             logger.info(f"El punto de montaje '{mounting_path}' no existe. Creándolo...")
-            os.makedirs(mounting_path)
+
+            # Usar 'sudo mkdir' para crear el directorio
+            create_dir_command = f"sudo mkdir -p {mounting_path}"
+            create_dir_process = subprocess.Popen(create_dir_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            create_dir_process.communicate()  # Esperar a que se complete el proceso
+
+            if create_dir_process.returncode == 0:
+                logger.info(f"Directorio '{mounting_path}' creado con éxito.")
+            else:
+                error_message = create_dir_process.stderr.decode("utf-8").strip()
+                raise Exception(f"ERROR: Error al crear el directorio '{mounting_path}': {error_message}")
+
 
         # Montar la partición
         mount_command = f"sudo mount {device_path} {mounting_path}"
