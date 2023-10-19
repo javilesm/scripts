@@ -333,7 +333,7 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
 
                     if create_mount_dir_process.returncode == 0:
                         logger.info(f"Directorio '{mounting_path}' creado con éxito.")
-                        create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mounting_path, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
+                        create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mounting_path, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
                     else:
                         error_message = create_mount_dir_process.stderr.decode("utf-8").strip()
                         raise Exception(f"ERROR: Error al crear el directorio '{mounting_path}': {error_message}")
@@ -409,28 +409,40 @@ def calculate_next_partition_number(device_name):
         logger.error(f"Error al calcular el siguiente número de partición: {str(e)}")
         return None
 
-# Función para inicializar un disco con una tabla de particiones
+
 def initialize_disk(device_name):
     try:
-        logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones...")
+        logger.info(f"Verificando si el disco '/dev/{device_name}' está inicializado...")
 
-        # Comando para inicializar el disco con una tabla de particiones GPT
-        initialize_command = "sudo parted /dev/xvdc mklabel gpt"
+        # Comando para verificar la tabla de particiones del disco
+        check_command = f"sudo parted /dev/{device_name} print"
 
-        logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
+        # Ejecutar el comando de verificación
+        check_result = subprocess.run(check_command, shell=True, stderr=subprocess.PIPE, text=True)
 
-        # Convertir la entrada ('input') en un objeto bytes
-        input_bytes = 'Yes\n'.encode()
+        if check_result.returncode == 0:
+            logger.info(f"El disco '/dev/{device_name}' ya está inicializado. No es necesario realizar la inicialización.")
+        else:
+            logger.info(f"El disco '/dev/{device_name}' no está inicializado. Procediendo a la inicialización...")
 
-        # Ejecutar el comando de inicialización
-        subprocess.run(initialize_command, shell=True, check=True, input=input_bytes)
+            # Comando para inicializar el disco con una tabla de particiones GPT
+            initialize_command = "sudo parted /dev/xvdc mklabel gpt"
 
-        # Comprobar si la inicialización se completó con éxito
-        logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
+            logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
+
+            # Convertir la entrada ('input') en un objeto bytes
+            input_bytes = 'Yes\n'.encode()
+
+            # Ejecutar el comando de inicialización
+            subprocess.run(initialize_command, shell=True, check=True, input=input_bytes)
+
+            # Comprobar si la inicialización se completó con éxito
+            logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
     except subprocess.CalledProcessError as e:
         logger.error(f"ERROR: Error al inicializar el disco '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al inicializar el disco '/dev/{device_name}': {str(e)}")
+
 
 # Función para particionar una unidad, independientemente de si tiene particiones previas o no
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
@@ -467,7 +479,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         new_partition_end_sectors = new_partition_start_sectors + partition_size_sectors
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y los puntos de inicio y final en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {new_partition_start_sectors}s {new_partition_end_sectors}s"
+        partition_command = f"sudo parted /dev/{device_name} mkpart {next_partition_number} {filesystem_type} {new_partition_start_sectors}s {new_partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
@@ -520,7 +532,6 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
-
 
 
 # Función para actualizar datos de la unidad de disco
