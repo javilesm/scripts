@@ -464,14 +464,17 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
             logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
-            new_partition_start_bytes = 0  # Punto de inicio predeterminado
+            new_partition_start_bytes = 2048  # Punto de inicio predeterminado
 
-        # Calcular un punto de inicio alineado
+        # Calcular un punto de inicio alineado en sectores
         block_size = 512  # Tamaño de bloque típico
-        aligned_start = block_size  # Usar un bloque como punto de inicio alineado
+        aligned_start_sectors = new_partition_start_bytes // block_size
 
-        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
-        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
+        # Calcular el tamaño de la partición en sectores
+        partition_size_sectors = partition_size // block_size
+
+        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
+        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {(aligned_start_sectors + partition_size_sectors)}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
@@ -489,18 +492,18 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
 
         if partition_result.returncode == 0:
-            # Obtener el nombre de la partición recién creada
+            # Obtener el ID de la partición recién creada
             partition_info = subprocess.check_output(f"sudo parted /dev/{device_name} print | grep {next_partition_number}", shell=True, text=True)
             partition_lines = partition_info.strip().split('\n')
 
-            # Extraer el nombre de la partición de las líneas obtenidas
-            partition_name = partition_lines[-1].split()[0]
+            # Extraer el ID de la partición de las líneas obtenidas
+            partition_id = partition_lines[-1].split()[1]  # Asumiendo que el ID está en la segunda columna
 
-            logger.info(f"Partición creada en la unidad '/dev/{device_name}' como '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
+            logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_id}', tipo '{partition_type}' y formato '{filesystem_type}'.")
 
             created_partition_info = {
                 "device_name": device_name,
-                "partition_name": partition_name,
+                "partition_id": partition_id,
                 "partition_number": next_partition_number,
                 "partition_type": partition_type,
                 "filesystem_type": filesystem_type,
@@ -514,7 +517,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
 
             if created_partition_result.returncode == 0:
                 # Luego de crear la partición con éxito, llama a format_partition
-                format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+                format_partition(workorder_flag, device_name, partition_id, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
             else:
                 logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
         else:
@@ -588,8 +591,8 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
         logger.info(f"Montando la partición '{partition_name}' en la unidad '{device_name}' del dominio '{registered_domain}' en '{mounting_path}'...")
 
         # Verificar si el dispositivo existe antes de montarlo
-        device_path = f"/dev/{device_name}"
-        if not os.path.exists(device_path):
+        partition_path = f"/dev/{partition_name}"
+        if not os.path.exists(partition_path):
             raise Exception(f"ERROR: El dispositivo '{device_name}' no existe.")
 
         # Verificar si el punto de montaje existe
@@ -609,19 +612,19 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
 
 
         # Montar la partición
-        mount_command = f"sudo mount {device_path} {mounting_path}"
+        mount_command = f"sudo mount {partition_path} {mounting_path}"
         process = subprocess.Popen(mount_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
 
         if process.returncode == 0:
-            logger.info(f"Partición '{partition_name}' montada con éxito en '{mounting_path}'.")
+            logger.info(f"Partición '{partition_path}' montada con éxito en '{mounting_path}'.")
 
             # Luego de montar la partición con éxito, llama a write_partitions_to_mysql
             write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
      
         else:
             error_message = err.decode("utf-8").strip()
-            raise Exception(f"ERROR: Error al montar la partición '{partition_name}' en '{mounting_path}': {error_message}")
+            raise Exception(f"ERROR: Error al montar la partición '{partition_path}' en '{mounting_path}': {error_message}")
 
     except Exception as e:
         logger.error(f"ERROR: Error al montar la partición en '{mounting_path}': {str(e)}")
