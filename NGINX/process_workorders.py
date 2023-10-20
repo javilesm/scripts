@@ -803,13 +803,13 @@ def get_max_partition_value():
         logger.error(str(e))
         return 0
 
-# funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+# Función para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
 def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0):
     try:
         fstab_path = "/etc/fstab"
 
         logger.info(f"Agregando entradas en '{fstab_path}' para montar las particiones al reiniciar el sistema...")
-        
+
         # Comprobar si el archivo /etc/fstab ya contiene una entrada para el dispositivo
         with open(fstab_path, "r") as fstab_file:
             fstab_content = fstab_file.read()
@@ -818,14 +818,20 @@ def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_i
                 update_workorder_table(workorder_flag, t_workorder, created_partition_info)
                 return
 
-        # Agregar una nueva entrada al archivo /etc/fstab
-        with open(fstab_path, "a") as fstab_file:
-            fstab_file.write(f"{device_name} {mounting_path} {filesystem_type} {options} {dump} {pass_num}\n")
+        # Agregar una nueva entrada al archivo /etc/fstab con "sudo"
+        add_fstab_command = f"echo '{device_name} {mounting_path} {filesystem_type} {options} {dump} {pass_num}' | sudo tee -a {fstab_path}"
+
+        logger.info(f"Agregando entrada para '{device_name}' en '{fstab_path}' usando sudo...")
+
+        subprocess.run(add_fstab_command, shell=True, check=True)
 
         logger.info(f"Entrada para '{device_name}' agregada a '{fstab_path}'. La partición se montará automáticamente al reiniciar el sistema.")
 
         # Luego de agregar entradas en /etc/fstab con éxito, llama a update_workorder_table
         update_workorder_table(workorder_flag, t_workorder, created_partition_info)
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}' usando sudo: {e}")
 
     except FileNotFoundError:
         logger.error(f"ERROR: El archivo '{fstab_path}' no existe. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
@@ -835,6 +841,7 @@ def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_i
 
     except Exception as e:
         logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}': {str(e)}")
+
 
 # Llamar a esta función después de haber creado la partición con éxito
 def update_workorder_table(workorder_flag, t_workorder, created_partition_info):
