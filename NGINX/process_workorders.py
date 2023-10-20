@@ -444,12 +444,8 @@ def initialize_disk(device_name):
         logger.error(f"ERROR: Error muy inesperado al inicializar el disco '/dev/{device_name}': {str(e)}")
 
 
-# Función para particionar una unidad, independientemente de si tiene particiones previas o no
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
-        # Definir 'new_partition_start_sectors' con un valor predeterminado
-        new_partition_start_sectors = 34  # Punto de inicio predeterminado en sectores
-        
         logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
 
         # Obtener el siguiente número de partición disponible
@@ -468,18 +464,14 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
             logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
-            new_partition_start_sectors = 34  # Punto de inicio predeterminado en sectores
+            new_partition_start_bytes = 0  # Punto de inicio predeterminado
 
-            logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_sectors} sectores")
+        # Calcular un punto de inicio alineado
+        block_size = 512  # Tamaño de bloque típico
+        aligned_start = block_size  # Usar un bloque como punto de inicio alineado
 
-        # Convertir el tamaño de la partición de bytes a sectores
-        partition_size_sectors = partition_size / 512  # 512 bytes por sector (ajusta si es necesario)
-
-        # Calcular el punto final de la partición en sectores
-        new_partition_end_sectors = new_partition_start_sectors + partition_size_sectors
-
-        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y los puntos de inicio y final en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {next_partition_number} {filesystem_type} {new_partition_start_sectors}s {new_partition_end_sectors}s"
+        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio calculado
+        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {new_partition_start_bytes}B {new_partition_start_bytes + partition_size}B"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
