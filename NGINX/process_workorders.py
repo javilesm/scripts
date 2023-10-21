@@ -412,37 +412,33 @@ def calculate_next_partition_number(device_name):
 
 def initialize_disk(device_name):
     try:
-        logger.info(f"Verificando si el disco '/dev/{device_name}' está inicializado...")
+        logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
 
-        # Comando para verificar la tabla de particiones del disco
-        check_command = f"sudo parted /dev/{device_name} print"
+        # Comando para inicializar el disco con una tabla de particiones GPT
+        initialize_command = f"sudo parted /dev/{device_name} mklabel gpt"
 
-        # Ejecutar el comando de verificación
-        check_result = subprocess.run(check_command, shell=True, stderr=subprocess.PIPE, text=True)
+        logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
 
-        if check_result.returncode == 0:
-            logger.info(f"El disco '/dev/{device_name}' ya está inicializado. No es necesario realizar la inicialización.")
-        else:
-            logger.info(f"El disco '/dev/{device_name}' no está inicializado. Procediendo a la inicialización...")
+        # Utilizar una cadena en lugar de bytes para la entrada
+        input_string = 'Yes\n'
 
-            # Comando para inicializar el disco con una tabla de particiones GPT
-            initialize_command = "sudo parted /dev/xvdc mklabel gpt"
+        # Ejecutar el comando de inicialización
+        initialize_result = subprocess.run(initialize_command, shell=True, input=input_string, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-            logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
-
-            # Convertir la entrada ('input') en un objeto bytes
-            input_bytes = 'Yes\n'.encode()
-
-            # Ejecutar el comando de inicialización
-            subprocess.run(initialize_command, shell=True, check=True, input=input_bytes)
-
-            # Comprobar si la inicialización se completó con éxito
+        if initialize_result.returncode == 0:
             logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
+        else:
+            # Si la inicialización falla, informar y registrar el error.
+            logger.error(f"ERROR: Fallo al inicializar el disco '/dev/{device_name}': {initialize_result.stderr}")
+            # Puedes tomar medidas correctivas aquí si es necesario.
+
     except subprocess.CalledProcessError as e:
         logger.error(f"ERROR: Error al inicializar el disco '/dev/{device_name}': {e}")
+        # Puedes tomar medidas correctivas aquí si es necesario.
+
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al inicializar el disco '/dev/{device_name}': {str(e)}")
-
+        # Puedes tomar medidas correctivas aquí si es necesario.
 
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
@@ -493,11 +489,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
 
         if partition_result.returncode == 0:
             # Obtener el ID de la partición recién creada
-            partition_info = subprocess.check_output(f"sudo parted /dev/{device_name} print | grep {next_partition_number}", shell=True, text=True)
-            partition_lines = partition_info.strip().split('\n')
-
-            # Extraer el ID de la partición de las líneas obtenidas
-            partition_id = partition_lines[-1].split()[1]  # Asumiendo que el ID está en la segunda columna
+            partition_id = f"/dev/{device_name}{next_partition_number}"
 
             logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_id}', tipo '{partition_type}' y formato '{filesystem_type}'.")
 
@@ -527,7 +519,6 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
-
 
 # Función para actualizar datos de la unidad de disco
 def update_storage_committed_size(device_name, committed_size_bytes):
@@ -588,12 +579,11 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
         # Concatenar target_dir y registered_domain para obtener mounting_path
         mounting_path = os.path.join(target_dir, registered_domain)
 
-        logger.info(f"Montando la partición '{partition_name}' en la unidad '{device_name}' del dominio '{registered_domain}' en '{mounting_path}'...")
+        logger.info(f"Montando la partición '{partition_name}' en '{mounting_path}'...")
 
         # Verificar si el dispositivo existe antes de montarlo
-        partition_path = f"/dev/{partition_name}"
-        if not os.path.exists(partition_path):
-            raise Exception(f"ERROR: El dispositivo '{device_name}' no existe.")
+        if not os.path.exists(partition_name):
+            raise Exception(f"ERROR: El dispositivo '{partition_name}' no existe.")
 
         # Verificar si el punto de montaje existe
         if not os.path.exists(mounting_path):
@@ -612,22 +602,22 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
 
 
         # Montar la partición
-        mount_command = f"sudo mount {partition_path} {mounting_path}"
+        mount_command = f"sudo mount {partition_name} {mounting_path}"
         process = subprocess.Popen(mount_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
 
         if process.returncode == 0:
-            logger.info(f"Partición '{partition_path}' montada con éxito en '{mounting_path}'.")
+            logger.info(f"Partición '{partition_name}' montada con éxito en '{mounting_path}'.")
 
             # Luego de montar la partición con éxito, llama a write_partitions_to_mysql
             write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
      
         else:
             error_message = err.decode("utf-8").strip()
-            raise Exception(f"ERROR: Error al montar la partición '{partition_path}' en '{mounting_path}': {error_message}")
+            raise Exception(f"ERROR: Error al montar la partición '{partition_name}' en '{mounting_path}': {error_message}")
 
     except Exception as e:
-        logger.error(f"ERROR: Error al montar la partición en '{mounting_path}': {str(e)}")
+        logger.error(f"ERROR: Error al montar la partición '{partition_name}' en '{mounting_path}': {str(e)}")
 
 def write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info):
     try:
