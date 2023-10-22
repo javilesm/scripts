@@ -11,3 +11,4 @@ pandas
 unidecode
 colorlog
 colorama
+pyflowchart
