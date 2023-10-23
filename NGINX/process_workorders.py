@@ -139,7 +139,7 @@ def read_workorder_table():
 
                     if created_partition_info is not None:
                         # Llamar a la función update_workorder_table después de haber creado la partición con éxito
-                        if update_workorder_table(workorder_flag, t_workorder, created_partition_info):
+                        if update_workorder_table(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder):
                             # Registrar que los procesos se completaron
                             logger.info(f"Procesos de la orden '{t_workorder}' completados.")
                         else:
@@ -465,7 +465,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
             logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
-            new_partition_start_bytes = 2048  # Punto de inicio predeterminado
+            new_partition_start_bytes = 17920  # Punto de inicio predeterminado
 
         # Calcular un punto de inicio alineado en sectores
         block_size = 512  # Tamaño de bloque típico
@@ -475,7 +475,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_size_sectors = partition_size // block_size
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted -s /dev/{device_name} mkpart ext4 {aligned_start_sectors}s {(aligned_start_sectors + partition_size_sectors)}s print all"
+        partition_command = f"sudo parted /dev/{device_name} mkpart ext4 {aligned_start_sectors}s {(aligned_start_sectors + partition_size_sectors)}s print all"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
@@ -565,8 +565,7 @@ def format_partition(workorder_flag, device_name, partition_name, filesystem_typ
         if process.returncode == 0:
             logger.info(f"Partición '{partition_name}' formateada con éxito en '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
             # Llamar a la función para montar la partición después de formatear
-            #mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
-            write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)        
+            mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
         else:
             error_message = err.decode("utf-8").strip()
             raise Exception(f"ERROR: Error al formatear la partición '{partition_name}' en '{device_path}': {error_message}")
@@ -616,7 +615,7 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
             logger.info(f"Partición '{partition_name}' montada con éxito en '{mounting_path}'.")
 
             # Luego de montar la partición con éxito, llama a write_partitions_to_mysql
-            #write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
+            write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
      
         else:
             error_message = err.decode("utf-8").strip()
@@ -672,9 +671,7 @@ def write_partitions_to_mysql(workorder_flag, partition_name, device_name, mount
 
             logger.info(f"-> Particiones escritas en la tabla '{MYSQL_PARTITIONS_TABLE}' con éxito.")
             
-            # Llamar a la funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-            #add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
-            update_workorder_table(workorder_flag, t_workorder, created_partition_info)
+            update_workorder_table(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder)
 
     except Exception as e:
         logger.error(f"ERROR: Error al escribir particiones en la tabla '{MYSQL_PARTITIONS_TABLE}'.")
@@ -803,48 +800,8 @@ def get_max_partition_value():
         logger.error(str(e))
         return 0
 
-# Función para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0):
-    try:
-        fstab_path = "/etc/fstab"
-
-        logger.info(f"Agregando entradas en '{fstab_path}' para montar las particiones al reiniciar el sistema...")
-
-        # Comprobar si el archivo /etc/fstab ya contiene una entrada para el dispositivo
-        with open(fstab_path, "r") as fstab_file:
-            fstab_content = fstab_file.read()
-            if f"{device_name} " in fstab_content:
-                logger.info(f"La entrada para '{device_name}' ya existe en '{fstab_path}'.")
-                update_workorder_table(workorder_flag, t_workorder, created_partition_info)
-                return
-
-        # Agregar una nueva entrada al archivo /etc/fstab con "sudo"
-        add_fstab_command = f"echo '{device_name} {mounting_path} {filesystem_type} {options} {dump} {pass_num}' | sudo tee -a {fstab_path}"
-
-        logger.info(f"Agregando entrada para '{device_name}' en '{fstab_path}' usando sudo...")
-
-        subprocess.run(add_fstab_command, shell=True, check=True)
-
-        logger.info(f"Entrada para '{device_name}' agregada a '{fstab_path}'. La partición se montará automáticamente al reiniciar el sistema.")
-
-        # Luego de agregar entradas en /etc/fstab con éxito, llama a update_workorder_table
-        #update_workorder_table(workorder_flag, t_workorder, created_partition_info)
-
-    except subprocess.CalledProcessError as e:
-        logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}' usando sudo: {e}")
-
-    except FileNotFoundError:
-        logger.error(f"ERROR: El archivo '{fstab_path}' no existe. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
-
-    except PermissionError:
-        logger.error(f"ERROR: No tienes permiso para modificar '{fstab_path}'. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
-
-    except Exception as e:
-        logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}': {str(e)}")
-
-
 # Llamar a esta función después de haber creado la partición con éxito
-def update_workorder_table(workorder_flag, t_workorder, created_partition_info):
+def update_workorder_table(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder):
     try:
         logger.info(f"Actualizando WORKORDER_FLAG '{workorder_flag}' en la orden '{t_workorder}' de la tabla: '{MYSQL_WORKORDER_TABLE}'...")
         
@@ -891,7 +848,11 @@ def update_workorder_table(workorder_flag, t_workorder, created_partition_info):
             result = cursor.fetchone()
             if result:
                 workorder_flag_value = result[0]
-                logger.info(f"Valor actualizado de workorder_flag para la orden '{t_workorder}': {workorder_flag_value}")
+                logger.info(f"Valor actualizado de workorder_flag para la orden '{t_workorder}': {workorder_flag_value}")\
+
+                # Llamar a la funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+                add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
+            
             else:
                 logger.info(f"No se encontró la orden '{t_workorder}' en la tabla '{MYSQL_WORKORDER_TABLE}'.")
 
@@ -908,6 +869,41 @@ def update_workorder_table(workorder_flag, t_workorder, created_partition_info):
     except Exception as e:
         logger.error(f"ERROR: Error al actualizar los campos en la tabla '{MYSQL_WORKORDER_TABLE}' para la orden: '{t_workorder}'.")
         logger.error(str(e))
+
+# Función para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
+def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0):
+    try:
+        fstab_path = "/etc/fstab"
+
+        logger.info(f"Agregando entradas en '{fstab_path}' para montar las particiones al reiniciar el sistema...")
+
+        # Comprobar si el archivo /etc/fstab ya contiene una entrada para el dispositivo
+        with open(fstab_path, "r") as fstab_file:
+            fstab_content = fstab_file.read()
+            if f"{device_name} " in fstab_content:
+                logger.info(f"La entrada para '{device_name}' ya existe en '{fstab_path}'.")
+                return
+
+        # Agregar una nueva entrada al archivo /etc/fstab con "sudo"
+        add_fstab_command = f"echo '{device_name} {mounting_path} {filesystem_type} {options} {dump} {pass_num}' | sudo tee -a {fstab_path}"
+
+        logger.info(f"Agregando entrada para '{device_name}' en '{fstab_path}' usando sudo...")
+
+        subprocess.run(add_fstab_command, shell=True, check=True)
+
+        logger.info(f"Entrada para '{device_name}' agregada a '{fstab_path}'. La partición se montará automáticamente al reiniciar el sistema.")
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}' usando sudo: {e}")
+
+    except FileNotFoundError:
+        logger.error(f"ERROR: El archivo '{fstab_path}' no existe. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
+
+    except PermissionError:
+        logger.error(f"ERROR: No tienes permiso para modificar '{fstab_path}'. Asegúrate de estar ejecutando el script con permisos de superusuario (sudo).")
+
+    except Exception as e:
+        logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}': {str(e)}")
 
 
 def process_workorders():
