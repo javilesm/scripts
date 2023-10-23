@@ -265,12 +265,6 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
         # Comprobar si el dispositivo existe antes de ejecutar lsblk
         device_path = f"/dev/{device_name}"
 
-        # Inicializa las variables aquí para evitar problemas de alcance
-        partition_type = "logical"
-        filesystem_type = "ext4"
-        partition_size = 0
-        mounting_path = ""
-
         if os.path.exists(device_path):
             logger.info(f"Obteniendo información de la unidad: '{device_path}'...")
 
@@ -294,6 +288,9 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                     mountpoint = entry.get("mountpoint")
 
                     if name is not None:
+                        if mountpoint == "/":
+                            logger.warning(f"La unidad '{device_path}' tiene el punto de montaje '/' y será omitida.")
+                            return  # Omitir la unidad y buscar otra
                         # Calcular espacio no particionado
                         partitioned_space += size
                         partition_count += 1  # Contabilizar particiones
@@ -315,23 +312,30 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
             # Calcular committed_size_bytes como espacio particionado
             committed_size_bytes = partitioned_space
 
+            
             # Actualizar la columna "committed_size" en la tabla t_storage
             logger.info("Actualizando la columna 'committed_size' en la tabla t_storage...")
             update_storage_committed_size(device_name, committed_size_bytes)  # Aquí se pasa solo el espacio particionado
 
             if is_unpartitioned:
                 logger.warning(f"La unidad '{device_path}' no se encuentra particionada.")
-                try:
-                    # Inicializar la unidad con una etiqueta de disco
-                    initialize_disk(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain)
+                if available_space >= product_description:
+                    try:
+                        # Inicializar la unidad con una etiqueta de disco
+                        logger.info(f"Inicializando la unidad '{device_path}' con una etiqueta de disco...")
+                        initialize_disk(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain)
 
-                except Exception as e:
-                    logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_path}': {str(e)}")
+                    except Exception as e:
+                        logger.error(f"ERROR: Error inesperado al Inicializar la unidad  '{device_path}': {str(e)}")
+                else:
+                    logger.error(f"ERROR: No hay suficiente espacio disponible para crear una partición de {product_description} bytes.")
             else:
                 logger.warning(f"La unidad '{device_path}' se encuentra particionada previamente.")
-                
-                # Llamar a la función create_partition
-                create_partition(workorder_flag, device_name, partition_type, filesystem_type, product_description, t_workorder, name, mounting_path, product_description, registered_domain)
+                if available_space >= product_description:
+                    # Llamar a la función create_partition
+                    create_partition(workorder_flag, device_name, partition_type, filesystem_type, product_description, t_workorder, name, mounting_path, product_description, registered_domain)
+                else:
+                    logger.error(f"ERROR: No hay suficiente espacio disponible para crear una partición de {product_description} bytes.")
         else:
             logger.warning(f"La unidad '{device_path}' no existe")
 
@@ -340,7 +344,6 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
 
     except Exception as e:
         logger.error(f"ERROR inesperado: {str(e)}")
-
 
 # Función para calcular el punto de inicio de una nueva particion
 def calculate_new_partition_start(device_name):
@@ -401,38 +404,46 @@ def calculate_next_partition_number(device_name):
         return None
 
 
-def initialize_disk(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
+def initialize_disk(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
     try:
-        logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
+        # Verificar si la unidad ya tiene una tabla de particiones GPT
+        logger.info(f"Verificando si la unidad '{device_name}' ya tiene una tabla de particiones GPT...")
+        check_command = f"sudo parted /dev/{device_name} print | grep 'Partition Table: gpt'"
 
-        # Comando para inicializar el disco con una tabla de particiones GPT
-        initialize_command = f"sudo parted /dev/{device_name} mklabel gpt"
+        check_result = subprocess.run(check_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-        logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
-
-        # Utilizar una cadena en lugar de bytes para la entrada
-        input_string = 'Yes\n'
-
-        # Ejecutar el comando de inicialización
-        initialize_result = subprocess.run(initialize_command, shell=True, input=input_string, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-        if initialize_result.returncode == 0:
-            logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
-
-            # Llamar a la funcion create_partition
-            create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mounting_path, product_description, registered_domain)
+        if check_result.returncode == 0:
+            # La unidad ya tiene una tabla de particiones GPT, no es necesario inicializarla nuevamente
+            logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa.")
+            # Llamar a la función create_partition
+            create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
         else:
-            # Si la inicialización falla, informar y registrar el error.
-            logger.error(f"ERROR: Fallo al inicializar el disco '/dev/{device_name}': {initialize_result.stderr}")
-            # Puedes tomar medidas correctivas aquí si es necesario.
+            # La unidad no tiene una tabla de particiones GPT, por lo que podemos proceder con la inicialización
+            logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
 
-    except subprocess.CalledProcessError as e:
-        logger.error(f"ERROR: Error al inicializar el disco '/dev/{device_name}': {e}")
-        # Puedes tomar medidas correctivas aquí si es necesario.
+            # Comando para inicializar el disco con una tabla de particiones GPT
+            initialize_command = f"echo -e 'Yes\n' | sudo parted /dev/{device_name} mklabel gpt"
+
+            logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
+
+            # Ejecutar el comando de inicialización
+            initialize_result = subprocess.run(initialize_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+            if initialize_result.returncode == 0:
+                logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
+
+                # Llamar a la función create_partition
+                create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+            else:
+                # Si la inicialización falla, informar y registrar el error.
+                logger.error(f"ERROR: Fallo al inicializar el disco '/dev/{device_name}': {initialize_result.stderr}")
+
+                # Llamar a la función create_partition
+                create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
 
     except Exception as e:
-        logger.error(f"ERROR: Error muy inesperado al inicializar el disco '/dev/{device_name}': {str(e)}")
-        # Puedes tomar medidas correctivas aquí si es necesario.
+        logger.error(f"ERROR inesperado: {str(e)}")
+
 
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
@@ -464,7 +475,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_size_sectors = partition_size // block_size
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {aligned_start_sectors}s {(aligned_start_sectors + partition_size_sectors)}s"
+        partition_command = f"sudo parted -s /dev/{device_name} mkpart ext4 {aligned_start_sectors}s {(aligned_start_sectors + partition_size_sectors)}s print all"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
