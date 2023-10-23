@@ -264,6 +264,13 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
 
         # Comprobar si el dispositivo existe antes de ejecutar lsblk
         device_path = f"/dev/{device_name}"
+
+        # Inicializa las variables aquí para evitar problemas de alcance
+        partition_type = "logical"
+        filesystem_type = "ext4"
+        partition_size = 0
+        mounting_path = ""
+
         if os.path.exists(device_path):
             logger.info(f"Obteniendo información de la unidad: '{device_path}'...")
 
@@ -279,10 +286,6 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
             device_size = lsblk_info["blockdevices"][0]["size"]
             logger.info(f"-> Tamaño de la unidad '{device_path}': {device_size} bytes")
 
-            partition_count = 0
-            partitioned_space = 0
-            is_unpartitioned = True
-
             if "children" in lsblk_info["blockdevices"][0]:
                 # Iterar a través de las particiones y dispositivos
                 for entry in lsblk_info["blockdevices"][0]["children"]:
@@ -293,16 +296,14 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                     if name is not None:
                         # Calcular espacio no particionado
                         partitioned_space += size
+                        partition_count += 1  # Contabilizar particiones
+                        is_unpartitioned = False  # Indicar que no es un disco sin particiones
 
-                        # Comprobar si es una partición
-                        if mountpoint is not None:
-                            logger.info(f"SHORT_DESCRIPTION (name): {name}")
-                            logger.info(f"DEVICE_NAME (device_name): {device_name}")
-                            logger.info(f"PARTITION_SIZE (size): {size} bytes")
-                            logger.info(f"ATTACHMENT_POINT (mountpoint): {mountpoint}")
-                            logger.info("-------------------------------------")
-                            partition_count += 1
-                            is_unpartitioned = False
+                        logger.info(f"SHORT_DESCRIPTION (name): {name}")
+                        logger.info(f"DEVICE_NAME (device_name): {device_name}")
+                        logger.info(f"PARTITION_SIZE (size): {size} bytes")
+                        logger.info(f"ATTACHMENT_POINT (mountpoint): {mountpoint}")
+                        logger.info("-------------------------------------")
 
             # Calcular espacio no particionado
             available_space = device_size - partitioned_space
@@ -322,25 +323,15 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                 logger.warning(f"La unidad '{device_path}' no se encuentra particionada.")
                 try:
                     # Inicializar la unidad con una etiqueta de disco
-                    initialize_disk(device_name)
-
-                    # Usar 'sudo mkdir' para crear el directorio
-                    target_dir = "/var/www"
-                    mounting_path = os.path.join(target_dir, registered_domain)
-                    create_mount_dir_command = f"sudo mkdir -p {mounting_path}"
-                    create_mount_dir_process = subprocess.Popen(create_mount_dir_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    create_mount_dir_process.communicate()
-
-                    if create_mount_dir_process.returncode == 0:
-                        logger.info(f"Directorio '{mounting_path}' creado con éxito.")
-                        create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mounting_path, product_description, registered_domain)  # Aquí se pasa el tamaño requerido
-                    else:
-                        error_message = create_mount_dir_process.stderr.decode("utf-8").strip()
-                        raise Exception(f"ERROR: Error al crear el directorio '{mounting_path}': {error_message}")
+                    initialize_disk(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain)
 
                 except Exception as e:
                     logger.error(f"ERROR: Error inesperado al crear la partición en la unidad '{device_path}': {str(e)}")
-
+            else:
+                logger.warning(f"La unidad '{device_path}' se encuentra particionada previamente.")
+                
+                # Llamar a la función create_partition
+                create_partition(workorder_flag, device_name, partition_type, filesystem_type, product_description, t_workorder, name, mounting_path, product_description, registered_domain)
         else:
             logger.warning(f"La unidad '{device_path}' no existe")
 
@@ -410,7 +401,7 @@ def calculate_next_partition_number(device_name):
         return None
 
 
-def initialize_disk(device_name):
+def initialize_disk(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
         logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
 
@@ -427,6 +418,9 @@ def initialize_disk(device_name):
 
         if initialize_result.returncode == 0:
             logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
+
+            # Llamar a la funcion create_partition
+            create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mounting_path, product_description, registered_domain)
         else:
             # Si la inicialización falla, informar y registrar el error.
             logger.error(f"ERROR: Fallo al inicializar el disco '/dev/{device_name}': {initialize_result.stderr}")
@@ -470,7 +464,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_size_sectors = partition_size // block_size
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {(aligned_start_sectors + partition_size_sectors)}s"
+        partition_command = f"sudo parted /dev/{device_name} mkpart {aligned_start_sectors}s {(aligned_start_sectors + partition_size_sectors)}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
@@ -560,7 +554,8 @@ def format_partition(workorder_flag, device_name, partition_name, filesystem_typ
         if process.returncode == 0:
             logger.info(f"Partición '{partition_name}' formateada con éxito en '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
             # Llamar a la función para montar la partición después de formatear
-            mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
+            #mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
+            write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)        
         else:
             error_message = err.decode("utf-8").strip()
             raise Exception(f"ERROR: Error al formatear la partición '{partition_name}' en '{device_path}': {error_message}")
@@ -610,7 +605,7 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
             logger.info(f"Partición '{partition_name}' montada con éxito en '{mounting_path}'.")
 
             # Luego de montar la partición con éxito, llama a write_partitions_to_mysql
-            write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
+            #write_partitions_to_mysql(workorder_flag, partition_name, device_name, mounting_path, partition_size, t_workorder, created_partition_info)
      
         else:
             error_message = err.decode("utf-8").strip()
@@ -667,7 +662,8 @@ def write_partitions_to_mysql(workorder_flag, partition_name, device_name, mount
             logger.info(f"-> Particiones escritas en la tabla '{MYSQL_PARTITIONS_TABLE}' con éxito.")
             
             # Llamar a la funcion para agregar entradas en /etc/fstab para montar las particiones al reiniciar el sistema
-            add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
+            #add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_info, t_workorder, filesystem_type="ext4", options="defaults", dump=0, pass_num=0)
+            update_workorder_table(workorder_flag, t_workorder, created_partition_info)
 
     except Exception as e:
         logger.error(f"ERROR: Error al escribir particiones en la tabla '{MYSQL_PARTITIONS_TABLE}'.")
@@ -821,7 +817,7 @@ def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_i
         logger.info(f"Entrada para '{device_name}' agregada a '{fstab_path}'. La partición se montará automáticamente al reiniciar el sistema.")
 
         # Luego de agregar entradas en /etc/fstab con éxito, llama a update_workorder_table
-        update_workorder_table(workorder_flag, t_workorder, created_partition_info)
+        #update_workorder_table(workorder_flag, t_workorder, created_partition_info)
 
     except subprocess.CalledProcessError as e:
         logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}' usando sudo: {e}")
