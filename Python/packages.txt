@@ -12,3 +12,4 @@ unidecode
 colorlog
 colorama
 pyflowchart
+pexpect
