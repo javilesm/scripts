@@ -9,6 +9,8 @@ from colorama import Fore, Style
 import logging
 from colorlog import getLogger
 import time
+import math
+import pexpect
 
 # Configuración de la conexión a MySQL
 MYSQL_USER = "2309000000"
@@ -74,6 +76,7 @@ def bytes_to_gigabytes(bytes_value):
     #gigabytes = bytes_value / 1073741824.0
     gigabytes = bytes_value
     return gigabytes
+
 
 # función para leer tabla t_workorder
 def read_workorder_table():
@@ -333,7 +336,7 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                 logger.warning(f"La unidad '{device_path}' se encuentra particionada previamente.")
                 if available_space >= product_description:
                     # Llamar a la función create_partition
-                    create_partition(workorder_flag, device_name, partition_type, filesystem_type, product_description, t_workorder, name, mounting_path, product_description, registered_domain)
+                    create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
                 else:
                     logger.error(f"ERROR: No hay suficiente espacio disponible para crear una partición de {product_description} bytes.")
         else:
@@ -348,6 +351,7 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
 # Función para calcular el punto de inicio de una nueva particion
 def calculate_new_partition_start(device_name):
     try:
+        factor = 17920
         logger.info(f"Información sobre el dispositivo '{device_name}':")
         logger.info(f"Obteniendo información sobre las particiones existentes en el dispositivo '{device_name}'...")
 
@@ -363,8 +367,8 @@ def calculate_new_partition_start(device_name):
                 partition_size_bytes = int(partition_info.get("size", 0))
                 total_partition_size_bytes += partition_size_bytes
 
-            # Usar un punto de inicio de 1024 bytes (1 kilobyte) para mayor seguridad
-            new_partition_start_bytes = total_partition_size_bytes + 1
+           
+            new_partition_start_bytes = total_partition_size_bytes + factor
 
             logger.info(f"Punto de inicio de la nueva partición (calculate_new_partition_start): {new_partition_start_bytes} bytes")
 
@@ -408,15 +412,17 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
     try:
         # Verificar si la unidad ya tiene una tabla de particiones GPT
         logger.info(f"Verificando si la unidad '{device_name}' ya tiene una tabla de particiones GPT...")
-        check_command = f"sudo parted /dev/{device_name} print | grep 'Partition Table: gpt'"
+        check_command = f"sudo parted /dev/{device_name} print | grep -q 'Partition Table: gpt'"
 
         check_result = subprocess.run(check_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
         if check_result.returncode == 0:
             # La unidad ya tiene una tabla de particiones GPT, no es necesario inicializarla nuevamente
             logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa.")
+
             # Llamar a la función create_partition
             create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+
         else:
             # La unidad no tiene una tabla de particiones GPT, por lo que podemos proceder con la inicialización
             logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
@@ -434,16 +440,12 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
 
                 # Llamar a la función create_partition
                 create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+
             else:
                 # Si la inicialización falla, informar y registrar el error.
                 logger.error(f"ERROR: Fallo al inicializar el disco '/dev/{device_name}': {initialize_result.stderr}")
-
-                # Llamar a la función create_partition
-                create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
-
     except Exception as e:
         logger.error(f"ERROR inesperado: {str(e)}")
-
 
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
@@ -465,19 +467,22 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
             logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
-            new_partition_start_bytes = 17920  # Punto de inicio predeterminado
+            new_partition_start_bytes = 1048576  # Punto de inicio predeterminado
 
         # Calcular un punto de inicio alineado en sectores
         block_size = 512  # Tamaño de bloque típico
         aligned_start_sectors = new_partition_start_bytes // block_size
 
+
         # Calcular el tamaño de la partición en sectores
         partition_size_sectors = partition_size // block_size
 
-        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart ext4 {aligned_start_sectors}s {(aligned_start_sectors + partition_size_sectors)}s print all"
+        partition_end_sectors = aligned_start_sectors + partition_size_sectors
 
-        logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes.")
+        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
+        partition_command = f"sudo parted /dev/{device_name} mkpart {aligned_start_sectors}s {partition_end_sectors}s"
+
+        logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
 
         # Ejecutar el comando de partición
