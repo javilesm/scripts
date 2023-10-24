@@ -410,20 +410,21 @@ def calculate_next_partition_number(device_name):
 
 def initialize_disk(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
     try:
-        # Verificar si la unidad ya tiene una tabla de particiones GPT
-        logger.info(f"Verificando si la unidad '{device_name}' ya tiene una tabla de particiones GPT...")
-        check_command = f"sudo parted /dev/{device_name} print | grep -q 'Partition Table: gpt'"
+        # Conexión a la base de datos MySQL
+        conn = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        
+        cursor = conn.cursor(buffered=True)
 
-        check_result = subprocess.run(check_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # Consultar el valor actual de 'storage_flag' para el dispositivo especificado
+        cursor.execute(f"SELECT storage_flag FROM t_storage WHERE DEVICE_NAME = %s", (device_name,))
+        storage_flag = cursor.fetchone()
 
-        if check_result.returncode == 0:
-            # La unidad ya tiene una tabla de particiones GPT, no es necesario inicializarla nuevamente
-            logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa.")
-
-            # Llamar a la función create_partition
-            create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
-
-        else:
+        if storage_flag and storage_flag[0] == 0:
             # La unidad no tiene una tabla de particiones GPT, por lo que podemos proceder con la inicialización
             logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
 
@@ -438,14 +439,58 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
             if initialize_result.returncode == 0:
                 logger.info(f"Disco '/dev/{device_name}' inicializado con éxito con una tabla de particiones GPT.")
 
-                # Llamar a la función create_partition
-                create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+                # Llamar a la función update_storage_flag
+                update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain)
 
             else:
                 # Si la inicialización falla, informar y registrar el error.
                 logger.error(f"ERROR: Fallo al inicializar el disco '/dev/{device_name}': {initialize_result.stderr}")
+        else:
+            # La unidad ya tiene una inicialización previa o storage_flag no es 0
+            logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa o no es necesario inicializar.")
+
+            # Llamar a la función create_partition
+            create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+
+        # Cerrar el cursor y la conexión a la base de datos
+        cursor.close()
+        conn.close()
+
     except Exception as e:
         logger.error(f"ERROR inesperado: {str(e)}")
+
+def update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
+    try:
+        conn = mysql.connector.connect(
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            host=MYSQL_HOST,
+            database=MYSQL_DATABASE
+        )
+        
+        cursor = conn.cursor(buffered=True)
+
+        # Actualizar el campo 'storage_flag' a 1 para el dispositivo especificado
+        logger.info(f"Actualizando 'storage_flag' en la base de datos para '{device_name}'...")
+        cursor.execute("UPDATE t_storage SET storage_flag = 1 WHERE device_name = ?", (device_name,))
+
+        # Confirmar los cambios en la base de datos
+        logger.info("Confirmando los cambios en la base de datos...")
+        conn.commit()
+
+        # Cerrar la conexión
+        logger.info("Cerrando la conexión a la base de datos...")
+        conn.close()
+
+        logger.info(f"El atributo 'storage_flag' para '{device_name}' se ha actualizado a 1 en la base de datos.")
+
+        # Llamar a la función create_partition
+        logger.info("Llamando a la función create_partition...")
+        create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+
+    except Exception as e:
+        logger.error(f"Error al actualizar 'storage_flag': {str(e)}")
+
 
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
     try:
