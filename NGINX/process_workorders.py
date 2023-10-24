@@ -445,6 +445,7 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
             else:
                 # Si la inicialización falla, informar y registrar el error.
                 logger.error(f"ERROR: Fallo al inicializar el disco '/dev/{device_name}': {initialize_result.stderr}")
+                update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain)
         else:
             # La unidad ya tiene una inicialización previa o storage_flag no es 0
             logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa o no es necesario inicializar.")
@@ -461,26 +462,27 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
 
 def update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
     try:
-        conn = mysql.connector.connect(
+        logger.info(f"Leyendo la tabla: '{MYSQL_STORAGE_TABLE}'...")
+        # Configuración de la conexión a MySQL
+        connection = mysql.connector.connect(
             user=MYSQL_USER,
             password=MYSQL_PASSWORD,
             host=MYSQL_HOST,
             database=MYSQL_DATABASE
         )
-        
-        cursor = conn.cursor(buffered=True)
+        cursor = connection.cursor()
 
-        # Actualizar el campo 'storage_flag' a 1 para el dispositivo especificado
-        logger.info(f"Actualizando 'storage_flag' en la base de datos para '{device_name}'...")
-        cursor.execute("UPDATE t_storage SET storage_flag = 1 WHERE device_name = ?", (device_name,))
+        # Obtener los encabezados de la tabla
+        logger.info(f"Actualizando la tabla '{MYSQL_STORAGE_TABLE}'...")
+        cursor.execute(f"UPDATE {MYSQL_STORAGE_TABLE} SET storage_flag = 1 WHERE device_name = %s", (device_name,))
 
         # Confirmar los cambios en la base de datos
         logger.info("Confirmando los cambios en la base de datos...")
-        conn.commit()
+        connection.commit()
 
         # Cerrar la conexión
         logger.info("Cerrando la conexión a la base de datos...")
-        conn.close()
+        connection.close()
 
         logger.info(f"El atributo 'storage_flag' para '{device_name}' se ha actualizado a 1 en la base de datos.")
 
@@ -525,7 +527,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_end_sectors = aligned_start_sectors + partition_size_sectors
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {aligned_start_sectors}s {partition_end_sectors}s"
+        partition_command = f"sudo parted /dev/{device_name} mkpart {partition_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
