@@ -527,7 +527,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_end_sectors = aligned_start_sectors + partition_size_sectors
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {partition_type} {aligned_start_sectors}s {partition_end_sectors}s"
+        partition_command = f"sudo parted /dev/{device_name} mkpart {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
