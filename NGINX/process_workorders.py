@@ -534,7 +534,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_command = f"sudo parted /dev/{device_name} mkpart {partition_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
-        logger.info(f"Ejecutando el comando: '{partition_command}'")
+        logger.info(f"Ejecutando el comando (create_partition): '{partition_command}'")
 
         # Ejecutar el comando de partición
         subprocess.run(partition_command, shell=True, check=True)
@@ -599,7 +599,7 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
 
             logger.info(f"Tamaño de la última partición: {last_partition_size_bytes} bytes.")
             logger.info(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
-            logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
+            logger.info(f"Punto de inicio de la nueva partición (create_subsequencing_partition): {new_partition_start_bytes} bytes")
         else:
             logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
             new_partition_start_bytes = 1048576  # Punto de inicio predeterminado
@@ -615,10 +615,10 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         partition_end_sectors = aligned_start_sectors + partition_size_sectors
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {aligned_start_sectors}s {partition_end_sectors}s"
+        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
-        logger.info(f"Ejecutando el comando: '{partition_command}'")
+        logger.info(f"Ejecutando el comando (create_subsequencing_partition): '{partition_command}'")
 
         # Ejecutar el comando de partición
         subprocess.run(partition_command, shell=True, check=True)
