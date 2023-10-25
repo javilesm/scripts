@@ -430,12 +430,12 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
             logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
 
             # Comando para inicializar el disco con una tabla de particiones GPT
-            initialize_command = f"sudo dd if=/dev/zero of=/dev/{device_name} bs=512 count=1 && sudo parted /dev/{device_name} mklabel gpt"
+            initialize_command = f"sudo parted /dev/{device_name} mklabel GPT"
 
             logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
 
-            # Llamar a la función que automatiza la confirmación del comando
-            auto_confirm_initialize_command(initialize_command)
+             # Ejecutar el comando con la respuesta "y" para confirmar automáticamente
+            subprocess.run(initialize_command, shell=True, check=True)
 
             # Llamar a la función update_storage_flag
             update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain)
@@ -451,8 +451,8 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
             # Ejecutar el comando para mostrar la información del disco con gdisk
             #subprocess.run(gdisk_info_command, shell=True)
 
-            # Llamar a la función create_subsequencing_partition
-            create_subsequencing_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+            # Llamar a la función create_partition
+            create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
 
         # Cerrar el cursor y la conexión a la base de datos
         cursor.close()
@@ -461,26 +461,6 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
     except Exception as e:
         logger.error(f"ERROR inesperado: {str(e)}")
 
-# Función para autoconfirmar un comando de partición en parted
-def auto_confirm_initialize_command(initialize_command):
-    try:
-        # Crear el comando completo con la respuesta "y" incluida en la misma línea
-        initialize_command_with_confirm = f"{initialize_command}"
-
-        logger.info(f"Ejecutando el comando 'initialize_command': '{initialize_command_with_confirm}'")
-
-        # Ejecutar el comando con la respuesta "y" para confirmar automáticamente
-        subprocess.run(initialize_command_with_confirm, shell=True, check=True)
-
-        logger.info(f"Esperando a que se complete la partición...")
-
-        # Esperar a que se complete el proceso de partición
-        time.sleep(10)
-
-    except subprocess.CalledProcessError as e:
-        logger.error(f"ERROR: Error al ejecutar el comando 'initialize_command': {e}")
-    except Exception as e:
-        logger.error(f"ERROR: Error inesperado al ejecutar el comando 'initialize_command': {str(e)}")
 
 def update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
     try:
@@ -549,7 +529,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_end_sectors = aligned_start_sectors + partition_size_sectors
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {partition_type} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
+        partition_command = f"sudo parted /dev/{device_name} mkpart {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
         logger.info(f"Ejecutando el comando: '{partition_command}'")
