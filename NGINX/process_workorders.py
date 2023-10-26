@@ -430,12 +430,18 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
             logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
 
             # Comando para inicializar el disco con una tabla de particiones GPT
-            initialize_command = f"sudo parted /dev/{device_name} mklabel GPT"
+            initialize_command = f"sudo parted /dev/{device_name} mklabel gpt"
 
             logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
 
-            # Ejecutar el comando con la respuesta "y" para confirmar automáticamente
+            # Ejecutar el comando "initialize_command"
             subprocess.run(initialize_command, shell=True, check=True)
+            subprocess.run(["sleep", "10"])
+
+            partition_label_check_command = f"sudo parted /dev/{device_name} print"
+
+            subprocess.run(partition_label_check_command, shell=True, check=True)
+            subprocess.run(["sleep", "10"])
 
             # Comprobar si la tabla de particiones GPT se creó exitosamente
             check_command = f"sudo gdisk -l /dev/{device_name} | grep 'GPT'"
@@ -531,7 +537,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_end_sectors = aligned_start_sectors + partition_size_sectors
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {partition_type} {aligned_start_sectors}s {partition_end_sectors}s"
+        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
         logger.info(f"Ejecutando el comando (create_partition): '{partition_command}'")
@@ -545,7 +551,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         subprocess.run(["sleep", "10"])
 
         # Verificar si se creó la partición exitosamente
-        check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
+        check_partition_command = f"sudo parted /dev/{device_name} print && sudo parted /dev/{device_name} print | grep {next_partition_number}"
         partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
 
         if partition_result.returncode == 0:
