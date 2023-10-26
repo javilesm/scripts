@@ -712,7 +712,7 @@ def update_storage_committed_size(device_name, committed_size_bytes):
 # Función para formatear particiones
 def format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info):
     try:
-        logger.info(f"Procediendo a formatear la particion '{partition_name}' en la unidad '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
+        logger.info(f"Procediendo a formatear la particion '{partition_name}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
         
         # Formatear la partición con el sistema de archivos especificado
         format_command = f"sudo mkfs.{filesystem_type} {partition_name}"
