@@ -189,7 +189,7 @@ function mysql_config() {
     chown
     start_mysql
     validate_mysql_scripts
-    execute_mysql_scripts
+    #execute_mysql_scripts
     restart_mysql_service
     echo "**************ALL DONE**************"
 }
