@@ -540,6 +540,11 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
+        
+        partition_label_check_command = f"sudo parted /dev/{device_name} print"
+        subprocess.run(partition_label_check_command, shell=True, check=True)
+        subprocess.run(["sleep", "10"])
+
         logger.info(f"Ejecutando el comando (create_partition): '{partition_command}'")
 
         # Ejecutar el comando de partición
@@ -577,7 +582,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
                 logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_id}', tipo '{partition_type}' y formato '{filesystem_type}'.")
 
                 # Luego de crear la partición con éxito, llama a format_partition
-                format_partition(workorder_flag, device_name, partition_id, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+                format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
             else:
                 logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
         else:
@@ -624,6 +629,11 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
+        
+        partition_label_check_command = f"sudo parted /dev/{device_name} print"
+        subprocess.run(partition_label_check_command, shell=True, check=True)
+        subprocess.run(["sleep", "10"])
+
         logger.info(f"Ejecutando el comando (create_subsequencing_partition): '{partition_command}'")
 
         # Ejecutar el comando de partición
@@ -661,7 +671,7 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
                 # Luego de crear la partición con éxito, llama a format_partition
                 logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_id}', tipo '{partition_type}' y formato '{filesystem_type}'.")
 
-                format_partition(workorder_flag, device_name, partition_id, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+                format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
             else:
                 logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
         else:
@@ -702,23 +712,23 @@ def update_storage_committed_size(device_name, committed_size_bytes):
 # Función para formatear particiones
 def format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info):
     try:
-        device_path = f"/dev/{device_name}"
         logger.info(f"Procediendo a formatear la particion '{partition_name}' en la unidad '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
+        
         # Formatear la partición con el sistema de archivos especificado
-        format_command = f"sudo mkfs -t {filesystem_type} {device_path}"
+        format_command = f"sudo mkfs.{filesystem_type} {partition_name}"
         process = subprocess.Popen(format_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
 
         if process.returncode == 0:
-            logger.info(f"Partición '{partition_name}' formateada con éxito en '{device_path}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
+            logger.info(f"Partición '{partition_name}' formateada con éxito con sistema de archivos '{filesystem_type}'.")
             # Llamar a la función para montar la partición después de formatear
             mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
         else:
             error_message = err.decode("utf-8").strip()
-            raise Exception(f"ERROR: Error al formatear la partición '{partition_name}' en '{device_path}': {error_message}")
+            raise Exception(f"ERROR: Error al formatear la partición '{partition_name}': {error_message}")
 
     except Exception as e:
-        logger.error(f"ERROR: Error al intentar formatear la partición '{partition_name}' en '{device_path}': {str(e)}")
+        logger.error(f"ERROR: Error al intentar formatear la partición '{partition_name}': {str(e)}")
 
 # Función para montar partición con REGISTERED_DOMAIN
 def mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info):
@@ -732,10 +742,6 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
         mounting_path = os.path.join(target_dir, registered_domain)
 
         logger.info(f"Montando la partición '{partition_name}' en '{mounting_path}'...")
-
-        # Verificar si el dispositivo existe antes de montarlo
-        if not os.path.exists(partition_name):
-            raise Exception(f"ERROR: El dispositivo '{partition_name}' no existe.")
 
         # Verificar si el punto de montaje existe
         if not os.path.exists(mounting_path):
@@ -751,7 +757,6 @@ def mount_partition(workorder_flag, device_name, partition_name, registered_doma
             else:
                 error_message = create_dir_process.stderr.decode("utf-8").strip()
                 raise Exception(f"ERROR: Error al crear el directorio '{mounting_path}': {error_message}")
-
 
         # Montar la partición
         mount_command = f"sudo mount {partition_name} {mounting_path}"
