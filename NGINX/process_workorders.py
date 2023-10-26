@@ -561,11 +561,11 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
 
         if partition_result.returncode == 0:
             # Obtener el ID de la partición recién creada
-            partition_id = f"/dev/{device_name}{next_partition_number}"
+            partition_name = f"/dev/{device_name}{next_partition_number}"
 
             created_partition_info = {
                 "device_name": device_name,
-                "partition_id": partition_id,
+                "partition_name": partition_name,
                 "partition_number": next_partition_number,
                 "partition_type": partition_type,
                 "filesystem_type": filesystem_type,
@@ -579,7 +579,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
 
             if created_partition_result.returncode == 0:
                 
-                logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_id}', tipo '{partition_type}' y formato '{filesystem_type}'.")
+                logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
 
                 # Luego de crear la partición con éxito, llama a format_partition
                 format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
@@ -650,12 +650,12 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
 
         if partition_result.returncode == 0:
             # Obtener el ID de la partición recién creada
-            partition_id = f"/dev/{device_name}{next_partition_number}"
+            partition_name = f"/dev/{device_name}{next_partition_number}"
 
  
             created_partition_info = {
                 "device_name": device_name,
-                "partition_id": partition_id,
+                "partition_name": partition_name,
                 "partition_number": next_partition_number,
                 "partition_type": partition_type,
                 "filesystem_type": filesystem_type,
@@ -669,7 +669,7 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
 
             if created_partition_result.returncode == 0:
                 # Luego de crear la partición con éxito, llama a format_partition
-                logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_id}', tipo '{partition_type}' y formato '{filesystem_type}'.")
+                logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
 
                 format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
             else:
