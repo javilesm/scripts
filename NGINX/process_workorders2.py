@@ -677,10 +677,12 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
 
 # Función para autoconfirmar la ejecucion del comando "partition_command
-def auto_confirm_create_subsequencing_partition(partition_command, confirm=True, ignore=False):
+def auto_confirm_create_subsequencing_partition(partition_command, response='y'):
     try:
-        response = 'y\n' if confirm else 'i\n'
-        partition_command_with_confirm = f"echo -e '{response}' | {partition_command}"
+        if response not in ('y', 'n', 'i'):
+            raise ValueError("Response must be 'y', 'n', or 'i'")
+
+        partition_command_with_confirm = f"echo -e '{response}\n' | {partition_command}"
 
         logger.info(f"Ejecutando el comando 'partition_command': '{partition_command_with_confirm}'")
 
