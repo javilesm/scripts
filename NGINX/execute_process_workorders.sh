@@ -6,7 +6,7 @@ CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actua
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
 ENV_DIR="$(dirname "$(dirname "$(dirname "$(realpath "$BASH_SOURCE")")")")/envs"
 VIRTUAL_ENVIRONTMENT="$ENV_DIR/venv0/bin/activate"
-PROCESS_WORKORDERS_SCRIPT="process_workorders.py"
+PROCESS_WORKORDERS_SCRIPT="process_workorders2.py"
 PROCESS_WORKORDERS_SCRIPT_PATH="$CURRENT_DIR/$PROCESS_WORKORDERS_SCRIPT"
 
 # Función para activar el entorno virtual
