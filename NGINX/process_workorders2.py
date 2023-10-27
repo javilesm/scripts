@@ -629,11 +629,7 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
 
         # Ejecutar el comando de partición
-        if autoconfirm:
-            auto_confirm_create_subsequencing_partition(partition_command)
-        else:
-            logger.info(f"Ejecutando el comando (create_subsequencing_partition): '{partition_command}'")
-            subprocess.run(partition_command, shell=True, check=True)
+        auto_confirm_create_subsequencing_partition(partition_command)
 
         logger.info(f"Esperando a que se complete la partición...")
 
@@ -676,17 +672,40 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
 
-# Función para autoconfirmar la ejecucion del comando "partition_command
-def auto_confirm_create_subsequencing_partition(partition_command, response='y'):
+
+# Función para autoconfirmar la ejecución del comando "partition_command"
+def auto_confirm_create_subsequencing_partition(partition_command):
     try:
+        response = "y"  # Configura la respuesta como "y" (automática)
         if response not in ('y', 'n', 'i'):
-            raise ValueError("Response must be 'y', 'n', or 'i'")
+            raise ValueError("Response must be 'y', 'n', or 'i")
 
-        partition_command_with_confirm = f"echo -e '{response}\n' | {partition_command}"
+        logger.info(f"(auto_confirm_create_subsequencing_partition) Ejecutando el comando 'partition_command': '{partition_command}'")
 
-        logger.info(f"Ejecutando el comando 'partition_command': '{partition_command_with_confirm}'")
-
-        subprocess.run(partition_command_with_confirm, shell=True, check=True)
+        # Utiliza subprocess.Popen para ejecutar el comando y obtener la salida
+        process = subprocess.Popen(partition_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        
+        # Inicializa una variable para rastrear si la pregunta se ha detectado
+        question_detected = False
+        
+        # Monitorea la salida para detectar la pregunta y responder automáticamente
+        while True:
+            output = process.stdout.readline().decode('utf-8')
+            if output:
+                logger.info(output.strip())  # Registra la salida en el archivo de registro
+                if "Is this still acceptable to you?" in output:
+                    question_detected = True
+                    process.stdin.write(f"{response}\n".encode('utf-8'))
+                    process.stdin.flush()
+            else:
+                break  # Sal del bucle cuando la salida está vacía
+            
+        process.wait()  # Espera a que el proceso termine
+        
+        if question_detected:
+            logger.info("Pregunta detectada y respondida automáticamente.")
+        else:
+            logger.info("No se detectó la pregunta.")
 
         logger.info(f"Esperando a que se ejecute el comando 'partition_command'...")
 
@@ -696,6 +715,7 @@ def auto_confirm_create_subsequencing_partition(partition_command, response='y')
         logger.error(f"ERROR: Error al ejecutar el comando 'partition_command': {e}")
     except Exception as e:
         logger.error(f"ERROR: Error inesperado al ejecutar el comando 'partition_command': {str(e)}")
+
 
 # Función para actualizar datos de la unidad de disco
 def update_storage_committed_size(device_name, committed_size_bytes):
