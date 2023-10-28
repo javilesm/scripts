@@ -12,7 +12,7 @@ last_consecutive=0
 description=""
 create_date=""
 update_date=""
-TEMP_FILE="/tmp/input.txt"
+TEMP_FILE="/tmp/input.csv"
 
 # Función para generar el valor del atributo "description"
 function generate_description() {
@@ -70,7 +70,8 @@ function insert_record() {
 
 # Función para mostrar la previsualización de datos antes de ingresarlos
 function show_preview() {
-    dialog --msgbox "Previsualización de datos:\n\nT_WORKORDER (Autoincremental): $next_t_workorder\nT_WORKORDER del último registro: $last_t_workorder\nDESCRIPTION: $description\nt_product: 8\nregistered_domain: $registered_domain\nt_partition: $t_partition\nFecha inicio de vigencia: $fecha_inicio_vigencia\nFecha fin de vigencia: $fecha_fin_vigencia\nworkorder_flag: $workorder_flag\nentry_status: $entry_status" 20 60
+    previsualizacion="T_WORKORDER (Autoincremental): $t_workorder\nT_WORKORDER del último registro: $last_t_workorder\nDESCRIPTION: $description\nt_product: $t_product\nregistered_domain: $registered_domain\nt_partition: $t_partition\nFecha inicio de vigencia: $fecha_inicio_vigencia\nFecha fin de vigencia: $fecha_fin_vigencia\nworkorder_flag: $workorder_flag\nentry_status: $entry_status"
+    dialog --msgbox "Previsualización de datos:\n\n$previsualizacion" 20 60
 }
 
 # Función para mostrar el formulario de agregar registro
@@ -110,11 +111,10 @@ function show_add_record_form() {
         "entry_status:" 10 1 "$entry_status" 10 40 10 0 2> "$TEMP_FILE"
 
     # Leer los datos ingresados por el usuario
-    read -r t_workorder last_t_workorder description t_product registered_domain t_partition fecha_inicio_vigencia fecha_fin_vigencia workorder_flag entry_status < "$TEMP_FILE"
+    IFS=',' read -r t_workorder last_t_workorder description t_product registered_domain t_partition fecha_inicio_vigencia fecha_fin_vigencia workorder_flag entry_status < "$TEMP_FILE"
 
     # Mostrar la previsualización de los datos con los valores ingresados
-    previsualizacion="T_WORKORDER (Autoincremental): $t_workorder\nT_WORKORDER del último registro: $last_t_workorder\nDESCRIPTION: $description\nt_product: $t_product\nregistered_domain: $registered_domain\nt_partition: $t_partition\nFecha inicio de vigencia: $fecha_inicio_vigencia\nFecha fin de vigencia: $fecha_fin_vigencia\nworkorder_flag: $workorder_flag\nentry_status: $entry_status"
-    dialog --msgbox "$previsualizacion" 20 60
+    show_preview
 
     # Confirmar inserción
     dialog --yesno "¿Deseas agregar estos registros?" 7 40
@@ -135,7 +135,6 @@ function show_workorder_dialog() {
     dialog --textbox "$tmpfile" 20 60
     rm -f "$tmpfile"
 }
-
 
 # Función principal para la interfaz de usuario
 function main_dialog() {
@@ -161,7 +160,6 @@ function main_dialog() {
         esac
     done
 }
-
 
 # Inicializar el script
 get_last_consecutive
