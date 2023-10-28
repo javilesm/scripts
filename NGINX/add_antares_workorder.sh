@@ -76,6 +76,7 @@ function show_preview() {
 # Función para mostrar el formulario de agregar registro
 function show_add_record_form() {
     generate_description  # Generar el valor de "description"
+    generate_t_workorder
 
     # Obtener el valor de "T_WORKORDER" del último registro
     last_t_workorder=$(mysql -u"$db_user" -p"$db_password" -D "$db_name" -e "SELECT MAX(T_WORKORDER) FROM $db_workorder_table;" | tail -n1)
