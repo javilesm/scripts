@@ -26,7 +26,8 @@ script_encabezado()
 Repository = "Antares_project"
 GitHubRepoURL = f"https://github.com/TCS2211194M1/{Repository}.git"
 Current_Path = os.path.dirname(os.path.abspath(__file__))
-RepositoryDir = os.path.join(Current_Path, Repository)
+parent_directory = os.path.dirname(Current_Path)
+RepositoryDir = os.path.join(parent_directory, Repository)
 GitDir = os.path.join(RepositoryDir, ".git")
 directorio_csv = os.path.join(RepositoryDir, "tablas")
 temp_dir = "/var/tmp/tablas"
