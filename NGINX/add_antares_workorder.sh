@@ -78,7 +78,7 @@ function generate_t_workorder() {
 
 # Función para obtener el último valor consecutivo
 function get_last_consecutive() {
-    last_consecutive=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT MAX(SUBSTRING(T_WORKORDER, -3)) FROM $db_workorder_table;" | tail -n1)
+    last_consecutive=$(sudo mysql -e "SELECT MAX(SUBSTRING(T_WORKORDER, -3)) FROM $db_name.$db_workorder_table;" | tail -n1)
     if [ -z "$last_consecutive" ]; then
         last_consecutive=0
     fi
@@ -122,65 +122,67 @@ function insert_record() {
     mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "INSERT INTO $db_workorder_table (T_WORKORDER, DESCRIPTION, T_PRODUCT, REGISTERED_DOMAIN, T_PARTITION, FECHA_INICIO_DE_VIGENCIA, FECHA_FIN_DE_VIGENCIA, WORKORDER_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ('$current_consecutive', '$description', '$t_product', '$registered_domain', '$t_partition', '$fecha_inicio_vigencia', '$fecha_fin_vigencia', '$workorder_flag', '$entry_status', '$create_date', '$create_by', '$update_date', '$update_by');"
 }
 
-# Función para mostrar la previsualización de datos antes de ingresarlos
-function show_preview() {
-    previsualizacion="T_WORKORDER (Autoincremental): $t_workorder\nT_WORKORDER del último registro: $last_t_workorder\nDESCRIPTION: $description\nt_product: $t_product\nregistered_domain: $registered_domain\nt_partition: $t_partition\nFecha inicio de vigencia: $fecha_inicio_vigencia\nFecha fin de vigencia: $fecha_fin_vigencia\nworkorder_flag: $workorder_flag\nentry_status: $entry_status"
-    dialog --msgbox "Previsualización de datos:\n\n$previsualizacion" 20 60
-}
-
 # Función para mostrar el formulario de agregar registro
 function show_add_record_form() {
     generate_description  # Generar el valor de "description"
     generate_t_workorder
-
-    # Obtener el valor de "T_WORKORDER" del último registro
-    last_t_workorder=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT MAX(T_WORKORDER) FROM $db_workorder_table;" | tail -n1)
-    if [ -z "$last_t_workorder" ]; then
-        last_t_workorder=0
-    fi
-    next_t_workorder=$((last_t_workorder + 1))
+    get_last_consecutive
 
     # Variables para almacenar los datos del formulario
-    t_workorder="$next_t_workorder"
-    last_t_workorder="$last_t_workorder"
-    t_product="8"
-    registered_domain=""
-    t_partition="xvda1"
-    fecha_inicio_vigencia="2023-01-01 00:00:00"
-    fecha_fin_vigencia="2024-01-01 00:00:00"
-    workorder_flag="1"
-    entry_status="0"
+    local t_product="8"
+    local registered_domain=""
+    local t_partition="xvda1"
+    local fecha_inicio_vigencia="2023-01-01 00:00:00"
+    local fecha_fin_vigencia="2024-01-01 00:00:00"
+    local workorder_flag="1"
+    local entry_status="0"
 
-    # Mostrar el formulario para ingresar los datos
+    # Mostrar el valor vigente de "description" en el formulario
     dialog --form "Agregar registro a la tabla $db_workorder_table" 20 60 14 \
-        "T_WORKORDER (Autoincremental):" 1 1 "$t_workorder" 1 40 10 0 \
-        "T_WORKORDER del último registro:" 2 1 "$last_t_workorder" 2 40 10 0 \
-        "DESCRIPTION:" 3 1 "$description" 3 40 30 0 \
-        "t_product:" 4 1 "$t_product" 4 40 10 0 \
-        "registered_domain:" 5 1 "$registered_domain" 5 40 30 0 \
-        "t_partition:" 6 1 "$t_partition" 6 40 10 0 \
-        "Fecha inicio de vigencia:" 7 1 "$fecha_inicio_vigencia" 7 40 19 0 \
-        "Fecha fin de vigencia:" 8 1 "$fecha_fin_vigencia" 8 40 19 0 \
-        "workorder_flag:" 9 1 "$workorder_flag" 9 40 10 0 \
-        "entry_status:" 10 1 "$entry_status" 10 40 10 0 2> "$TEMP_PATH"
+        "T_WORKORDER (Autoincremental):" 1 1 "$current_consecutive" 1 30 10 0 \
+        "DESCRIPTION:" 2 1 "$description" 2 30 30 0 \
+        "t_product:" 3 1 "$t_product" 3 30 10 0 \
+        "registered_domain:" 4 1 "$registered_domain" 4 30 30 0 \
+        "t_partition:" 5 1 "$t_partition" 5 30 10 0 \
+        "Fecha inicio de vigencia:" 6 1 "$fecha_inicio_vigencia" 6 30 19 0 \
+        "Fecha fin de vigencia:" 7 1 "$fecha_fin_vigencia" 7 30 19 0 \
+        "workorder_flag:" 8 1 "$workorder_flag" 8 30 10 0 \
+        "entry_status:" 9 1 "$entry_status" 9 30 10 0 \
+        "create_date:" 10 1 "$create_date" 10 30 19 0 \
+        "create_by:" 11 1 "$create_by" 11 30 10 0 \
+        "update_date:" 12 1 "$update_date" 12 30 19 0 \
+        "update_by:" 13 1 "$update_by" 13 30 10 0 2> "$TEMP_PATH"
 
-    # Leer los datos ingresados por el usuario
-    IFS=',' read -r t_workorder last_t_workorder description t_product registered_domain t_partition fecha_inicio_vigencia fecha_fin_vigencia workorder_flag entry_status < "$TEMP_PATH"
-
-    # Mostrar la previsualización de los datos con los valores ingresados
-    show_preview
-
-    # Confirmar inserción
-    dialog --yesno "¿Deseas agregar estos registros?" 7 40
-    response=$?
-
-    if [ $response -eq 0 ]; then
-        insert_record "$t_workorder" "$description" "$t_product" "$registered_domain" "$t_partition" "$fecha_inicio_vigencia" "$fecha_fin_vigencia" "$workorder_flag" "$entry_status" "$db_user" "$db_user"
-        show_success_message
+    if [ $? -eq 0 ]; then
+        # El usuario no canceló el formulario, proceder con la previsualización y confirmación
+        preview_and_confirm
+    else
+        # El usuario canceló el formulario
+        dialog --msgbox "Ingreso de datos cancelado." 10 40
     fi
-
-    delete_temp_file  # Eliminar el archivo temporal
 }
+
+
+function preview_and_confirm() {
+    # Mostrar la previsualización de los datos con los valores ingresados
+    previsualizacion=$(cat "$TEMP_PATH")
+    dialog --msgbox "Previsualización de datos:\n\n$previsualizacion" 20 60
+
+    if [ -s "$TEMP_PATH" ]; then
+        # Confirmar inserción
+        dialog --yesno "¿Deseas agregar estos registros?" 7 40
+        response=$
+
+        if [ $response -eq 0 ]; then
+            insert_record "$current_consecutive" "$description" "$t_product" "$registered_domain" "$t_partition" "$fecha_inicio_vigencia" "$fecha_fin_vigencia" "$workorder_flag" "$entry_status" "$create_date" "$create_by" "$update_date" "$update_by" "$db_user" "$db_user"
+            show_success_message
+        fi
+    else
+        dialog --msgbox "El archivo temporal no existe. No se puede continuar." 10 40
+    fi
+}
+
+
 
 # Función para mostrar la tabla de workorders
 function show_workorder_dialog() {
@@ -203,7 +205,7 @@ function main_dialog() {
 
         case $choice in
             1)
-                show_add_record_form
+                show_add_record_form  # Llama a la función para agregar un nuevo registro
                 ;;
             2)
                 show_workorder_dialog
@@ -241,10 +243,9 @@ function check_mysql_service() {
 
 function add_workorder() {
     # Inicializar el script
-    check_mysql_service
+    #check_mysql_service
     delete_temp_file
-    get_last_consecutive
-    check_db_variables
+    #check_db_variables
     main_dialog
 }
 
