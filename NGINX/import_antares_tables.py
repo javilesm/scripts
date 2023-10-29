@@ -25,7 +25,8 @@ script_encabezado()
 # Variables
 Repository = "Antares_project"
 GitHubRepoURL = f"https://github.com/TCS2211194M1/{Repository}.git"
-RepositoryDir = f"/home/ubuntu/scripts/{Repository}"
+Current_Path = os.path.dirname(os.path.abspath(__file__))
+RepositoryDir = os.path.join(Current_Path, Repository)
 GitDir = os.path.join(RepositoryDir, ".git")
 directorio_csv = os.path.join(RepositoryDir, "tablas")
 temp_dir = "/var/tmp/tablas"
