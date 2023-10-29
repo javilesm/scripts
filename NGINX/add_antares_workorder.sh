@@ -12,7 +12,9 @@ last_consecutive=0
 description=""
 create_date=""
 update_date=""
-TEMP_FILE="/tmp/input.csv"
+CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
+TEMP_FILE="input.csv"
+TEMP_PATH="$CURRENT_DIR/$TEMP_FILE"
 
 # Función para generar el valor del atributo "description"
 function generate_description() {
@@ -47,6 +49,12 @@ function show_workorder_table() {
 # Función para mostrar un mensaje de éxito
 function show_success_message() {
     dialog --msgbox "Registro agregado exitosamente." 10 40
+}
+
+# Función para eliminar el archivo temporal
+function delete_temp_file() {
+    echo "Eliminando el archivo temporal '$TEMP_PATH'..."
+    sudo rm -f "$TEMP_PATH"
 }
 
 # Función para insertar un registro en la base de datos
@@ -108,10 +116,10 @@ function show_add_record_form() {
         "Fecha inicio de vigencia:" 7 1 "$fecha_inicio_vigencia" 7 40 19 0 \
         "Fecha fin de vigencia:" 8 1 "$fecha_fin_vigencia" 8 40 19 0 \
         "workorder_flag:" 9 1 "$workorder_flag" 9 40 10 0 \
-        "entry_status:" 10 1 "$entry_status" 10 40 10 0 2> "$TEMP_FILE"
+        "entry_status:" 10 1 "$entry_status" 10 40 10 0 2> "$TEMP_PATH"
 
     # Leer los datos ingresados por el usuario
-    IFS=',' read -r t_workorder last_t_workorder description t_product registered_domain t_partition fecha_inicio_vigencia fecha_fin_vigencia workorder_flag entry_status < "$TEMP_FILE"
+    IFS=',' read -r t_workorder last_t_workorder description t_product registered_domain t_partition fecha_inicio_vigencia fecha_fin_vigencia workorder_flag entry_status < "$TEMP_PATH"
 
     # Mostrar la previsualización de los datos con los valores ingresados
     show_preview
@@ -125,7 +133,7 @@ function show_add_record_form() {
         show_success_message
     fi
 
-    sudo rm "$TEMP_FILE"
+    delete_temp_file  # Eliminar el archivo temporal
 }
 
 # Función para mostrar la tabla de workorders
@@ -133,16 +141,17 @@ function show_workorder_dialog() {
     tmpfile=$(mktemp /tmp/workorders.XXXXXXXXXX)
     show_workorder_table > "$tmpfile"
     dialog --textbox "$tmpfile" 20 60
-    rm -f "$tmpfile"
+    delete_temp_file
 }
 
 # Función principal para la interfaz de usuario
 function main_dialog() {
     while true; do
-        dialog --menu "Menú principal" 15 40 4 \
+        dialog --menu "Menú principal" 15 40 5 \
             1 "Agregar nuevo registro" \
             2 "Mostrar tabla $db_workorder_table" \
-            3 "Salir" 2> /tmp/menu_choice.txt
+            3 "Eliminar archivo temporal" \
+            4 "Salir" 2> /tmp/menu_choice.txt
 
         choice=$(cat /tmp/menu_choice.txt)
 
@@ -154,6 +163,10 @@ function main_dialog() {
                 show_workorder_dialog
                 ;;
             3)
+                delete_temp_file
+                dialog --msgbox "Archivo temporal eliminado." 10 40
+                ;;
+            4)
                 clear  # Limpiar la terminal
                 break
                 ;;
@@ -161,6 +174,9 @@ function main_dialog() {
     done
 }
 
-# Inicializar el script
-get_last_consecutive
-main_dialog
+function add_workorder() {
+    get_last_consecutive
+    main_dialog
+}
+
+add_workorder
