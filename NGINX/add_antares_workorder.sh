@@ -306,9 +306,9 @@ function check_mysql_service() {
 
 function add_workorder() {
     # Inicializar el script
-    check_mysql_service
+    #check_mysql_service
     delete_temp_file
-    check_db_variables
+    #check_db_variables
     main_dialog
 }
 
