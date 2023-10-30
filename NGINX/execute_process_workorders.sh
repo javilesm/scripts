@@ -26,9 +26,11 @@ deactivate_virtualenv() {
 
 # Función principal
 function execute_process_workorders() {
+    echo "****************PROCESS WORKORDERS****************"
   activate_virtualenv
   run_python_script
   deactivate_virtualenv
+  echo "****************IMPORT TABLES****************"
 }
 
 execute_process_workorders
