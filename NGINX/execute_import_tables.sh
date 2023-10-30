@@ -7,7 +7,7 @@ PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the curre
 ENV_DIR="$(dirname "$(dirname "$(dirname "$(realpath "$BASH_SOURCE")")")")/envs"
 VIRTUAL_ENVIRONTMENT="$ENV_DIR/venv0/bin/activate"
 IMPORT_TABLES_SCRIPT="import_antares_tables.py"
-PROCESS_WORKORDERS_SCRIPT_PATH="$CURRENT_DIR/$PROCESS_WORKORDERS_SCRIPT"
+IMPORT_TABLES_SCRIPT_PATH="$CURRENT_DIR/$IMPORT_TABLES_SCRIPT"
 
 # Función para activar el entorno virtual
 function activate_virtualenv() {
@@ -16,7 +16,7 @@ function activate_virtualenv() {
 
 # Función para ejecutar el script de Python
 function run_python_script() {
-    python "$PROCESS_WORKORDERS_SCRIPT_PATH"
+    python "$IMPORT_TABLES_SCRIPT_PATH"
 }
 
 # Función para desactivar el entorno virtual
