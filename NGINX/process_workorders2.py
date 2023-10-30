@@ -637,7 +637,8 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         subprocess.run(["sleep", "10"])
 
         # Verificar si se creó la partición exitosamente
-        check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
+        check_partition_command = f"sudo parted /dev/{device_name} print | awk '{{print $1}}' | grep -E '{next_partition_number}$'"
+        logger.info(f"Ejecutando el comando: {check_partition_command}")
         partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
 
         if partition_result.returncode == 0:
@@ -654,25 +655,17 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
                 "partition_size": partition_size
             }
 
-            # Comprobar si la partición se creó correctamente antes de continuar
-            check_created_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
-            created_partition_result = subprocess.run(check_created_partition_command, shell=True, stderr=subprocess.PIPE)
-
-            if created_partition_result.returncode == 0:
-                # Luego de crear la partición con éxito, llama a format_partition
-                logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
-                format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
-            else:
-                logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
+            # Luego de crear la partición con éxito, llama a format_partition
+            logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
+            format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+        
         else:
-            logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
+            logger.error(f"ERROR: Error al crear la partición {next_partition_number} en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
 
     except subprocess.CalledProcessError as e:
         logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
-
-
 # Función para autoconfirmar la ejecución del comando "partition_command"
 def auto_confirm_create_subsequencing_partition(partition_command):
     try:
@@ -750,7 +743,9 @@ def format_partition(workorder_flag, device_name, partition_name, filesystem_typ
         logger.info(f"Procediendo a formatear la particion '{partition_name}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
         
         # Formatear la partición con el sistema de archivos especificado
-        format_command = f"sudo mkfs.{filesystem_type} {partition_name}"
+        format_command = f"sudo mkfs -t {filesystem_type} {partition_name}"
+        logger.info(f"Ejecutando el comando '{format_command}'.")
+
         process = subprocess.Popen(format_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
 
