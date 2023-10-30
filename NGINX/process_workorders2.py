@@ -637,30 +637,7 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         subprocess.run(["sleep", "10"])
 
         # Verificar si se creó la partición exitosamente
-        check_partition_command = f"sudo parted /dev/{device_name} print | awk '{{print $1}}' | grep -E '{next_partition_number}$'"
-        logger.info(f"Ejecutando el comando: {check_partition_command}")
-        partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
-
-        if partition_result.returncode == 0:
-            # Obtener el ID de la partición recién creada
-            partition_name = f"/dev/{device_name}{next_partition_number}"
-
-            created_partition_info = {
-                "device_name": device_name,
-                "partition_name": partition_name,
-                "partition_number": next_partition_number,
-                "partition_type": partition_type,
-                "filesystem_type": filesystem_type,
-                "registered_domain": registered_domain,
-                "partition_size": partition_size
-            }
-
-            # Luego de crear la partición con éxito, llama a format_partition
-            logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
-            format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
-        
-        else:
-            logger.error(f"ERROR: Error al crear la partición {next_partition_number} en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
+        format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
 
     except subprocess.CalledProcessError as e:
         logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
