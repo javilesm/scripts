@@ -70,20 +70,22 @@ function generate_description() {
 # Función para generar el valor de T_WORKORDER (Autoincremental)
 function generate_t_workorder() {
     current_t_workorder=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$db_workorder_table';" | tail -n1)
+    dialog --msgbox "Último registro de T_WORKORDER: $current_t_workorder" 10 40
     if [ -z "$current_t_workorder" ]; then
         current_t_workorder=1
     fi
     next_t_workorder=$((current_t_workorder + 1))
 }
 
-# Función para obtener el último valor consecutivo
 function get_last_consecutive() {
-    last_consecutive=$(sudo mysql -e "SELECT MAX(SUBSTRING(T_WORKORDER, -3)) FROM $db_name.$db_workorder_table;" | tail -n1)
+    last_consecutive=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT MAX(T_WORKORDER) FROM $db_workorder_table;" | tail -n1)
+    dialog --msgbox "Último registro de T_WORKORDER: $last_consecutive" 10 40
     if [ -z "$last_consecutive" ]; then
         last_consecutive=0
     fi
     current_consecutive=$((last_consecutive + 1))
 }
+
 
 # Función para mostrar el contenido de la tabla
 function show_workorder_table() {
@@ -103,39 +105,23 @@ function delete_temp_file() {
     sudo rm -f "$TEMP_PATH"
 }
 
-# Función para insertar un registro en la base de datos
-function insert_record() {
-    local t_product="$1"
-    local registered_domain="$2"
-    local t_partition="$3"
-    local fecha_inicio_vigencia="$4"
-    local fecha_fin_vigencia="$5"
-    local workorder_flag="$6"
-    local entry_status="$7"
-    local create_by="$8"
-    local update_by="$9"
-
-    generate_description
-    create_date=$(date +'%Y-%m-%d %H:%M:%S')
-    update_date=$create_date
-
-    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "INSERT INTO $db_workorder_table (T_WORKORDER, DESCRIPTION, T_PRODUCT, REGISTERED_DOMAIN, T_PARTITION, FECHA_INICIO_DE_VIGENCIA, FECHA_FIN_DE_VIGENCIA, WORKORDER_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ('$current_consecutive', '$description', '$t_product', '$registered_domain', '$t_partition', '$fecha_inicio_vigencia', '$fecha_fin_vigencia', '$workorder_flag', '$entry_status', '$create_date', '$create_by', '$update_date', '$update_by');"
-}
-
 # Función para mostrar el formulario de agregar registro
 function show_add_record_form() {
     generate_description  # Generar el valor de "description"
-    generate_t_workorder
     get_last_consecutive
 
-    # Variables para almacenar los datos del formulario
-    local t_product="8"
-    local registered_domain=""
-    local t_partition="xvda1"
-    local fecha_inicio_vigencia="2023-01-01 00:00:00"
-    local fecha_fin_vigencia="2024-01-01 00:00:00"
-    local workorder_flag="1"
-    local entry_status="0"
+    # Variables por default para almacenar los datos del formulario
+    t_product="8"
+    registered_domain=""
+    t_partition="xvda1"
+    fecha_inicio_vigencia="2023-01-01 00:00:00"
+    fecha_fin_vigencia="2024-01-01 00:00:00"
+    workorder_flag="1"
+    entry_status="0"
+    create_date=$(date +'%Y-%m-%d %H:%M:%S')
+    create_by="$db_user"  # Asigna el valor por defecto o el que corresponda
+    update_date=$create_date
+    update_by="$db_user"  # Asigna el valor por defecto o el que corresponda
 
     # Mostrar el valor vigente de "description" en el formulario
     dialog --form "Agregar registro a la tabla $db_workorder_table" 20 60 14 \
@@ -162,7 +148,6 @@ function show_add_record_form() {
     fi
 }
 
-
 function preview_and_confirm() {
     # Mostrar la previsualización de los datos con los valores ingresados
     previsualizacion=$(cat "$TEMP_PATH")
@@ -171,10 +156,10 @@ function preview_and_confirm() {
     if [ -s "$TEMP_PATH" ]; then
         # Confirmar inserción
         dialog --yesno "¿Deseas agregar estos registros?" 7 40
-        response=$
+        response=$?
 
         if [ $response -eq 0 ]; then
-            insert_record "$current_consecutive" "$description" "$t_product" "$registered_domain" "$t_partition" "$fecha_inicio_vigencia" "$fecha_fin_vigencia" "$workorder_flag" "$entry_status" "$create_date" "$create_by" "$update_date" "$update_by" "$db_user" "$db_user"
+            insert_record "$current_consecutive" "$description" "$t_product" "$registered_domain" "$t_partition" "$fecha_inicio_vigencia" "$fecha_fin_vigencia" "$workorder_flag" "$entry_status" "$create_date" "$create_by" "$update_date" "$update_by"
             show_success_message
         fi
     else
@@ -182,7 +167,23 @@ function preview_and_confirm() {
     fi
 }
 
+# Función para insertar un registro en la base de datos
+function insert_record() {
+    local t_workorder="$1"
+    local t_product="$3"
+    local registered_domain="$4"
+    local t_partition="$5"
+    local fecha_inicio_vigencia="$6"
+    local fecha_fin_vigencia="$7"
+    local workorder_flag="$8"
+    local entry_status="$9"
+    local create_date="${10}"
+    local create_by="${11}"
+    local update_date="${12}"
+    local update_by="${13}"
 
+    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "INSERT INTO $db_workorder_table (T_WORKORDER, DESCRIPTION, T_PRODUCT, REGISTERED_DOMAIN, T_PARTITION, FECHA_INICIO_DE_VIGENCIA, FECHA_FIN_DE_VIGENCIA, WORKORDER_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ('$t_workorder', '$description', '$t_product', '$registered_domain', '$t_partition', '$fecha_inicio_vigencia', '$fecha_fin_vigencia', '$workorder_flag', '$entry_status', '$create_date', '$create_by', '$update_date', '$update_by');"
+}
 
 # Función para mostrar la tabla de workorders
 function show_workorder_dialog() {
