@@ -16,6 +16,34 @@ CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actua
 TEMP_FILE="input.csv"
 TEMP_PATH="$CURRENT_DIR/$TEMP_FILE"
 
+# Función para cambiar la propiedad del directorio $CURRENT_DIR al usuario actual
+function change_directory_ownership_to_user() {
+    dialog --infobox  "Cambiando la propiedad del directorio '$CURRENT_DIR' al usuario actual..." 10 40
+    sleep 2
+    # Obtiene el nombre de usuario actual
+    current_user=$(whoami)
+
+    # Cambia la propiedad del directorio al usuario actual
+    sudo chown -R "$current_user:$current_user" "$CURRENT_DIR"
+
+    if [ $? -eq 0 ]; then
+        dialog --infobox "Propiedad del directorio cambiada a '$current_user'." 10 40
+        sleep 2
+        sudo touch "$TEMP_PATH"
+        if [ $? -eq 0 ]; then
+            dialog --infobox "El archivo '$TEMP_PATH' ha sido creado." 10 40
+            sleep 2
+        else
+            dialog --infobox "Error al crear el archivo '$TEMP_PATH'." 10 40
+            sleep 2
+        fi
+    else
+        dialog --infobox "Error al cambiar la propiedad del directorio a '$current_user.'" 10 40
+        sleep 2
+    fi
+}
+
+
 # Función para comprobar las variables de conexión a la base de datos
 function check_db_variables() {
     dialog --infobox "Comprobando variables de conexión a la base de datos..." 10 40
@@ -106,6 +134,7 @@ function delete_temp_file() {
 }
 
 # Función para mostrar el formulario de agregar registro
+# Función para mostrar el formulario de agregar registro
 function show_add_record_form() {
     generate_description  # Generar el valor de "description"
     get_last_consecutive
@@ -147,6 +176,7 @@ function show_add_record_form() {
         dialog --msgbox "Ingreso de datos cancelado." 10 40
     fi
 }
+
 
 function preview_and_confirm() {
     # Mostrar la previsualización de los datos con los valores ingresados
@@ -219,7 +249,7 @@ function show_workorder_dialog() {
 # Función para eliminar registros SQL
 function delete_records_dialog() {
     records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT T_WORKORDER, DESCRIPTION FROM $db_workorder_table;")
-    record_count=$(echo "$records" | wc -l)
+    record_count=$(dialog --infobox "$records" | wc -l)
 
     if [ $record_count -gt 0 ]; then
         dialog --menu "Selecciona el registro a eliminar:" 20 60 14 $records 2> /tmp/delete_choice.txt
@@ -305,7 +335,7 @@ function check_mysql_service() {
 }
 
 function add_workorder() {
-    # Inicializar el script
+    change_directory_ownership_to_user
     check_mysql_service
     delete_temp_file
     check_db_variables
