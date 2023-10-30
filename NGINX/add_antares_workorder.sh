@@ -159,7 +159,15 @@ function preview_and_confirm() {
         response=$?
 
         if [ $response -eq 0 ]; then
-            insert_record "$current_consecutive" "$description" "$t_product" "$registered_domain" "$t_partition" "$fecha_inicio_vigencia" "$fecha_fin_vigencia" "$workorder_flag" "$entry_status" "$create_date" "$create_by" "$update_date" "$update_by"
+            data_file="$TEMP_PATH"
+            query_values=""
+            while IFS= read -r line; do
+                query_values="$query_values'$line', "
+            done < "$data_file"
+
+            # Elimina la coma y el espacio extra al final de la cadena
+            query_values="${query_values%, }"
+            preload_sql_query "$query_values"
             show_success_message
         fi
     else
@@ -167,9 +175,11 @@ function preview_and_confirm() {
     fi
 }
 
+
 # Función para insertar un registro en la base de datos
-function insert_record() {
+function preload_sql_query() {
     local t_workorder="$1"
+    local description="$2"
     local t_product="$3"
     local registered_domain="$4"
     local t_partition="$5"
@@ -182,7 +192,20 @@ function insert_record() {
     local update_date="${12}"
     local update_by="${13}"
 
-    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "INSERT INTO $db_workorder_table (T_WORKORDER, DESCRIPTION, T_PRODUCT, REGISTERED_DOMAIN, T_PARTITION, FECHA_INICIO_DE_VIGENCIA, FECHA_FIN_DE_VIGENCIA, WORKORDER_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ('$t_workorder', '$description', '$t_product', '$registered_domain', '$t_partition', '$fecha_inicio_vigencia', '$fecha_fin_vigencia', '$workorder_flag', '$entry_status', '$create_date', '$create_by', '$update_date', '$update_by');"
+    SQL_INTERT_QUERY="INSERT INTO $db_workorder_table (T_WORKORDER, DESCRIPTION, T_PRODUCT, REGISTERED_DOMAIN, T_PARTITION, FECHA_INICIO_DE_VIGENCIA, FECHA_FIN_DE_VIGENCIA, WORKORDER_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ($query_values);"
+        # Confirmar inserción
+        dialog --yesno "¿Deseas ejecutar el siguiente query?: '$SQL_INTERT_QUERY'" 7 40
+        response=$?
+
+        if [ $response -eq 0 ]; then
+            insert_record "$SQL_INTERT_QUERY"
+            show_success_message
+        fi
+}
+
+# Función para insertar un registro en la base de datos
+function insert_record() {
+    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "$SQL_INTERT_QUERY"
 }
 
 # Función para mostrar la tabla de workorders
@@ -193,14 +216,50 @@ function show_workorder_dialog() {
     sudo rm -f "$tmpfile"
 }
 
+# Función para eliminar registros SQL
+function delete_records_dialog() {
+    records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT T_WORKORDER, DESCRIPTION FROM $db_workorder_table;")
+    record_count=$(echo "$records" | wc -l)
+
+    if [ $record_count -gt 0 ]; then
+        dialog --menu "Selecciona el registro a eliminar:" 20 60 14 $records 2> /tmp/delete_choice.txt
+
+        delete_choice=$(cat /tmp/delete_choice.txt)
+        if [ -n "$delete_choice" ]; then
+            confirm_delete "$delete_choice"
+        fi
+    else
+        dialog --msgbox "No hay registros para eliminar." 10 40
+    fi
+}
+
+# Función para confirmar la eliminación de un registro
+function confirm_delete() {
+    local record_id="$1"
+    dialog --yesno "¿Estás seguro de que deseas eliminar el registro con T_WORKORDER $record_id?" 7 40
+
+    response=$?
+    if [ $response -eq 0 ]; then
+        delete_record "$record_id"
+        dialog --msgbox "Registro eliminado con éxito." 10 40
+    fi
+}
+
+# Función para eliminar un registro
+function delete_record() {
+    local record_id="$1"
+    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "DELETE FROM $db_workorder_table WHERE T_WORKORDER = '$record_id';"
+}
+
 # Función principal para la interfaz de usuario
 function main_dialog() {
     while true; do
         dialog --menu "Menú principal" 15 40 5 \
             1 "Agregar nuevo registro" \
             2 "Mostrar tabla $db_workorder_table" \
-            3 "Eliminar archivo temporal" \
-            4 "Salir" 2> /tmp/menu_choice.txt
+            3 "Eliminar registros SQL" \
+            4 "Eliminar archivo temporal" \
+            5 "Salir" 2> /tmp/menu_choice.txt
 
         choice=$(cat /tmp/menu_choice.txt)
 
@@ -212,10 +271,13 @@ function main_dialog() {
                 show_workorder_dialog
                 ;;
             3)
+                delete_records_dialog  # Llama a la función para eliminar registros SQL
+                ;;
+            4)
                 delete_temp_file
                 dialog --msgbox "Archivo temporal eliminado." 10 40
                 ;;
-            4)
+            5)
                 clear  # Limpiar la terminal
                 break
                 ;;
@@ -244,9 +306,9 @@ function check_mysql_service() {
 
 function add_workorder() {
     # Inicializar el script
-    #check_mysql_service
+    check_mysql_service
     delete_temp_file
-    #check_db_variables
+    check_db_variables
     main_dialog
 }
 
