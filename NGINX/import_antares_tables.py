@@ -91,14 +91,14 @@ def create_directory(RepositoryDir, GitDir, GitHubRepoURL, directorio_csv, temp_
     print(f"Comprobando si el directorio '{RepositoryDir}' existe...")
     if not os.path.exists(RepositoryDir):
         print(f"El directorio '{RepositoryDir}' no existe.")
-        print("Creando el directorio...")
+        print(f"Creando el directorio '{RepositoryDir}'...")
 
         try:
             # Utiliza el comando sudo mkdir para crear el directorio
             subprocess.run(["sudo", "mkdir", RepositoryDir], check=True)
-            print("Directorio creado con éxito.")
+            print(f"Directorio '{RepositoryDir}' creado con éxito.")
         except subprocess.CalledProcessError:
-            print("Error al crear el directorio.")
+            print(f"Error al crear el directorio '{RepositoryDir}'.")
             exit(1)
     else:
         print(f"El directorio '{RepositoryDir}' existe...")
@@ -181,73 +181,12 @@ def create_directory_with_sudo(directorio_csv, Headings_Dir, ruta_Headings_Dir):
         # Cambia los permisos a 755 (ejemplo: el propietario puede leer, escribir y ejecutar)
         subprocess.run(["sudo", "chmod", "755", ruta_Headings_Dir])
 
-        obtener_encabezados_csv(directorio_csv, Headings_Dir, ruta_Headings_Dir)
     except subprocess.CalledProcessError as e:
         print(f"Error al crear el directorio o ajustar los permisos: {e}")
         return
 
-
-# Función para mostrar el resultado del proceso
-def show_result():
-    if os.path.exists(GitDir):
-        print("Proceso completado.")
-    else:
-        print("Error al clonar o actualizar el repositorio.")
-
-if __name__ == "__main__":
-    check_git_installed()
-    show_result()
-    print("Fin del script.")
-
-def connDB(host, user, password, database):
-    print(f"Establciendo conexion con la base de datos...")
-    time.sleep(1)
-    try:
-        conn = mysql.connector.connect(
-            host=mysql_host,
-            user=mysql_user,
-            password=mysql_password,
-            database=mysql_database
-        )
-        cursor = conn.cursor()
-
-        # Comprobar si la base de datos existe
-        cursor.execute(f"SHOW DATABASES LIKE '{database}'")
-        result = cursor.fetchone()
-
-        if result:
-            print(f"Conexión a MySQL exitosa. La base de datos '{database}' existe.")
-            return conn
-        else:
-            print(f"La base de datos '{database}' no existe.")
-            conn.close()
-            return None
-
-    except mysql.connector.Error as err:
-        print(f"Error al conectar a MySQL: {err}")
-        return None
-    
-# Llamar a la función connDB
-conexion = connDB(host=mysql_host, user=mysql_user, password=mysql_password, database=mysql_database)
-
-if conexion is not None:
-    # Puedes realizar operaciones con la base de datos aquí
-    # No olvides cerrar la conexión cuando hayas terminado
-    conexion.close()
-
-# Función para cargar un archivo CSV con codificación y manejo de caracteres no válidos
-def cargar_csv_con_codificacion(ruta_csv, codificacion):
-    with open(ruta_csv, 'r', encoding=codificacion, errors='replace') as archivo:
-        contenido = archivo.read()
-        contenido = contenido.replace('�', '')  # Elimina los caracteres no válidos
-
-    # Crea un objeto StringIO para cargar el contenido modificado en Pandas
-    buffer = StringIO(contenido)
-
-    # Lee el archivo CSV desde el buffer
-    df = pd.read_csv(buffer)
-
-    return df
+    # Llamar a la función obtener_encabezados_csv después de que se haya creado el directorio
+    obtener_encabezados_csv(directorio_csv, Headings_Dir, ruta_Headings_Dir)
 
 # Función para obtener los encabezados CSV
 def obtener_encabezados_csv(directorio_csv, Headings_Dir, ruta_Headings_Dir):
@@ -255,7 +194,6 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir, ruta_Headings_Dir):
 
     # Obtener la lista de archivos CSV en el directorio
     archivos_csv = [archivo for archivo in os.listdir(directorio_csv) if archivo.endswith('.csv')]
-
 
     # Mapear los tipos de datos de pandas a tipos de datos SQL, incluyendo números de teléfono
     tipos_de_datos_sql = {
@@ -353,12 +291,11 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir, ruta_Headings_Dir):
         print(f"-------------------------------------------------------------------------------------------------")
         time.sleep(1)
 
-        # Llamar a la función crear_tablas_mysql_desde_archivos para obtener la lista de tablas SQL creadas
-        tablas_sql_creadas = crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql)
-
+    # Llamar a la función crear_tablas_mysql_desde_archivos para obtener la lista de tablas SQL creadas
+    tablas_sql_creadas = crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql, directorio_csv)
 
 # Función para crear tablas SQL desde archivos SQL
-def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql):
+def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql, directorio_csv):
     tablas_sql = []  # Lista para almacenar los nombres de las tablas SQL creadas
     print("Creando tablas SQL desde archivos SQL...")
 
@@ -413,6 +350,9 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
                 print(f"Tabla '{nombre_tabla}' creada desde '{archivo_sql}'")
                 print("----------------------------------------------------------")
 
+        # Llama a la función importar_datos_a_sql después de que se haya completado la creación de tablas
+        importar_datos_a_sql(directorio_csv, tablas_sql)
+
     except mysql.connector.Error as err:
         print(f"Error al conectar a MySQL: {err}")
     except Exception as e:
@@ -423,13 +363,11 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
             conn.close()
             print("Conexión a MySQL cerrada.")
 
-    return tablas_sql  # Devuelve la lista de nombres de tablas SQL creadas
-    # Llama a la función importar_datos_a_sql
-    importar_datos_a_sql(conexion, directorio_csv, tablas_sql_creadas)
-
 # Función para importar datos desde archivos CSV a tablas SQL
-def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
+def importar_datos_a_sql(directorio_csv, tablas_sql):
     try:
+        print("Importando datos desde archivos CSV a tablas SQL...")
+
         # Conexión a la base de datos MySQL
         conn = mysql.connector.connect(
             host=mysql_host,
@@ -494,6 +432,66 @@ def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
             conn.close()
             print("Conexión a MySQL cerrada.")
 
+# Función para mostrar el resultado del proceso
+def show_result():
+    if os.path.exists(GitDir):
+        print("Proceso completado.")
+    else:
+        print("Error al clonar o actualizar el repositorio.")
+
+if __name__ == "__main__":
+    check_git_installed()
+    show_result()
+    print("Fin del script.")
+
+def connDB(host, user, password, database):
+    print(f"Establciendo conexion con la base de datos...")
+    time.sleep(1)
+    try:
+        conn = mysql.connector.connect(
+            host=mysql_host,
+            user=mysql_user,
+            password=mysql_password,
+            database=mysql_database
+        )
+        cursor = conn.cursor()
+
+        # Comprobar si la base de datos existe
+        cursor.execute(f"SHOW DATABASES LIKE '{database}'")
+        result = cursor.fetchone()
+
+        if result:
+            print(f"Conexión a MySQL exitosa. La base de datos '{database}' existe.")
+            return conn
+        else:
+            print(f"La base de datos '{database}' no existe.")
+            conn.close()
+            return None
+
+    except mysql.connector.Error as err:
+        print(f"Error al conectar a MySQL: {err}")
+        return None
+    
+# Llamar a la función connDB
+conexion = connDB(host=mysql_host, user=mysql_user, password=mysql_password, database=mysql_database)
+
+if conexion is not None:
+    conexion.close()
+
+# Función para cargar un archivo CSV con codificación y manejo de caracteres no válidos
+def cargar_csv_con_codificacion(ruta_csv, codificacion):
+    with open(ruta_csv, 'r', encoding=codificacion, errors='replace') as archivo:
+        contenido = archivo.read()
+        contenido = contenido.replace('�', '')  # Elimina los caracteres no válidos
+
+    # Crea un objeto StringIO para cargar el contenido modificado en Pandas
+    buffer = StringIO(contenido)
+
+    # Lee el archivo CSV desde el buffer
+    df = pd.read_csv(buffer)
+
+    return df
+
 # Función para eliminar el directorio ruta_archivos_sql
 def eliminar_directorio(temp_dir):
     try:
@@ -508,7 +506,7 @@ def eliminar_directorio(temp_dir):
 
 # Función principal
 def main():
-    #configurar_charset_mysql(ruta_config_mysql)
+    configurar_charset_mysql(ruta_config_mysql)
     show_result()
     create_directory(RepositoryDir, GitDir, GitHubRepoURL, directorio_csv, temp_dir)
     eliminar_directorio(temp_dir)
