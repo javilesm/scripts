@@ -10,18 +10,6 @@ import configparser
 import re
 from io import StringIO
 
-def script_encabezado():
-    print("********CREATIVERING SOLUTIONS********")
-    print("----------------------------------------")
-    print("********IMPORT CSV TO SQL********")
-    print("----------------------------------------")
-    print("Script de importación de tablas CSV a MySQL")
-    print("Este script automatiza la importación de tablas CSV a MySQL")
-    print("----------------------------------------")
-
-# Llama a la función para mostrar el encabezado del script
-script_encabezado()
-
 # Variables
 Repository = "Antares_project"
 GitHubRepoURL = f"https://github.com/TCS2211194M1/{Repository}.git"
@@ -31,7 +19,7 @@ RepositoryDir = os.path.join(parent_directory, Repository)
 GitDir = os.path.join(RepositoryDir, ".git")
 directorio_csv = os.path.join(RepositoryDir, "tablas")
 temp_dir = "/var/tmp/tablas"
-Headings_Dir = 'headings'
+Headings_Dir = "headings"
 ruta_archivos_sql = os.path.join(directorio_csv, 'headings')
 ruta_config_mysql = "/etc/mysql/mysql.conf.d/mysqld.cnf"
 nueva_ubicacion = ""
@@ -52,53 +40,6 @@ def check_git_installed():
         exit(1)
 print("Verificando si Git está instalado...")
 
-# Llamar a la función check_git_installed
-check_git_installed()
-
-# Función para configurar secure-file-priv y desactivar LOAD DATA LOCAL INFILE
-def configurar_secure_file_priv_y_load_data_local_infile(ruta_config_mysql, nueva_ubicacion):
-
-    try:
-        # Verificar si el archivo de configuración existe
-        if not os.path.isfile(ruta_config_mysql):
-            print(f"El archivo de configuración MySQL '{ruta_config_mysql}' no existe.")
-            return
-
-        # Crear una copia de seguridad del archivo de configuración
-        ruta_copia_seguridad = ruta_config_mysql + '.bak'
-        shutil.copy2(ruta_config_mysql, ruta_copia_seguridad)
-
-        # Abrir el archivo de configuración de MySQL
-        config = configparser.ConfigParser()
-        config.read(ruta_config_mysql)
-
-        # Cambiar la ubicación de secure-file-priv en el archivo de configuración
-        if 'mysqld' not in config:
-            config.add_section('mysqld')
-        config['mysqld']['secure-file-priv'] = nueva_ubicacion
-
-        # Desactivar LOAD DATA LOCAL INFILE agregando la línea correspondiente
-        config['mysqld']['local_infile'] = '1'
-
-        # Guardar los cambios en el archivo de configuración
-        with open(ruta_config_mysql, 'w') as configfile:
-            config.write(configfile)
-
-        # Reiniciar el servidor MySQL para que los cambios surtan efecto
-        subprocess.call(['service', 'mysql', 'restart'])  # Esto puede variar según tu sistema operativo
-
-        print(f"La ubicación de 'secure-file-priv' se ha configurado en '{nueva_ubicacion}'.")
-        print(f"Se ha creado una copia de seguridad en '{ruta_copia_seguridad}'.")
-        print("Se ha desactivado LOAD DATA LOCAL INFILE.")
-
-    except Exception as e:
-        print(f"Error al configurar 'secure-file-priv' y 'LOAD DATA LOCAL INFILE': {str(e)}")
-
-print(f"Configurando '{ruta_config_mysql}'...")
-
-# Llamar a la función para configurar secure-file-priv y desactivar LOAD DATA LOCAL INFILE
-#configurar_secure_file_priv_y_load_data_local_infile(ruta_config_mysql, nueva_ubicacion)
-
 def configurar_charset_mysql(ruta_config_mysql):
     # Verificar si el archivo de configuración existe
     if not os.path.isfile(ruta_config_mysql):
@@ -110,9 +51,15 @@ def configurar_charset_mysql(ruta_config_mysql):
         ruta_copia_seguridad = ruta_config_mysql + '.bak'
         shutil.copy2(ruta_config_mysql, ruta_copia_seguridad)
 
-        # Abrir el archivo de configuración de MySQL
-        config = configparser.ConfigParser()
-        config.read(ruta_config_mysql)
+        # Copiar el archivo de configuración al directorio temporal con privilegios de superusuario
+        copy_command = f'sudo cp {ruta_config_mysql} /tmp/mysql.conf'
+        subprocess.run(copy_command, shell=True, check=True)
+
+        # Abrir el archivo de configuración de MySQL desde el directorio temporal
+        read_command = 'sudo cat /tmp/mysql.conf'
+        config_data = subprocess.check_output(read_command, shell=True, text=True)
+        config = configparser.ConfigParser(allow_no_value=True)
+        config.read_string(config_data)
 
         # Cambiar la ubicación de secure-file-priv en el archivo de configuración
         if 'mysqld' not in config:
@@ -120,12 +67,17 @@ def configurar_charset_mysql(ruta_config_mysql):
         config['mysqld']['character-set-server'] = 'utf8mb4'
         config['mysqld']['collation-server'] = 'utf8mb4_unicode_ci'
 
-        # Guardar los cambios en el archivo de configuración
-        with open(ruta_config_mysql, 'w') as configfile:
+        # Guardar los cambios en el archivo de configuración temporal
+        with open('/tmp/mysql.conf', 'w') as configfile:
             config.write(configfile)
 
+        # Mover el archivo de configuración temporal a su ubicación original con privilegios de superusuario
+        move_command = f'sudo mv /tmp/mysql.conf {ruta_config_mysql}'
+        subprocess.run(move_command, shell=True, check=True)
+
         # Reiniciar el servidor MySQL para que los cambios surtan efecto
-        subprocess.call(['service', 'mysql', 'restart'])  # Esto puede variar según tu sistema operativo
+        restart_command = 'sudo service mysql restart'  # Comando para reiniciar MySQL
+        subprocess.run(restart_command, shell=True, check=True)
 
         print("La configuración de caracteres en MySQL se ha actualizado a utf8mb4.")
         print(f"Se ha creado una copia de seguridad en '{ruta_copia_seguridad}'.")
@@ -133,10 +85,8 @@ def configurar_charset_mysql(ruta_config_mysql):
     except Exception as e:
         print(f"Error al configurar el conjunto de caracteres en MySQL: {str(e)}")
 
-configurar_charset_mysql(ruta_config_mysql)
-
 # Función para crear el directorio si no existe
-def create_directory(RepositoryDir, GitDir, GitHubRepoURL):
+def create_directory(RepositoryDir, GitDir, GitHubRepoURL, directorio_csv, temp_dir):
     # Comprueba si el directorio existe
     print(f"Comprobando si el directorio '{RepositoryDir}' existe...")
     if not os.path.exists(RepositoryDir):
@@ -165,6 +115,7 @@ def create_directory(RepositoryDir, GitDir, GitHubRepoURL):
         try:
             subprocess.check_call(["sudo", "git", "clone", GitHubRepoURL, "."])
             print("Repositorio clonado con éxito.")
+            copiar_y_ajustar_permisos(directorio_csv, temp_dir)
         except subprocess.CalledProcessError:
             print("Error al clonar el repositorio.")
         else:
@@ -175,8 +126,66 @@ def create_directory(RepositoryDir, GitDir, GitHubRepoURL):
         try:
             subprocess.check_call(["git", "pull", GitHubRepoURL, "--allow-unrelated-histories"])
             print("Repositorio actualizado con éxito.")
+            copiar_y_ajustar_permisos(directorio_csv, temp_dir)
         except subprocess.CalledProcessError:
             print("Error al actualizar el repositorio.")
+
+def copiar_y_ajustar_permisos(directorio_csv, temp_dir):
+    try:
+        # Copiar el directorio de origen al destino
+        shutil.copytree(directorio_csv, temp_dir)
+
+        print(f"Cambiand la propiedad del directorio '{temp_dir}'...")
+
+        # Ejecutar el comando para cambiar la propiedad
+        comando_chown = f"sudo chown -R mysql:mysql {temp_dir}"
+        subprocess.run(comando_chown, shell=True, check=True)
+
+        # Agregar el comando para cambiar los permisos
+        comando_chmod = f"sudo chmod 755 -R {temp_dir}"
+        subprocess.run(comando_chmod, shell=True, check=True)
+
+        print("Directorio copiado y permisos ajustados con éxito.")
+
+        check_ruta_Headings_Dir(directorio_csv, Headings_Dir)
+    except Exception as e:
+        print(f"Error: {str(e)}")
+
+# Función para
+def check_ruta_Headings_Dir(directorio_csv, Headings_Dir):
+    # Ruta completa del Headings_Dir donde se guardarán los archivos de texto
+    ruta_Headings_Dir = os.path.join(directorio_csv, Headings_Dir)
+
+    # Verificar si el Headings_Dir existe y, si no existe, crearlo con "create_directory_with_sudo"
+    print(f"Verificando si el directorio '{ruta_Headings_Dir }' existe...")
+    if not os.path.exists(ruta_Headings_Dir):
+        print(f"El directorio '{ruta_Headings_Dir}' no existe. Creando...")
+        create_directory_with_sudo(directorio_csv, Headings_Dir, ruta_Headings_Dir)
+
+def create_directory_with_sudo(directorio_csv, Headings_Dir, ruta_Headings_Dir):
+    try:
+        print(f"Creando el directorio '{ruta_Headings_Dir}'...")
+
+        # Crea el directorio con sudo mkdir
+        subprocess.run(["sudo", "mkdir", ruta_Headings_Dir], check=True)
+        print(f"Directorio '{ruta_Headings_Dir}' creado con éxito.")
+
+        # Obtiene el nombre del usuario actual
+        print("Obteniendo el nombre del usuario actual...")
+        current_user = os.getenv("USER")  # Alternativa a os.getlogin()
+
+        # Cambia la propiedad del directorio al usuario actual y al grupo del usuario actual
+        print(f"Cambiando la propiedad del directorio '{ruta_Headings_Dir}' al usuario '{current_user}'...")
+        subprocess.run(["sudo", "chown", "-R", f"{current_user}:{current_user}", ruta_Headings_Dir])
+
+        # Cambia los permisos a 755 (ejemplo: el propietario puede leer, escribir y ejecutar)
+        subprocess.run(["sudo", "chmod", "755", ruta_Headings_Dir])
+
+        obtener_encabezados_csv(directorio_csv, Headings_Dir, ruta_Headings_Dir)
+    except subprocess.CalledProcessError as e:
+        print(f"Error al crear el directorio o ajustar los permisos: {e}")
+        return
+
 
 # Función para mostrar el resultado del proceso
 def show_result():
@@ -187,7 +196,6 @@ def show_result():
 
 if __name__ == "__main__":
     check_git_installed()
-    create_directory(RepositoryDir, GitDir, GitHubRepoURL)
     show_result()
     print("Fin del script.")
 
@@ -227,28 +235,6 @@ if conexion is not None:
     # No olvides cerrar la conexión cuando hayas terminado
     conexion.close()
 
-
-def copiar_y_ajustar_permisos(directorio_csv, temp_dir):
-    try:
-        # Copiar el directorio de origen al destino
-        shutil.copytree(directorio_csv, temp_dir)
-
-        print(f"Cambiand la propiedad del directorio {temp_dir}...")
-
-        # Ejecutar el comando para cambiar la propiedad
-        comando_chown = f"sudo chown -R mysql:mysql {temp_dir}"
-        subprocess.run(comando_chown, shell=True, check=True)
-
-        # Agregar el comando para cambiar los permisos
-        comando_chmod = f"sudo chmod 755 -R {temp_dir}"
-        subprocess.run(comando_chmod, shell=True, check=True)
-
-        print("Directorio copiado y permisos ajustados con éxito.")
-    except Exception as e:
-        print(f"Error: {str(e)}")
-
-copiar_y_ajustar_permisos(directorio_csv, temp_dir)
-
 # Función para cargar un archivo CSV con codificación y manejo de caracteres no válidos
 def cargar_csv_con_codificacion(ruta_csv, codificacion):
     with open(ruta_csv, 'r', encoding=codificacion, errors='replace') as archivo:
@@ -263,48 +249,13 @@ def cargar_csv_con_codificacion(ruta_csv, codificacion):
 
     return df
 
-def create_directory_with_sudo(directory_path):
-    # Obtiene el nombre del usuario actual
-    current_user = os.getlogin()  # o puedes usar os.getenv("USER")
-
-    # Comprueba si el directorio existe
-    if not os.path.exists(directory_path):
-        print(f"El directorio '{directory_path}' no existe.")
-        print(f"Creando el directorio '{directory_path}'...")
-
-        try:
-            # Crea el directorio con sudo mkdir
-            subprocess.run(["sudo", "mkdir", directory_path], check=True)
-            print(f"Directorio '{directory_path}' creado con éxito.")
-        except subprocess.CalledProcessError as e:
-            print(f"Error al crear el directorio: {e}")
-            return
-
-        # Cambia los permisos del directorio para que el usuario pueda escribir en él
-        try:
-            # Cambia la propiedad del directorio al usuario actual y al grupo del usuario actual
-            subprocess.run(["sudo", "chown", "-R", f"{current_user}:{current_user}", directory_path])
-
-            # Cambia los permisos a 755 (ejemplo: el propietario puede leer, escribir y ejecutar)
-            subprocess.run(["sudo", "chmod", "755", directory_path])
-        except subprocess.CalledProcessError as e:
-            print(f"Error al cambiar los permisos del directorio: {e}")
-    else:
-        print(f"El directorio '{directory_path}' ya existe.")
-
 # Función para obtener los encabezados CSV
-def obtener_encabezados_csv(directorio_csv, Headings_Dir):
+def obtener_encabezados_csv(directorio_csv, Headings_Dir, ruta_Headings_Dir):
     print("Obteniendo los encabezados CSV...")
 
     # Obtener la lista de archivos CSV en el directorio
     archivos_csv = [archivo for archivo in os.listdir(directorio_csv) if archivo.endswith('.csv')]
 
-    # Ruta completa del Headings_Dir donde se guardarán los archivos de texto
-    ruta_Headings_Dir = os.path.join(directorio_csv, Headings_Dir)
-
-    # Verificar si el Headings_Dir existe y, si no existe, crearlo con "sudo mkdir"
-    if not os.path.exists(ruta_Headings_Dir):
-        create_directory_with_sudo(ruta_Headings_Dir)
 
     # Mapear los tipos de datos de pandas a tipos de datos SQL, incluyendo números de teléfono
     tipos_de_datos_sql = {
@@ -402,8 +353,9 @@ def obtener_encabezados_csv(directorio_csv, Headings_Dir):
         print(f"-------------------------------------------------------------------------------------------------")
         time.sleep(1)
 
-# Llamar a la función obtener_encabezados_csv
-obtener_encabezados_csv(directorio_csv, Headings_Dir)
+        # Llamar a la función crear_tablas_mysql_desde_archivos para obtener la lista de tablas SQL creadas
+        tablas_sql_creadas = crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql)
+
 
 # Función para crear tablas SQL desde archivos SQL
 def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql):
@@ -472,9 +424,8 @@ def crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, my
             print("Conexión a MySQL cerrada.")
 
     return tablas_sql  # Devuelve la lista de nombres de tablas SQL creadas
-
-# Llamar a la función crear_tablas_mysql_desde_archivos para obtener la lista de tablas SQL creadas
-tablas_sql_creadas = crear_tablas_mysql_desde_archivos(mysql_host, mysql_user, mysql_password, mysql_database, ruta_archivos_sql)
+    # Llama a la función importar_datos_a_sql
+    importar_datos_a_sql(conexion, directorio_csv, tablas_sql_creadas)
 
 # Función para importar datos desde archivos CSV a tablas SQL
 def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
@@ -543,31 +494,23 @@ def importar_datos_a_sql(conn, directorio_csv, tablas_sql):
             conn.close()
             print("Conexión a MySQL cerrada.")
 
-# Llama a la función importar_datos_a_sql
-importar_datos_a_sql(conexion, directorio_csv, tablas_sql_creadas)
-
-def script_footer():
-    print("****************ALL DONE****************")
-    print("----------------------------------------")
-    print("Copyright TECNOLOGIA COMERCIAL Y SERVICIOS INTEGRALES SAMAVA SAS DE CV. 2023. All rights reserved.")
-    print("----------------------------------------")
-    print("Para uso interno. Queda prohibida toda copia no autorizada.")
-
-
-# Llama a la función para mostrar el pie del script
-script_footer()
-
 # Función para eliminar el directorio ruta_archivos_sql
-def eliminar_directorio(directorio):
+def eliminar_directorio(temp_dir):
     try:
-        if os.path.exists(directorio):
+        if os.path.exists(temp_dir):
             # Utiliza el comando 'sudo rm -rf' para eliminar el directorio y su contenido recursivamente
-            subprocess.run(["sudo", "rm", "-rf", directorio], check=True)
-            print(f"El directorio '{directorio}' ha sido eliminado con éxito.")
+            subprocess.run(["sudo", "rm", "-rf", temp_dir], check=True)
+            print(f"El directorio '{temp_dir}' ha sido eliminado con éxito.")
         else:
-            print(f"El directorio '{directorio}' no existe y no se pudo eliminar.")
+            print(f"El directorio '{temp_dir}' no existe y no se pudo eliminar.")
     except subprocess.CalledProcessError as e:
-        print(f"Error al eliminar el directorio '{directorio}': {e}")
+        print(f"Error al eliminar el directorio '{temp_dir}': {e}")
 
-# Llama a la función para eliminar el directorio ruta_archivos_sql
-eliminar_directorio(temp_dir)
+# Función principal
+def main():
+    #configurar_charset_mysql(ruta_config_mysql)
+    show_result()
+    create_directory(RepositoryDir, GitDir, GitHubRepoURL, directorio_csv, temp_dir)
+    eliminar_directorio(temp_dir)
+
+main()
