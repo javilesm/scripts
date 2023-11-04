@@ -1,11 +1,11 @@
 #!/bin/bash
-# crud_t_workorder.sh
+# add_workorder.sh
 
 # Variables de conexión a la base de datos
 db_user="2309000000"
 db_password="antares1"
 db_name="antares"
-db_workorder_table="t_workorder"
+db_table="t_workorder"
 
 # Variables globales
 last_consecutive=0
@@ -58,14 +58,14 @@ function check_db_variables() {
     fi
     dialog --msgbox "La base de datos '$db_name' existe. Presione enter para continuar..." 10 40
 
-    # Comprobar la variable db_workorder_table
-    dialog --msgbox "Comprobando la existencia de la tabla '$db_workorder_table' en la base de datos '$db_name'. Presione enter para comprobar..." 10 40
+    # Comprobar la variable db_table
+    dialog --msgbox "Comprobando la existencia de la tabla '$db_table' en la base de datos '$db_name'. Presione enter para comprobar..." 10 40
     sleep 1
-    if ! sudo mysql -e "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$db_workorder_table';" > /dev/null 2>&1; then
-        dialog --msgbox "ERROR: La tabla '$db_workorder_table' no se encuentra en la base de datos especificada. Verifica la variable '$db_workorder_table'." 10 40
+    if ! sudo mysql -e "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$db_table';" > /dev/null 2>&1; then
+        dialog --msgbox "ERROR: La tabla '$db_table' no se encuentra en la base de datos especificada. Verifica la variable '$db_table'." 10 40
         exit 1
     fi
-    dialog --msgbox "La tabla '$db_workorder_table' existe en la base de datos '$db_name' existe. Presione enter para continuar..." 10 40
+    dialog --msgbox "La tabla '$db_table' existe en la base de datos '$db_name' existe. Presione enter para continuar..." 10 40
 
     # Comprobar la variable db_user
     dialog --msgbox "Comprobando la existencia del usuario '$db_user'. Presione enter para comprobar..." 10 40
@@ -97,7 +97,7 @@ function generate_description() {
 
 # Función para generar el valor de T_WORKORDER (Autoincremental)
 function generate_t_workorder() {
-    current_t_workorder=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$db_workorder_table';" | tail -n1)
+    current_t_workorder=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$db_table';" | tail -n1)
     dialog --msgbox "Último registro de T_WORKORDER: $current_t_workorder" 10 40
     if [ -z "$current_t_workorder" ]; then
         current_t_workorder=1
@@ -106,7 +106,7 @@ function generate_t_workorder() {
 }
 
 function get_last_consecutive() {
-    last_consecutive=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT MAX(T_WORKORDER) FROM $db_workorder_table;" | tail -n1)
+    last_consecutive=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT MAX(T_WORKORDER) FROM $db_table;" | tail -n1)
     dialog --msgbox "Último registro de T_WORKORDER: $last_consecutive" 10 40
     if [ -z "$last_consecutive" ]; then
         last_consecutive=0
@@ -118,7 +118,7 @@ function get_last_consecutive() {
 # Función para mostrar el contenido de la tabla
 function show_workorder_table() {
     dialog --infobox "Ejecutando consulta SQL..." 10 40
-    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT * FROM $db_workorder_table;" > "$tmpfile"
+    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT * FROM $db_table;" > "$tmpfile"
     dialog --infobox "Consulta SQL finalizada." 10 40
 }
 
@@ -153,7 +153,7 @@ function show_add_record_form() {
     update_by="$db_user"  # Asigna el valor por defecto o el que corresponda
 
     # Mostrar el valor vigente de "description" en el formulario
-    dialog --form "Agregar registro a la tabla $db_workorder_table" 20 60 14 \
+    dialog --form "Agregar registro a la tabla $db_table" 20 60 14 \
         "T_WORKORDER (Autoincremental):" 1 1 "$current_consecutive" 1 30 10 0 \
         "DESCRIPTION:" 2 1 "$description" 2 30 30 0 \
         "t_product:" 3 1 "$t_product" 3 30 10 0 \
@@ -222,7 +222,7 @@ function preload_sql_query() {
     local update_date="${12}"
     local update_by="${13}"
 
-    SQL_INTERT_QUERY="INSERT INTO $db_workorder_table (T_WORKORDER, DESCRIPTION, T_PRODUCT, REGISTERED_DOMAIN, T_PARTITION, FECHA_INICIO_DE_VIGENCIA, FECHA_FIN_DE_VIGENCIA, WORKORDER_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ($query_values);"
+    SQL_INTERT_QUERY="INSERT INTO $db_table (T_WORKORDER, DESCRIPTION, T_PRODUCT, REGISTERED_DOMAIN, T_PARTITION, FECHA_INICIO_DE_VIGENCIA, FECHA_FIN_DE_VIGENCIA, WORKORDER_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY) VALUES ($query_values);"
         # Confirmar inserción
         dialog --yesno "¿Deseas ejecutar el siguiente query?: '$SQL_INTERT_QUERY'" 7 40
         response=$?
@@ -248,7 +248,7 @@ function show_workorder_dialog() {
 
 # Función para eliminar registros SQL
 function delete_records_dialog() {
-    records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT T_WORKORDER, DESCRIPTION FROM $db_workorder_table;")
+    records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT T_WORKORDER, DESCRIPTION FROM $db_table;")
     record_count=$(dialog --infobox "$records" | wc -l)
 
     if [ $record_count -gt 0 ]; then
@@ -278,18 +278,53 @@ function confirm_delete() {
 # Función para eliminar un registro
 function delete_record() {
     local record_id="$1"
-    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "DELETE FROM $db_workorder_table WHERE T_WORKORDER = '$record_id';"
+    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "DELETE FROM $db_table WHERE T_WORKORDER = '$record_id';"
+}
+
+# Función para actualizar un registro en la tabla t_workorder
+function update_records() {
+    # Obtener la lista de registros actuales
+    records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT T_WORKORDER, DESCRIPTION FROM $db_table;")
+    
+    if [ -z "$records" ]; then
+        dialog --msgbox "No hay registros disponibles para actualizar." 10 40
+        return
+    fi
+
+    # Mostrar los registros actuales y pedir al usuario que elija uno
+    dialog --menu "Selecciona el registro que deseas modificar (T_WORKORDER - DESCRIPCIÓN):" 20 60 14 $records 2> /tmp/update_choice.txt
+    record_choice=$(cat /tmp/update_choice.txt)
+
+    if [ -z "$record_choice" ]; then
+        dialog --msgbox "No se ha seleccionado ningún registro para actualizar." 10 40
+        return
+    fi
+
+    # Dividir la elección del usuario en T_WORKORDER y DESCRIPCIÓN
+    IFS="-" read -r t_workorder current_description <<< "$record_choice"
+
+    # Mostrar un formulario para editar la descripción
+    dialog --form "Editar Registro (T_WORKORDER: $t_workorder)" 20 60 4 \
+        "Nueva Descripción:" 1 1 "$current_description" 1 30 30 0 2> /tmp/update_values.txt
+    
+    new_description=$(cat /tmp/update_values.txt)
+
+    # Actualizar la descripción en la base de datos
+    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "UPDATE $ SET DESCRIPTION = '$new_description' WHERE t_workorder = $t_workorder;"
+
+    dialog --msgbox "Registro actualizado con éxito." 10 40
 }
 
 # Función principal para la interfaz de usuario
 function main_dialog() {
     while true; do
-        dialog --menu "Menú principal" 15 40 5 \
-            1 "Agregar nuevo registro" \
-            2 "Mostrar tabla $db_workorder_table" \
-            3 "Eliminar registros SQL" \
-            4 "Eliminar archivo temporal" \
-            5 "Salir" 2> /tmp/menu_choice.txt
+        dialog --menu "CRUD $db_table" 15 40 5 \
+            1 "Crear un nuevo registro" \
+            2 "Leer registros" \
+            3 "Actualizar registros" \
+            4 "Eliminar registros" \
+            5 "Eliminar archivo temporal" \
+            6 "Salir" 2> /tmp/menu_choice.txt
 
         choice=$(cat /tmp/menu_choice.txt)
 
@@ -301,15 +336,21 @@ function main_dialog() {
                 show_workorder_dialog
                 ;;
             3)
-                delete_records_dialog  # Llama a la función para eliminar registros SQL
+                update_records
                 ;;
             4)
+                delete_records_dialog  # Llama a la función para eliminar registros SQL
+                ;;
+            5)
                 delete_temp_file
                 dialog --msgbox "Archivo temporal eliminado." 10 40
                 ;;
-            5)
+            6)
                 clear  # Limpiar la terminal
                 break
+                ;;
+            *)
+                echo "Opción no válida."
                 ;;
         esac
     done
