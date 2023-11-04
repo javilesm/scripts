@@ -1,5 +1,5 @@
 #!/bin/bash
-# add_workorder.sh
+# crud_t_workorder.sh
 
 # Variables de conexión a la base de datos
 db_user="2309000000"
