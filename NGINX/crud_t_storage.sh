@@ -286,28 +286,12 @@ function delete_record() {
 
 # Función para mostrar el formulario de actualización de un registro
 function show_update_record_form() {
-    # Obtener los valores de las variables de entorno exportadas
-    t_storage="$T_STORAGE"
-    short_description="$SHORT_DESCRIPTION"
-    device_name="$DEVICE_NAME"
-    instance_attachment_point="$INSTANCE_ATTACHMENT_POINT"
-    volume_size="$VOLUME_SIZE"
-    committed_size="$COMMITTED_SIZE"
-    volume_type="$VOLUME_TYPE"
-    iops="$IOPS"
-    encrypted="$ENCRYPTED"
-    delete_on_termination="$DELETE_ON_TERMINATION"
-    instance="$INSTANCE"
-    storage_flag="$STORAGE_FLAG"
-    entry_status="$ENTRY_STATUS"
-    create_date="$CREATE_DATE"
-    create_by="$CREATE_BY"
-    update_date="$UPDATE_DATE"
-    update_by="$UPDATE_BY"
+    # Dividir la cadena full_record en partes usando comas como separadores
+    IFS=',' read -r t_storage short_description device_name instance_attachment_point volume_size committed_size volume_type iops encrypted delete_on_termination instance storage_flag entry_status create_date create_by update_date update_by <<< "$1"
 
-    updated_short_description=""""
+    updated_short_description=""
     updated_device_name=""
-    updated_instance_attachment_point=""""""""""""""""""
+    updated_instance_attachment_point=""
     updated_volume_size=""
     updated_committed_size=""
     updated_volume_type=""
@@ -318,24 +302,24 @@ function show_update_record_form() {
     updated_storage_flag=""
 
     # Resto del código de la función, sin cambios en la parte de mostrar el formulario
-    dialog --form "Editar registro en la tabla: $t_storage" 25 80 14 \
-        "T_STORAGE (Autoincremental):" 1 1 "$1" 1 30 10 0 \
-        "SHORT_DESCRIPTION:" 2 1 "$2" 2 30 50 0 "Updated SHORT_DESCRIPTION:" 2 51 "$updated_short_description" 2 80 50 0 \
-        "DEVICE_NAME:" 3 1 "$3" 3 30 50 0 "Updated DEVICE_NAME:" 3 51 "$updated_device_name" 3 80 50 0 \
-        "INSTANCE_ATTACHMENT_POINT:" 4 1 "$4" 4 30 50 0 "Updated INSTANCE_ATTACHMENT_POINT:" 4 51 "$updated_instance_attachment_point" 4 80 50 0 \
-        "VOLUME_SIZE:" 5 1 "$5" 5 30 50 0 "Updated VOLUME_SIZE:" 5 51 "$updated_volume_size" 5 80 50 0 \
-        "COMMITTED_SIZE:" 6 1 "$6" 6 30 50 0 "Updated COMMITTED_SIZE:" 6 51 "$updated_committed_size" 6 80 50 0 \
-        "VOLUME_TYPE:" 7 1 "$7" 7 30 50 0 "Updated VOLUME_TYPE:" 7 51 "$updated_volume_type" 7 80 50 0 \
-        "IOPS:" 8 1 "$8" 8 30 50 0 "Updated IOPS:" 8 51 "$updated_iops" 8 80 50 0 \
-        "ENCRYPTED:" 9 1 "$9" 9 30 50 0 "Updated ENCRYPTED:" 9 51 "$updated_encrypted" 9 80 50 0 \
-        "DELETE_ON_TERMINATION:" 10 1 "${10}" 10 30 50 0 "Updated DELETE_ON_TERMINATION:" 10 51 "$updated_delete_on_termination" 10 80 50 0 \
-        "INSTANCE:" 11 1 "${11}" 11 30 50 0 "Updated INSTANCE:" 11 51 "$updated_instance" 11 80 50 0 \
-        "STORAGE_FLAG:" 12 1 "${12}" 12 30 50 0 "Updated STORAGE_FLAG:" 12 51 "$updated_storage_flag" 12 80 50 0 \
-        "entry_status:" 13 1 "${13}" 13 30 10 0 \
-        "create_date:" 14 1 "${14}" 14 30 19 0 \
-        "create_by:" 15 1 "${15}" 15 30 10 0 \
-        "update_date:" 16 1 "${16}" 16 30 19 0 \
-        "update_by:" 17 1 "${17}" 17 30 10 0 2> /tmp/update_values_$db_table.txt
+    dialog --form "Editando el registro: $t_storage" 30 100 14 \
+        "T_STORAGE (Autoincremental):" 1 1 "$t_storage" 1 30 10 0 \
+        "SHORT_DESCRIPTION:" 2 1 "$short_description" 2 30 50 0 "Updated SHORT_DESCRIPTION:" 2 51 "$updated_short_description" 2 80 50 0 \
+        "DEVICE_NAME:" 3 1 "$device_name" 3 30 50 0 "Updated DEVICE_NAME:" 3 51 "$updated_device_name" 3 80 50 0 \
+        "INSTANCE_ATTACHMENT_POINT:" 4 1 "$instance_attachment_point" 4 30 50 0 "Updated INSTANCE_ATTACHMENT_POINT:" 4 51 "$updated_instance_attachment_point" 4 80 50 0 \
+        "VOLUME_SIZE:" 5 1 "$volume_size" 5 30 50 0 "Updated VOLUME_SIZE:" 5 51 "$updated_volume_size" 5 80 50 0 \
+        "COMMITTED_SIZE:" 6 1 "$committed_size" 6 30 50 0 "Updated COMMITTED_SIZE:" 6 51 "$updated_committed_size" 6 80 50 0 \
+        "VOLUME_TYPE:" 7 1 "$volume_type" 7 30 50 0 "Updated VOLUME_TYPE:" 7 51 "$updated_volume_type" 7 80 50 0 \
+        "IOPS:" 8 1 "$iops" 8 30 50 0 "Updated IOPS:" 8 51 "$updated_iops" 8 80 50 0 \
+        "ENCRYPTED:" 9 1 "$encrypted" 9 30 50 0 "Updated ENCRYPTED:" 9 51 "$updated_encrypted" 9 80 50 0 \
+        "DELETE_ON_TERMINATION:" 10 1 "$delete_on_termination" 10 30 50 0 "Updated DELETE_ON_TERMINATION:" 10 51 "$updated_delete_on_termination" 10 80 50 0 \
+        "INSTANCE:" 11 1 "$instance" 11 30 50 0 "Updated INSTANCE:" 11 51 "$updated_instance" 11 80 50 0 \
+        "STORAGE_FLAG:" 12 1 "$storage_flag" 12 30 50 0 "Updated STORAGE_FLAG:" 12 51 "$updated_storage_flag" 12 80 50 0 \
+        "entry_status:" 13 1 "$entry_status" 13 30 10 0 \
+        "create_date:" 14 1 "$create_date" 14 30 19 0 \
+        "create_by:" 15 1 "$create_by" 15 30 10 0 \
+        "update_date:" 16 1 "$update_date" 16 30 19 0 \
+        "update_by:" 17 1 "$update_by" 17 30 10 0 2> /tmp/update_values_$db_table.txt
 
     updated_short_description=$(sed -n '2p' /tmp/update_values_$db_table.txt)
     updated_device_name=$(sed -n '4p' /tmp/update_values_$db_table.txt)
@@ -360,14 +344,15 @@ function show_update_record_form() {
 
 # Función para actualizar un registro en la tabla t_storage
 function update_records() {
-    records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT T_STORAGE, DEVICE_NAME, SHORT_DESCRIPTION, INSTANCE_ATTACHMENT_POINT, VOLUME_SIZE, COMMITTED_SIZE, VOLUME_TYPE, IOPS, ENCRYPTED, DELETE_ON_TERMINATION, INSTANCE, STORAGE_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY FROM $db_table;")
+    # Presentacion de registros
+    records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT T_STORAGE, DEVICE_NAME FROM $db_table;")
 
     if [ -z "$records" ]; then
         dialog --msgbox "No hay registros disponibles para actualizar." 10 40
         return
     fi
 
-    dialog --menu "Selecciona el registro que deseas modificar (T_STORAGE - DEVICE_NAME - SHORT_DESCRIPTION):" 20 120 14 $records 2> /tmp/update_choice_$db_table.txt
+    dialog --menu "Selecciona el registro que deseas modificar (T_STORAGE - DEVICE_NAME):" 20 120 14 $records 2> /tmp/update_choice_$db_table.txt
     record_choice=$(cat /tmp/update_choice_$db_table.txt)
 
     if [ -z "$record_choice" ]; then
@@ -375,12 +360,26 @@ function update_records() {
         return
     fi
 
-    IFS="-" read -r T_STORAGE DEVICE_NAME SHORT_DESCRIPTION INSTANCE_ATTACHMENT_POINT VOLUME_SIZE COMMITTED_SIZE VOLUME_TYPE IOPS ENCRYPTED DELETE_ON_TERMINATION INSTANCE STORAGE_FLAG ENTRY_STATUS CREATE_DATE CREATE_BY UPDATE_DATE UPDATE_BY <<< "$record_choice"
+    # Almacena T_STORAGE en una variable
+    T_STORAGE_choice=$(echo "$record_choice" | awk -F '-' '{print $1}')
 
-    # Exportar las variables de entorno que se utilizarán en show_update_record_form
-    export T_STORAGE DEVICE_NAME SHORT_DESCRIPTION INSTANCE_ATTACHMENT_POINT VOLUME_SIZE COMMITTED_SIZE VOLUME_TYPE IOPS ENCRYPTED DELETE_ON_TERMINATION INSTANCE STORAGE_FLAG ENTRY_STATUS CREATE_DATE CREATE_BY UPDATE_DATE UPDATE_BY
+    # Realizar una nueva consulta SQL para obtener todos los atributos del registro
+    full_record_query="SELECT T_STORAGE, SHORT_DESCRIPTION, DEVICE_NAME, INSTANCE_ATTACHMENT_POINT, VOLUME_SIZE, COMMITTED_SIZE, VOLUME_TYPE, IOPS, ENCRYPTED, DELETE_ON_TERMINATION, INSTANCE, STORAGE_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY FROM $db_table WHERE t_storage=$T_STORAGE_choice;"
+    dialog --msgbox "Ejecutando el query: $full_record_query" 10 40
+    
+    full_record=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" --skip-column-names -e "$full_record_query")
 
-    show_update_record_form
+    if [ -z "$full_record" ]; then
+        dialog --msgbox "Error al obtener el registro completo para edición." 10 40
+        return
+    fi
+
+    dialog --msgbox "Full record: $full_record" 10 40
+
+    # Exporta la variable FULL_RECORD con el valor de full_record
+    export FULL_RECORD="$full_record"
+
+    show_update_record_form "$full_record"
 }
 
 
