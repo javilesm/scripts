@@ -129,7 +129,7 @@ function show_add_record_form() {
     # Variables por default para almacenar los datos del formulario
     short_description=""
     device_name=""
-    instance_attachment_point=""
+    INTANCE_ATTACHMENT_POINT=""
     volume_size=""
     committed_size=""
     volume_type=""
@@ -149,7 +149,7 @@ function show_add_record_form() {
         "T_STORAGE (Autoincremental):" 1 1 "$consecutive" 1 30 10 0 \
         "SHORT_DESCRIPTION:" 2 1 "$short_description" 2 30 30 0 \
         "DEVICE_NAME:" 3 1 "$device_name" 3 30 10 0 \
-        "INSTANCE_ATTACHMENT_POINT:" 4 1 "$instance_attachment_point" 4 30 30 0 \
+        "INTANCE_ATTACHMENT_POINT:" 4 1 "$INTANCE_ATTACHMENT_POINT" 4 30 30 0 \
         "VOLUME_SIZE:" 5 1 "$volume_size" 5 30 50 0 \
         "COMMITTED_SIZE:" 6 1 "$committed_size" 6 30 50 0 \
         "VOLUME_TYPE:" 7 1 "$volume_type" 7 30 50 0 \
@@ -284,68 +284,161 @@ function delete_record() {
     mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "DELETE FROM $db_table WHERE T_STORAGE = '$record_id';"
 }
 
+# Función para exportar la consulta como un archivo CSV
+function export_to_csv() {
+    echo "$full_record" | tr '\t' ',' > /tmp/full_record.csv
+}
+
 # Función para mostrar el formulario de actualización de un registro
 function show_update_record_form() {
-    # Dividir la cadena full_record en partes usando comas como separadores
-    IFS=',' read -r t_storage short_description device_name instance_attachment_point volume_size committed_size volume_type iops encrypted delete_on_termination instance storage_flag entry_status create_date create_by update_date update_by <<< "$1"
+    # Leer el archivo CSV y asignar los valores a las variables
+    IFS=',' read -r t_storage short_description device_name INTANCE_ATTACHMENT_POINT volume_size committed_size volume_type iops encrypted delete_on_termination instance storage_flag entry_status create_date create_by update_date update_by <<< "$(cat /tmp/full_record.csv)"
 
-    updated_short_description=""
-    updated_device_name=""
-    updated_instance_attachment_point=""
-    updated_volume_size=""
-    updated_committed_size=""
-    updated_volume_type=""
-    updated_iops=""
-    updated_encrypted=""
-    updated_delete_on_termination=""
-    updated_instance=""
-    updated_storage_flag=""
+    # Inicializar variables actualizadas con los valores originales
+    updated_short_description="$short_description"
+    updated_device_name="$device_name"
+    updated_INTANCE_ATTACHMENT_POINT="$INTANCE_ATTACHMENT_POINT"
+    updated_volume_size="$volume_size"
+    updated_committed_size="$committed_size"    
+    updated_volume_type="$volume_type"
+    updated_iops="$iops"
+    updated_encrypted="$encrypted"
+    updated_delete_on_termination="$delete_on_termination"
+    updated_instance="$instance"
+    updated_storage_flag="$storage_flag"
+
+    # Crear un array con los valores originales
+    original_values=("$t_storage" "$updated_short_description" "$updated_device_name" "$updated_INTANCE_ATTACHMENT_POINT" "$updated_volume_size" "$updated_committed_size" "$updated_volume_type" "$updated_iops" "$updated_encrypted" "$updated_delete_on_termination" "$updated_instance" "$updated_storage_flag")
 
     # Resto del código de la función, sin cambios en la parte de mostrar el formulario
     dialog --form "Editando el registro: $t_storage" 30 100 14 \
-        "T_STORAGE (Autoincremental):" 1 1 "$t_storage" 1 30 10 0 \
-        "SHORT_DESCRIPTION:" 2 1 "$short_description" 2 30 50 0 "Updated SHORT_DESCRIPTION:" 2 51 "$updated_short_description" 2 80 50 0 \
-        "DEVICE_NAME:" 3 1 "$device_name" 3 30 50 0 "Updated DEVICE_NAME:" 3 51 "$updated_device_name" 3 80 50 0 \
-        "INSTANCE_ATTACHMENT_POINT:" 4 1 "$instance_attachment_point" 4 30 50 0 "Updated INSTANCE_ATTACHMENT_POINT:" 4 51 "$updated_instance_attachment_point" 4 80 50 0 \
-        "VOLUME_SIZE:" 5 1 "$volume_size" 5 30 50 0 "Updated VOLUME_SIZE:" 5 51 "$updated_volume_size" 5 80 50 0 \
-        "COMMITTED_SIZE:" 6 1 "$committed_size" 6 30 50 0 "Updated COMMITTED_SIZE:" 6 51 "$updated_committed_size" 6 80 50 0 \
-        "VOLUME_TYPE:" 7 1 "$volume_type" 7 30 50 0 "Updated VOLUME_TYPE:" 7 51 "$updated_volume_type" 7 80 50 0 \
-        "IOPS:" 8 1 "$iops" 8 30 50 0 "Updated IOPS:" 8 51 "$updated_iops" 8 80 50 0 \
-        "ENCRYPTED:" 9 1 "$encrypted" 9 30 50 0 "Updated ENCRYPTED:" 9 51 "$updated_encrypted" 9 80 50 0 \
-        "DELETE_ON_TERMINATION:" 10 1 "$delete_on_termination" 10 30 50 0 "Updated DELETE_ON_TERMINATION:" 10 51 "$updated_delete_on_termination" 10 80 50 0 \
-        "INSTANCE:" 11 1 "$instance" 11 30 50 0 "Updated INSTANCE:" 11 51 "$updated_instance" 11 80 50 0 \
-        "STORAGE_FLAG:" 12 1 "$storage_flag" 12 30 50 0 "Updated STORAGE_FLAG:" 12 51 "$updated_storage_flag" 12 80 50 0 \
+        "T_STORAGE (Autoincremental):" 1 1 "${original_values[0]}" 1 30 10 0 \
+        "SHORT_DESCRIPTION:" 2 1 "${original_values[1]}" 2 30 50 0 "Updated SHORT_DESCRIPTION:" 2 51 "$updated_short_description" 2 80 50 0 \
+        "DEVICE_NAME:" 3 1 "${original_values[2]}" 3 30 50 0 "Updated DEVICE_NAME:" 3 51 "$updated_device_name" 3 80 50 0 \
+        "INTANCE_ATTACHMENT_POINT:" 4 1 "${original_values[3]}" 4 30 50 0 "Updated INTANCE_ATTACHMENT_POINT:" 4 51 "$updated_INTANCE_ATTACHMENT_POINT" 4 80 50 0 \
+        "VOLUME_SIZE:" 5 1 "${original_values[4]}" 5 30 50 0 "Updated VOLUME_SIZE:" 5 51 "$updated_volume_size" 5 80 50 0 \
+        "COMMITTED_SIZE:" 6 1 "${original_values[5]}" 6 30 50 0 "Updated COMMITTED_SIZE:" 6 51 "$updated_committed_size" 6 80 50 0 \
+        "VOLUME_TYPE:" 7 1 "${original_values[6]}" 7 30 50 0 "Updated VOLUME_TYPE:" 7 51 "$updated_volume_type" 7 80 50 0 \
+        "IOPS:" 8 1 "${original_values[7]}" 8 30 50 0 "Updated IOPS:" 8 51 "$updated_iops" 8 80 50 0 \
+        "ENCRYPTED:" 9 1 "${original_values[8]}" 9 30 50 0 "Updated ENCRYPTED:" 9 51 "$updated_encrypted" 9 80 50 0 \
+        "DELETE_ON_TERMINATION:" 10 1 "${original_values[9]}" 10 30 50 0 "Updated DELETE_ON_TERMINATION:" 10 51 "$updated_delete_on_termination" 10 80 50 0 \
+        "INSTANCE:" 11 1 "${original_values[10]}" 11 30 50 0 "Updated INSTANCE:" 11 51 "$updated_instance" 11 80 50 0 \
+        "STORAGE_FLAG:" 12 1 "${original_values[11]}" 12 30 50 0 "Updated STORAGE_FLAG:" 12 51 "$updated_storage_flag" 12 80 50 0 \
         "entry_status:" 13 1 "$entry_status" 13 30 10 0 \
         "create_date:" 14 1 "$create_date" 14 30 19 0 \
         "create_by:" 15 1 "$create_by" 15 30 10 0 \
         "update_date:" 16 1 "$update_date" 16 30 19 0 \
         "update_by:" 17 1 "$update_by" 17 30 10 0 2> /tmp/update_values_$db_table.txt
 
-    updated_short_description=$(sed -n '2p' /tmp/update_values_$db_table.txt)
-    updated_device_name=$(sed -n '4p' /tmp/update_values_$db_table.txt)
-    updated_instance_attachment_point=$(sed -n '6p' /tmp/update_values_$db_table.txt)
-    updated_volume_size=$(sed -n '8p' /tmp/update_values_$db_table.txt)
-    updated_committed_size=$(sed -n '10p' /tmp/update_values_$db_table.txt)
-    updated_volume_type=$(sed -n '12p' /tmp/update_values_$db_table.txt)
-    updated_iops=$(sed -n '14p' /tmp/update_values_$db_table.txt)
-    updated_encrypted=$(sed -n '16p' /tmp/update_values_$db_table.txt)
-    updated_delete_on_termination=$(sed -n '18p' /tmp/update_values_$db_table.txt)
-    updated_instance=$(sed -n '20p' /tmp/update_values_$db_table.txt)
-    updated_storage_flag=$(sed -n '22p' /tmp/update_values_$db_table.txt)
-
     if [ $? -eq 0 ]; then
         # El usuario no canceló el formulario, proceder con la previsualización y confirmación
-        preview_and_confirm
+        preview_and_confirm_update
     else
         # El usuario canceló el formulario
         dialog --msgbox "Ingreso de datos cancelado." 10 40
     fi
 }
 
+
+# Función para mostrar un resumen y confirmar la actualización
+function preview_and_confirm_update() {
+
+    # Leer los valores actualizados del archivo temporal
+    IFS=$'\n' read -r -d '' -a update_values < /tmp/update_values_$db_table.txt
+
+    # Extraer valores individuales del array
+    t_storage="${update_values[0]}"
+    updated_short_description="${update_values[1]}"
+    updated_device_name="${update_values[2]}"
+    updated_INTANCE_ATTACHMENT_POINT="${update_values[3]}"
+    updated_volume_size="${update_values[4]}"
+    updated_committed_size="${update_values[5]}"
+    updated_volume_type="${update_values[6]}"
+    updated_iops="${update_values[7]}"
+    updated_encrypted="${update_values[8]}"
+    updated_delete_on_termination="${update_values[9]}"
+    updated_instance="${update_values[10]}"
+    updated_storage_flag="${update_values[11]}"
+
+    # Mostrar un resumen de los valores actualizados
+    dialog --yesno "Resumen de valores actualizados:
+
+    T_STORAGE: $t_storage
+    SHORT_DESCRIPTION: $updated_short_description
+    DEVICE_NAME: $updated_device_name
+    INTANCE_ATTACHMENT_POINT: $updated_INTANCE_ATTACHMENT_POINT
+    VOLUME_SIZE: $updated_volume_size
+    COMMITTED_SIZE: $updated_committed_size
+    VOLUME_TYPE: $updated_volume_type
+    IOPS: $updated_iops
+    ENCRYPTED: $updated_encrypted
+    DELETE_ON_TERMINATION: $updated_delete_on_termination
+    INSTANCE: $updated_instance
+    STORAGE_FLAG: $updated_storage_flag
+
+¿Deseas aplicar estos cambios?" 20 60
+
+    response=$?
+    case $response in
+        0) # Usuario seleccionó "Sí"
+            # Llamar a la función para aplicar los cambios
+            apply_changes "$t_storage" "$updated_short_description" "$updated_device_name" "$updated_INTANCE_ATTACHMENT_POINT" "$updated_volume_size" "$updated_committed_size" "$updated_volume_type" "$updated_iops" "$updated_encrypted" "$updated_delete_on_termination" "$updated_instance" "$updated_storage_flag"
+            ;;
+        1) # Usuario seleccionó "No"
+            dialog --msgbox "Actualización cancelada." 10 40
+            ;;
+        255) # Usuario presionó ESC o Cancelar
+            dialog --msgbox "Operación cancelada." 10 40
+            ;;
+    esac
+}
+
+
+# Función para aplicar los cambios en la base de datos
+function apply_changes() {
+    local t_storage="$1"
+    local updated_short_description="$2"
+    local updated_device_name="$3"
+    local updated_INTANCE_ATTACHMENT_POINT="$4"
+    local updated_volume_size="$5"
+    local updated_committed_size="$6"
+    local updated_volume_type="$7"
+    local updated_iops="$8"
+    local updated_encrypted="$9"
+    local updated_delete_on_termination="${10}"
+    local updated_instance="${11}"
+    local updated_storage_flag="${12}"
+
+    # Construir la consulta SQL de actualización
+    update_query="UPDATE $db_table SET
+        SHORT_DESCRIPTION='$updated_short_description',
+        DEVICE_NAME='$updated_device_name',
+        INTANCE_ATTACHMENT_POINT='$updated_INTANCE_ATTACHMENT_POINT',
+        VOLUME_SIZE='$updated_volume_size',
+        COMMITTED_SIZE='$updated_committed_size',
+        VOLUME_TYPE='$updated_volume_type',
+        IOPS='$updated_iops',
+        ENCRYPTED='$updated_encrypted',
+        DELETE_ON_TERMINATION='$updated_delete_on_termination',
+        INSTANCE='$updated_instance',
+        STORAGE_FLAG='$updated_storage_flag'
+    WHERE T_STORAGE=$t_storage;"
+
+    # Ejecutar la consulta de actualización
+    mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "$update_query"
+
+    # Verificar si la actualización fue exitosa
+    if [ $? -eq 0 ]; then
+        dialog --msgbox "Registro actualizado exitosamente." 10 40
+    else
+        dialog --msgbox "Error al actualizar el registro." 10 40
+    fi
+}
+
 # Función para actualizar un registro en la tabla t_storage
 function update_records() {
     # Presentacion de registros
-    records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -e "SELECT T_STORAGE, DEVICE_NAME FROM $db_table;")
+    records=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -B -e "SELECT T_STORAGE, DEVICE_NAME FROM $db_table;")
 
     if [ -z "$records" ]; then
         dialog --msgbox "No hay registros disponibles para actualizar." 10 40
@@ -364,23 +457,27 @@ function update_records() {
     T_STORAGE_choice=$(echo "$record_choice" | awk -F '-' '{print $1}')
 
     # Realizar una nueva consulta SQL para obtener todos los atributos del registro
-    full_record_query="SELECT T_STORAGE, SHORT_DESCRIPTION, DEVICE_NAME, INSTANCE_ATTACHMENT_POINT, VOLUME_SIZE, COMMITTED_SIZE, VOLUME_TYPE, IOPS, ENCRYPTED, DELETE_ON_TERMINATION, INSTANCE, STORAGE_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY FROM $db_table WHERE t_storage=$T_STORAGE_choice;"
+    full_record_query="SELECT T_STORAGE, SHORT_DESCRIPTION, DEVICE_NAME, INTANCE_ATTACHMENT_POINT, VOLUME_SIZE, COMMITTED_SIZE, VOLUME_TYPE, IOPS, ENCRYPTED, DELETE_ON_TERMINATION, INSTANCE, STORAGE_FLAG, ENTRY_STATUS, CREATE_DATE, CREATE_BY, UPDATE_DATE, UPDATE_BY FROM $db_table WHERE t_storage=$T_STORAGE_choice;"
     dialog --msgbox "Ejecutando el query: $full_record_query" 10 40
     
-    full_record=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" --skip-column-names -e "$full_record_query")
+    full_record=$(mysql -u "$db_user" -p"$db_password" -D "$db_name" -B -N -e "$full_record_query")
 
     if [ -z "$full_record" ]; then
         dialog --msgbox "Error al obtener el registro completo para edición." 10 40
         return
     fi
 
+    # Exportar la consulta como un archivo CSV
+    export_to_csv
+
     dialog --msgbox "Full record: $full_record" 10 40
 
     # Exporta la variable FULL_RECORD con el valor de full_record
     export FULL_RECORD="$full_record"
 
-    show_update_record_form "$full_record"
+    show_update_record_form
 }
+
 
 
 # Función principal para la interfaz de usuario
