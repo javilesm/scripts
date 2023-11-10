@@ -299,7 +299,7 @@ function show_update_record_form() {
     updated_device_name="$device_name"
     updated_INTANCE_ATTACHMENT_POINT="$INTANCE_ATTACHMENT_POINT"
     updated_volume_size="$volume_size"
-    updated_committed_size="$committed_size"    
+    updated_committed_size="$committed_size"
     updated_volume_type="$volume_type"
     updated_iops="$iops"
     updated_encrypted="$encrypted"
@@ -307,23 +307,20 @@ function show_update_record_form() {
     updated_instance="$instance"
     updated_storage_flag="$storage_flag"
 
-    # Crear un array con los valores originales
-    original_values=("$t_storage" "$updated_short_description" "$updated_device_name" "$updated_INTANCE_ATTACHMENT_POINT" "$updated_volume_size" "$updated_committed_size" "$updated_volume_type" "$updated_iops" "$updated_encrypted" "$updated_delete_on_termination" "$updated_instance" "$updated_storage_flag")
-
     # Resto del código de la función, sin cambios en la parte de mostrar el formulario
     dialog --form "Editando el registro: $t_storage" 30 100 14 \
-        "T_STORAGE (Autoincremental):" 1 1 "${original_values[0]}" 1 30 10 0 \
-        "SHORT_DESCRIPTION:" 2 1 "${original_values[1]}" 2 30 50 0 "Updated SHORT_DESCRIPTION:" 2 51 "$updated_short_description" 2 80 50 0 \
-        "DEVICE_NAME:" 3 1 "${original_values[2]}" 3 30 50 0 "Updated DEVICE_NAME:" 3 51 "$updated_device_name" 3 80 50 0 \
-        "INTANCE_ATTACHMENT_POINT:" 4 1 "${original_values[3]}" 4 30 50 0 "Updated INTANCE_ATTACHMENT_POINT:" 4 51 "$updated_INTANCE_ATTACHMENT_POINT" 4 80 50 0 \
-        "VOLUME_SIZE:" 5 1 "${original_values[4]}" 5 30 50 0 "Updated VOLUME_SIZE:" 5 51 "$updated_volume_size" 5 80 50 0 \
-        "COMMITTED_SIZE:" 6 1 "${original_values[5]}" 6 30 50 0 "Updated COMMITTED_SIZE:" 6 51 "$updated_committed_size" 6 80 50 0 \
-        "VOLUME_TYPE:" 7 1 "${original_values[6]}" 7 30 50 0 "Updated VOLUME_TYPE:" 7 51 "$updated_volume_type" 7 80 50 0 \
-        "IOPS:" 8 1 "${original_values[7]}" 8 30 50 0 "Updated IOPS:" 8 51 "$updated_iops" 8 80 50 0 \
-        "ENCRYPTED:" 9 1 "${original_values[8]}" 9 30 50 0 "Updated ENCRYPTED:" 9 51 "$updated_encrypted" 9 80 50 0 \
-        "DELETE_ON_TERMINATION:" 10 1 "${original_values[9]}" 10 30 50 0 "Updated DELETE_ON_TERMINATION:" 10 51 "$updated_delete_on_termination" 10 80 50 0 \
-        "INSTANCE:" 11 1 "${original_values[10]}" 11 30 50 0 "Updated INSTANCE:" 11 51 "$updated_instance" 11 80 50 0 \
-        "STORAGE_FLAG:" 12 1 "${original_values[11]}" 12 30 50 0 "Updated STORAGE_FLAG:" 12 51 "$updated_storage_flag" 12 80 50 0 \
+        "T_STORAGE (Autoincremental):" 1 1 "$t_storage" 1 30 10 0 \
+        "SHORT_DESCRIPTION:" 2 1 "$updated_short_description" 2 80 50 0 \
+        "DEVICE_NAME:" 3 1 "$updated_device_name" 3 80 50 0 \
+        "INTANCE_ATTACHMENT_POINT:" 4 1 "$updated_INTANCE_ATTACHMENT_POINT" 4 80 50 0 \
+        "VOLUME_SIZE:" 5 1 "$updated_volume_size" 5 80 50 0 \
+        "COMMITTED_SIZE:" 6 1 "$updated_committed_size" 6 80 50 0 \
+        "VOLUME_TYPE:" 7 1 "$updated_volume_type" 7 80 50 0 \
+        "IOPS:" 8 1 "$updated_iops" 8 80 50 0 \
+        "ENCRYPTED:" 9 1 "$updated_encrypted" 9 80 50 0 \
+        "DELETE_ON_TERMINATION:" 10 1 "$updated_delete_on_termination" 10 80 50 0 \
+        "INSTANCE:" 11 1 "$updated_instance" 11 80 50 0 \
+        "STORAGE_FLAG:" 12 1 "$updated_storage_flag" 12 80 50 0 \
         "entry_status:" 13 1 "$entry_status" 13 30 10 0 \
         "create_date:" 14 1 "$create_date" 14 30 19 0 \
         "create_by:" 15 1 "$create_by" 15 30 10 0 \
@@ -331,20 +328,24 @@ function show_update_record_form() {
         "update_by:" 17 1 "$update_by" 17 30 10 0 2> /tmp/update_values_$db_table.txt
 
     if [ $? -eq 0 ]; then
+        # Leer los valores actualizados desde el archivo
+        mapfile -t updated_values < /tmp/update_values_$db_table.txt
+
         # El usuario no canceló el formulario, proceder con la previsualización y confirmación
-        preview_and_confirm_update
+        updated_values_str="${updated_values[*]}"
+        preview_and_confirm_update "$updated_values_str"
     else
         # El usuario canceló el formulario
         dialog --msgbox "Ingreso de datos cancelado." 10 40
     fi
 }
 
-
 # Función para mostrar un resumen y confirmar la actualización
 function preview_and_confirm_update() {
+    updated_values_str="$1"
 
-    # Leer los valores actualizados del archivo temporal
-    IFS=$'\n' read -r -d '' -a update_values < /tmp/update_values_$db_table.txt
+    # Convertir la cadena a un array
+    IFS=' ' read -r -a update_values <<< "$updated_values_str"
 
     # Extraer valores individuales del array
     t_storage="${update_values[0]}"
@@ -359,22 +360,32 @@ function preview_and_confirm_update() {
     updated_delete_on_termination="${update_values[9]}"
     updated_instance="${update_values[10]}"
     updated_storage_flag="${update_values[11]}"
+    entry_status="${update_values[12]}"
+    create_date="${update_values[13]}"
+    create_by="${update_values[14]}"
+    update_date="${update_values[15]}"
+    update_by="${update_values[16]}"
 
     # Mostrar un resumen de los valores actualizados
     dialog --yesno "Resumen de valores actualizados:
 
     T_STORAGE: $t_storage
-    SHORT_DESCRIPTION: $updated_short_description
-    DEVICE_NAME: $updated_device_name
-    INTANCE_ATTACHMENT_POINT: $updated_INTANCE_ATTACHMENT_POINT
-    VOLUME_SIZE: $updated_volume_size
-    COMMITTED_SIZE: $updated_committed_size
-    VOLUME_TYPE: $updated_volume_type
-    IOPS: $updated_iops
-    ENCRYPTED: $updated_encrypted
-    DELETE_ON_TERMINATION: $updated_delete_on_termination
-    INSTANCE: $updated_instance
-    STORAGE_FLAG: $updated_storage_flag
+    UPDATED SHORT_DESCRIPTION: $updated_short_description
+    UPDATED DEVICE_NAME: $updated_device_name
+    UPDATED INTANCE_ATTACHMENT_POINT: $updated_INTANCE_ATTACHMENT_POINT
+    UPDATED VOLUME_SIZE: $updated_volume_size
+    UPDATED COMMITTED_SIZE: $updated_committed_size
+    UPDATED VOLUME_TYPE: $updated_volume_type
+    UPDATED IOPS: $updated_iops
+    UPDATED ENCRYPTED: $updated_encrypted
+    UPDATED DELETE_ON_TERMINATION: $updated_delete_on_termination
+    UPDATED INSTANCE: $updated_instance
+    UPDATED STORAGE_FLAG: $updated_storage_flag
+    UPDATED entry_status: $entry_status
+    UPDATED create_date: $create_date
+    UPDATED create_by: $create_by
+    UPDATED update_date: $update_date
+    UPDATED pdate_by: $update_by
 
 ¿Deseas aplicar estos cambios?" 20 60
 
@@ -382,7 +393,7 @@ function preview_and_confirm_update() {
     case $response in
         0) # Usuario seleccionó "Sí"
             # Llamar a la función para aplicar los cambios
-            apply_changes "$t_storage" "$updated_short_description" "$updated_device_name" "$updated_INTANCE_ATTACHMENT_POINT" "$updated_volume_size" "$updated_committed_size" "$updated_volume_type" "$updated_iops" "$updated_encrypted" "$updated_delete_on_termination" "$updated_instance" "$updated_storage_flag"
+            apply_changes "$t_storage" "$updated_short_description" "$updated_device_name" "$updated_INTANCE_ATTACHMENT_POINT" "$updated_volume_size" "$updated_committed_size" "$updated_volume_type" "$updated_iops" "$updated_encrypted" "$updated_delete_on_termination" "$updated_instance" "$updated_storage_flag" "$entry_status" "$create_date" "$create_by" "$update_date" "$update_by"
             ;;
         1) # Usuario seleccionó "No"
             dialog --msgbox "Actualización cancelada." 10 40
@@ -392,7 +403,6 @@ function preview_and_confirm_update() {
             ;;
     esac
 }
-
 
 # Función para aplicar los cambios en la base de datos
 function apply_changes() {
