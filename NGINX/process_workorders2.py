@@ -24,6 +24,7 @@ MYSQL_WORKORDERFLAG_TABLE = "t_workorder_flag"
 MYSQL_PRODUCT_TABLE = "t_Product"
 
 # Variables
+target_dir = "/var/www" 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 log_directory = os.path.join(script_directory, "logs")
 log_file_name = os.path.join(log_directory, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '_process_workorders_log.txt')  # el sistema de registro con la fecha y hora actual en el nombre del archivo
@@ -336,7 +337,7 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                 logger.warning(f"La unidad '{device_path}' se encuentra particionada previamente.")
                 if available_space >= product_description:
                     # Llamar a la función create_subsequencing_partition
-                    create_subsequencing_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+                    create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
                 else:
                     logger.error(f"ERROR: No hay suficiente espacio disponible para crear una partición de {product_description} bytes.")
         else:
@@ -469,7 +470,6 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
         logger.error(f"ERROR inesperado: {str(e)}")
 
 
-
 def update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
     try:
         logger.info(f"Leyendo la tabla: '{MYSQL_STORAGE_TABLE}'...")
@@ -505,6 +505,7 @@ def update_storage_flag(workorder_flag, device_name, product_description, t_work
 
 
 def create_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain):
+    created_partition_info = None  # Inicializar la variable fuera del bloque try
     try:
         logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
 
@@ -543,9 +544,9 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         
         partition_label_check_command = f"sudo parted /dev/{device_name} print"
         subprocess.run(partition_label_check_command, shell=True, check=True)
-        subprocess.run(["sleep", "10"])
+        subprocess.run(["sleep", "30"])
 
-        logger.info(f"Ejecutando el comando (create_partition): '{partition_command}'")
+        logger.info(f"(create_partition) - Ejecutando el comando: '{partition_command}'")
 
         # Ejecutar el comando de partición
         subprocess.run(partition_command, shell=True, check=True)
@@ -556,7 +557,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         subprocess.run(["sleep", "10"])
 
         # Verificar si se creó la partición exitosamente
-        check_partition_command = f"sudo parted /dev/{device_name} print && sudo parted /dev/{device_name} print | grep {next_partition_number}"
+        check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
         partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
 
         if partition_result.returncode == 0:
@@ -573,27 +574,25 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
                 "partition_size": partition_size
             }
 
-            # Comprobar si la partición se creó correctamente antes de continuar
-            check_created_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
-            created_partition_result = subprocess.run(check_created_partition_command, shell=True, stderr=subprocess.PIPE)
+            # Esperar hasta que la partición esté completamente disponible
+            while not os.path.exists(partition_name):
+                logger.info(f"La partición '{partition_name}' aún no está disponible. Esperando...")
+                time.sleep(2)
 
-            if created_partition_result.returncode == 0:
-                
-                logger.info(f"Partición creada en la unidad '/dev/{device_name}' con ID: '{partition_name}', tipo '{partition_type}' y formato '{filesystem_type}'.")
+            logger.info(f"Partición '{partition_name}' detectada. Procediendo con el formateo.")
 
-                # Luego de crear la partición con éxito, llama a format_partition
-                format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
-            else:
-                logger.error(f"ERROR: La partición no se creó correctamente en la unidad '/dev/{device_name}': {created_partition_result.stderr.decode('utf-8')}")
+            # Luego de crear la partición con éxito, llama a format_partition
+            format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
         else:
             logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
-
+            
     except subprocess.CalledProcessError as e:
         logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
 
 def create_subsequencing_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain, autoconfirm=False):
+    created_partition_info = None  # Inicializar la variable fuera del bloque try
     try:
         logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
 
@@ -628,21 +627,52 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
 
         logger.info(f"Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
 
+        # Verificar si se creó la partición exitosamente
+        partition_name = f"/dev/{device_name}{next_partition_number}"
+
         # Ejecutar el comando de partición
         auto_confirm_create_subsequencing_partition(partition_command)
 
-        logger.info(f"Esperando a que se complete la partición...")
+        logger.info(f"create_subsequencing_partition: Esperando a que se complete la partición '{partition_name}'...")
 
         # Esperar a que se complete el proceso de partición
-        subprocess.run(["sleep", "10"])
+        subprocess.run(["sleep", "40"])
 
         # Verificar si se creó la partición exitosamente
-        format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+        check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
+        partition_result = subprocess.run(check_partition_command, shell=True, stderr=subprocess.PIPE)
 
+        if partition_result.returncode == 0:
+            # Obtener el ID de la partición recién creada
+            partition_name = f"/dev/{device_name}{next_partition_number}"
+
+            created_partition_info = {
+                "device_name": device_name,
+                "partition_name": partition_name,
+                "partition_number": next_partition_number,
+                "partition_type": partition_type,
+                "filesystem_type": filesystem_type,
+                "registered_domain": registered_domain,
+                "partition_size": partition_size
+            }
+
+            # Esperar hasta que la partición esté completamente disponible
+            while not os.path.exists(partition_name):
+                logger.info(f"La partición '{partition_name}' aún no está disponible. Esperando...")
+                time.sleep(2)
+
+            logger.info(f"Partición '{partition_name}' detectada. Procediendo con el formateo.")
+
+            # Luego de crear la partición con éxito, llama a format_partition
+            format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info)
+        else:
+            logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {partition_result.stderr.decode('utf-8')}")
+            
     except subprocess.CalledProcessError as e:
-        logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
+        logger.error(f"create_subsequencing_partition: ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
-        logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
+        logger.error(f"create_subsequencing_partition: ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
+
 # Función para autoconfirmar la ejecución del comando "partition_command"
 def auto_confirm_create_subsequencing_partition(partition_command):
     try:
@@ -677,14 +707,14 @@ def auto_confirm_create_subsequencing_partition(partition_command):
         else:
             logger.info("No se detectó la pregunta.")
 
-        logger.info(f"Esperando a que se ejecute el comando 'partition_command'...")
+        logger.info(f"Esperando a que se ejecute el comando '{partition_command}'...")
 
         time.sleep(10)
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"ERROR: Error al ejecutar el comando 'partition_command': {e}")
+        logger.error(f"(auto_confirm_create_subsequencing_partition) ERROR: Error al ejecutar el comando '{partition_command}': {e}")
     except Exception as e:
-        logger.error(f"ERROR: Error inesperado al ejecutar el comando 'partition_command': {str(e)}")
+        logger.error(f"(auto_confirm_create_subsequencing_partition) ERROR: Error inesperado al ejecutar el comando '{partition_command}': {str(e)}")
 
 
 # Función para actualizar datos de la unidad de disco
@@ -716,8 +746,10 @@ def update_storage_committed_size(device_name, committed_size_bytes):
 
 # Función para formatear particiones
 def format_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info):
+    
     try:
         logger.info(f"Procediendo a formatear la particion '{partition_name}' con sistema de archivos '{filesystem_type}' para el dominio '{registered_domain}'.")
+        mounting_path = os.path.join(target_dir, registered_domain)
         
         # Formatear la partición con el sistema de archivos especificado
         format_command = f"sudo mkfs -t {filesystem_type} {partition_name}"
@@ -729,24 +761,23 @@ def format_partition(workorder_flag, device_name, partition_name, filesystem_typ
         if process.returncode == 0:
             logger.info(f"Partición '{partition_name}' formateada con éxito con sistema de archivos '{filesystem_type}'.")
             # Llamar a la función para montar la partición después de formatear
-            mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
+            mount_partition(mounting_path, workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info)
         else:
             error_message = err.decode("utf-8").strip()
             raise Exception(f"ERROR: Error al formatear la partición '{partition_name}': {error_message}")
 
     except Exception as e:
         logger.error(f"ERROR: Error al intentar formatear la partición '{partition_name}': {str(e)}")
+    finally:
+        # Si la asignación de mounting_path falla, asegurarse de que tenga un valor
+        if mounting_path is not None:
+            logger.error(f"ERROR: Error al intentar formatear la partición '{partition_name}': La asignación de 'mounting_path' falló.")
 
 # Función para montar partición con REGISTERED_DOMAIN
-def mount_partition(workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info):
+def mount_partition(mounting_path, workorder_flag, device_name, partition_name, registered_domain, partition_size, t_workorder, created_partition_info):
     try:
-        target_dir = "/var/www"  # Definir la variable target_dir
-
         if not os.path.exists(target_dir):
             raise Exception(f"ERROR: El directorio '{target_dir}' no existe.")
-
-        # Concatenar target_dir y registered_domain para obtener mounting_path
-        mounting_path = os.path.join(target_dir, registered_domain)
 
         logger.info(f"Montando la partición '{partition_name}' en '{mounting_path}'...")
 
