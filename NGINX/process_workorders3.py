@@ -459,7 +459,7 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
             logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa o no es necesario inicializar.")
 
             # Llamar a la función create_partition
-            create_partition(workorder_flag, device_name, "logical", "ext4", partition_size, t_workorder, name, mountpoint, product_description, registered_domain)
+            create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
 
         # Cerrar el cursor y la conexión a la base de datos
         cursor.close()
@@ -522,7 +522,7 @@ def update_storage_flag(workorder_flag, device_name, product_description, t_work
 
         # Llamar a la función create_partition
         logger.info("Llamando a la función create_partition...")
-        create_partition(workorder_flag, device_name, "logical", "ext4", partition_size, t_workorder, name, mountpoint, product_description, registered_domain)
+        create_partition(workorder_flag, device_name, "logical", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
 
     except Exception as e:
         logger.error(f"Error al actualizar 'storage_flag': {str(e)}")
