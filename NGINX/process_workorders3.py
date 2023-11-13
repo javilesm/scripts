@@ -581,7 +581,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         subprocess.run(["sleep", "10"])
 
         # Llamar a la funcion check_partition
-        check_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number)
+        check_partition(workorder_flag, device_name, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, aligned_start_sectors, partition_end_sectors)
 
             
     except subprocess.CalledProcessError as e:
@@ -665,7 +665,7 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         partition_end_sectors = aligned_start_sectors + partition_size_sectors + 1
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {partition_type} {next_partition_number} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
+        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
 
         logger.info(f"(create_subsequencing_partition) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
@@ -685,7 +685,7 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         subprocess.run(["sleep", "10"])
 
         # Llamar a la funcion check_partition
-        check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description)
+        check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors)
 
     except subprocess.CalledProcessError as e:
         logger.error(f"create_subsequencing_partition: ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
@@ -736,7 +736,7 @@ def auto_confirm_create_subsequencing_partition(partition_command):
         logger.error(f"(auto_confirm_create_partition) ERROR: Error inesperado al ejecutar el comando '{partition_command}': {str(e)}")
 
 # Función para verificar si se creó la partición exitosamente
-def check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description):
+def check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors):
     try:
         # Verificar si se creó la partición exitosamente
         check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
@@ -759,6 +759,13 @@ def check_partition(workorder_flag, device_name, partition_type, partition_name,
             while not os.path.exists(partition_name):
                 logger.info(f"La partición '{partition_name}' aún no está disponible. Reintentando particionar...")
                 time.sleep(2)
+                # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
+                partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
+
+                logger.info(f"Procediendo a reintentar particionar la unidad: '/dev/{device_name}'...")
+
+                subprocess.run(partition_command, shell=True, check=True)
+                subprocess.run(["sleep", "10"])
 
             logger.info(f"Partición '{partition_name}' detectada. Procediendo con el formateo.")
 
