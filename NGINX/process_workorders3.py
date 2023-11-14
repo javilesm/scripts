@@ -668,15 +668,20 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         partition_name = f"/dev/{device_name}{next_partition_number}"
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"lsblk /dev/{device_name} && sudo parted /dev/{device_name} print && sudo parted /dev/{device_name} mkpart {next_partition_number} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
+        prepare_command_result = prepare_partition(device_name, filesystem_type, aligned_start_sectors, partition_end_sectors)
+        partition_command = f"mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"(create_subsequencing_partition) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
+        
+        subprocess.run(["sleep", "2"])
 
-        auto_confirm_create_subsequencing_partition(partition_command)
+        #auto_confirm_create_subsequencing_partition(partition_command)
 
-        logger.info(f"create_subsequencing_partition: Esperando a que se complete la partición {partition_name }...")
+        logger.info(f"create_subsequencing_partition: Esperando a que se complete la partición {partition_name}...")
+      
+        logger.info(f"create_subsequencing_partition: Esperando a que se complete la partición {partition_name}...")
 
-        subprocess.run(["sleep", "5"])
+        subprocess.run(["sleep", "2"])
 
         # Llamar a la función check_partition
         check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors, partition_command)
@@ -685,6 +690,54 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         logger.error(f"create_subsequencing_partition: ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"create_subsequencing_partition: ERROR: Error muy inesperado al crear la partición '{next_partition_number}' en la unidad '/dev/{device_name}': {str(e)}")
+
+
+
+def prepare_partition(device_name, filesystem_type, aligned_start_sectors, partition_end_sectors):
+    try:
+        # Ejecutar el comando lsblk
+        lsblk_result = subprocess.run(f"lsblk /dev/{device_name}", shell=True, check=True, text=True, capture_output=True)
+        logger.info(lsblk_result.stdout.strip())
+        time.sleep(2)
+
+        # Ejecutar el comando sudo parted print
+        parted_print_result = subprocess.run(f"sudo parted /dev/{device_name} print", shell=True, check=True, text=True, capture_output=True)
+        logger.info(parted_print_result.stdout.strip())
+        time.sleep(2)
+
+        # Ejecutar el comando sudo parted
+        parted_process = subprocess.Popen(f"sudo parted /dev/{device_name}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        time.sleep(2)
+
+        # Enviar el comando para crear la partición
+        parted_process.stdin.write(f"mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s\n")
+        time.sleep(2)
+
+        # Enviar automáticamente "y" como respuesta
+        parted_process.stdin.write(b"y\n")
+        parted_process.stdin.flush()
+        time.sleep(2)
+
+        # Capturar la salida
+        parted_output, parted_errors = parted_process.communicate()
+
+        parted_process.stdin.close()
+
+        logger.info(parted_output.strip())
+
+        if parted_errors:
+            logger.error(parted_errors)
+
+        return lsblk_result.stdout.strip()
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"prepare_partition: ERROR: Error al ejecutar el comando: {e}")
+        return ""  # Devolver una cadena vacía en caso de error
+
+    except Exception as e:
+        logger.error(f"prepare_partition: ERROR: Error inesperado: {str(e)}")
+        return ""  # Devolver una cadena vacía en caso de error
+
 
 
 def auto_confirm_create_subsequencing_partition(partition_command):
