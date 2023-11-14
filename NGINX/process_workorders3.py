@@ -10,8 +10,6 @@ import logging
 from colorlog import getLogger
 import time
 import math
-import pexpect
-import json
 
 
 # Configuración de la conexión a MySQL
@@ -583,7 +581,7 @@ def create_partition(workorder_flag, device_name, partition_type, filesystem_typ
         subprocess.run(["sleep", "10"])
 
         # Llamar a la funcion check_partition
-        check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors)
+        check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors,  partition_command)
 
             
     except subprocess.CalledProcessError as e:
@@ -634,6 +632,7 @@ def auto_confirm_create_partition(partition_command):
     except Exception as e:
         logger.error(f"(auto_confirm_create_partition) ERROR: Error inesperado al ejecutar el comando '{partition_command}': {str(e)}")
 
+
 def create_subsequencing_partition(workorder_flag, device_name, partition_type, filesystem_type, partition_size, t_workorder, name, mountpoint, product_description, registered_domain, autoconfirm=False):
     created_partition_info = None  # Inicializar la variable fuera del bloque try
     try:
@@ -670,52 +669,68 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
 
         logger.info(f"(create_subsequencing_partition) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
 
-        # Ejecutar el Comando parted para crear una partición
-        process = subprocess.Popen(partition_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-        # Inicializar una variable para rastrear si la pregunta se ha detectado
-        question_detected = False
-
-        # Monitorear la salida estándar y error para detectar la pregunta y responder automáticamente
-        while True:
-            output = process.stdout.readline().strip()
-            error_output = process.stderr.readline().strip()
-
-            if output:
-                logger.info(output)  # Registra la salida en el archivo de registro
-                if "Is this still acceptable to you?" in output:
-                    question_detected = True
-                    response = "Yes" if autoconfirm else input("Is this still acceptable to you? (Yes/No): ")
-                    process.stdin.write(f"{response}\n")
-                    process.stdin.flush()
-
-            if error_output:
-                logger.error(error_output)  # Registra la salida de error en el archivo de registro
-
-            if not output and not error_output:
-                break  # Sal del bucle cuando la salida estándar y error estén vacías
-
-        process.wait()  # Espera a que el proceso termine
-
-        if question_detected:
-            logger.info("Pregunta detectada y respondida automáticamente.")
-        else:
-            logger.info("No se detectó la pregunta.")
+        auto_confirm_create_subsequencing_partition(partition_command)
 
         logger.info(f"create_subsequencing_partition: Esperando a que se complete la partición...")
 
         subprocess.run(["sleep", "10"])
 
+        # Verificar si se creó la partición exitosamente
+        partition_name = f"/dev/{device_name}{next_partition_number}"
+
         # Llamar a la función check_partition
-        check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors)
+        check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors, partition_command)
 
     except subprocess.CalledProcessError as e:
         logger.error(f"create_subsequencing_partition: ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
     except Exception as e:
         logger.error(f"create_subsequencing_partition: ERROR: Error muy inesperado al crear la partición '{next_partition_number}' en la unidad '/dev/{device_name}': {str(e)}")
+
+
+def auto_confirm_create_subsequencing_partition(partition_command):
+    try:
+        response = "y"  # Configura la respuesta como "y" (automática)
+        if response not in ('y', 'n', 'i'):
+            raise ValueError("Response must be 'y', 'n', or 'i")
+
+        logger.info(f"(auto_confirm_create_partition) Ejecutando el comando 'partition_command': '{partition_command}'")
+
+        # Utiliza subprocess.Popen para ejecutar el comando y obtener la salida
+        process = subprocess.Popen(partition_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         
+        # Inicializa una variable para rastrear si la pregunta se ha detectado
+        question_detected = False
+        
+        # Monitorea la salida para detectar la pregunta y responder automáticamente
+        while True:
+            output = process.stdout.readline().decode('utf-8')
+            if output:
+                logger.info(output.strip())  # Registra la salida en el archivo de registro
+                if "Is this still acceptable to you?" in output:
+                    question_detected = True
+                    process.stdin.write(f"{response}\n".encode('utf-8'))
+                    process.stdin.flush()
+            else:
+                break  # Sal del bucle cuando la salida está vacía
+            
+        process.wait()  # Espera a que el proceso termine
+        
+        if question_detected:
+            logger.info("Pregunta detectada y respondida automáticamente.")
+        else:
+            logger.info("No se detectó la pregunta.")
+
+        logger.info(f"Esperando a que se ejecute el comando '{partition_command}'...")
+
+        time.sleep(5)
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"(auto_confirm_create_partition) ERROR: Error al ejecutar el comando '{partition_command}': {e}")
+    except Exception as e:
+        logger.error(f"(auto_confirm_create_partition) ERROR: Error inesperado al ejecutar el comando '{partition_command}': {str(e)}")
+   
 # Función para verificar si se creó la partición exitosamente
-def check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors):
+def check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors, partition_command):
     try:
         # Verificar si se creó la partición exitosamente
         check_partition_command = f"sudo parted /dev/{device_name} print | grep {next_partition_number}"
@@ -736,16 +751,15 @@ def check_partition(workorder_flag, device_name, partition_type, partition_name,
 
             # Esperar hasta que la partición esté completamente disponible
             while not os.path.exists(partition_name):
-                logger.info(f"La partición '{partition_name}' aún no está disponible. Reintentando particionar...")
+                logger.info(f"La partición '{partition_name}' aún no está disponible...")
                 time.sleep(2)
-                # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-                partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
                 logger.info(f"Procediendo a reintentar particionar la unidad: '/dev/{device_name}'...")
 
+                # subprocess.run(partition_command, shell=True)
                 auto_confirm_create_partition(partition_command)
 
-                subprocess.run(["sleep", "10"])
+                subprocess.run(["sleep", "5"])
 
             logger.info(f"Partición '{partition_name}' detectada. Procediendo con el formateo.")
 
@@ -1132,6 +1146,43 @@ def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_i
     except Exception as e:
         logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}': {str(e)}")
 
+def get_parted_pid():
+    try:
+        # Obtener el PID del proceso 'parted'
+        cmd = "pgrep -o parted"
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        pid, _ = process.communicate()
+
+        if pid:
+            return int(pid.strip())
+        else:
+            print("No se encontró ningún proceso 'parted'.")
+            return None
+
+    except Exception as e:
+        print(f"Error al obtener el PID de 'parted': {str(e)}")
+        return None
+
+def kill_parted_process():
+    try:
+        parted_pid = get_parted_pid()
+
+        if parted_pid:
+            print(f"Deteniendo el proceso 'parted' con PID {parted_pid}...")
+            os.kill(parted_pid, signal.SIGTERM)
+            time.sleep(2)  # Esperar un momento para que el proceso se cierre
+
+            # Verificar si el proceso sigue en ejecución después de esperar
+            parted_pid_after = get_parted_pid()
+            if parted_pid_after is None:
+                print("El proceso 'parted' se detuvo correctamente.")
+            else:
+                print(f"El proceso 'parted' con PID {parted_pid} no se pudo detener.")
+        else:
+            print("No se encontró ningún proceso 'parted' para detener.")
+
+    except Exception as e:
+        print(f"Error al detener el proceso 'parted': {str(e)}")
 
 def process_workorders():
     read_workorder_table()
