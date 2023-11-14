@@ -459,7 +459,7 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
             logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa o no es necesario inicializar.")
 
             # Llamar a la función create_partition
-            create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+            create_partition(workorder_flag, device_name, "", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
 
         # Cerrar el cursor y la conexión a la base de datos
         cursor.close()
@@ -522,7 +522,7 @@ def update_storage_flag(workorder_flag, device_name, product_description, t_work
 
         # Llamar a la función create_partition
         logger.info("Llamando a la función create_partition...")
-        create_partition(workorder_flag, device_name, "primary", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
+        create_partition(workorder_flag, device_name, "", "ext4", product_description, t_workorder, name, mountpoint, product_description, registered_domain)
 
     except Exception as e:
         logger.error(f"Error al actualizar 'storage_flag': {str(e)}")
@@ -664,19 +664,19 @@ def create_subsequencing_partition(workorder_flag, device_name, partition_type, 
         partition_size_sectors = partition_size // block_size
         partition_end_sectors = aligned_start_sectors + partition_size_sectors + 1
 
+        # Verificar si se creó la partición exitosamente
+        partition_name = f"/dev/{device_name}{next_partition_number}"
+
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {partition_type} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
+        partition_command = f"lsblk /dev/{device_name} && sudo parted /dev/{device_name} print && sudo parted /dev/{device_name} mkpart {next_partition_number} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"(create_subsequencing_partition) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {partition_size} bytes, equivalente a {partition_size_sectors} sectores.")
 
         auto_confirm_create_subsequencing_partition(partition_command)
 
-        logger.info(f"create_subsequencing_partition: Esperando a que se complete la partición...")
+        logger.info(f"create_subsequencing_partition: Esperando a que se complete la partición {partition_name }...")
 
-        subprocess.run(["sleep", "10"])
-
-        # Verificar si se creó la partición exitosamente
-        partition_name = f"/dev/{device_name}{next_partition_number}"
+        subprocess.run(["sleep", "5"])
 
         # Llamar a la función check_partition
         check_partition(workorder_flag, device_name, partition_type, partition_name, filesystem_type, registered_domain, partition_size, t_workorder, created_partition_info, next_partition_number, name, mountpoint, product_description, aligned_start_sectors, partition_end_sectors, partition_command)
