@@ -338,7 +338,7 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
                 logger.warning(f"La unidad '{device_path}' se encuentra particionada previamente.")
                 if available_space >= product_description:
                     # Llamar a la función create_subsequencing_partition
-                    subpartition_module.create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type="", filesystem_type="ext4")
+                    subpartition_module.subpartition_module_configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type="ext2")
                 else:
                     logger.error(f"ERROR: No hay suficiente espacio disponible para crear una partición de {product_description} bytes.")
         else:
@@ -401,7 +401,7 @@ def initialize_disk(workorder_flag, device_name, product_description, t_workorde
             logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa o no es necesario inicializar.")
 
             # Llamar a la función create_partition
-            partition_module.create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type="", filesystem_type="ext4")
+            partition_module.create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type="primary", filesystem_type="ext4")
 
         # Cerrar el cursor y la conexión a la base de datos
         cursor.close()
@@ -464,7 +464,7 @@ def update_storage_flag(workorder_flag, device_name, product_description, t_work
 
         # Llamar a la función create_partition
         logger.info("Llamando a la función create_partition...")
-        partition_module.create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type="", filesystem_type="ext4")
+        partition_module.create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type="primary", filesystem_type="ext4")
 
     except Exception as e:
         logger.error(f"Error al actualizar 'storage_flag': {str(e)}")
