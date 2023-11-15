@@ -91,7 +91,7 @@ def create_partition(workorder_flag, device_name, t_workorder, name, mountpoint,
         subprocess.run(["sleep", "1"])
 
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command2 = f"sudo parted /dev/{device_name} mkpart {partition_type} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
+        partition_command2 = f"sudo parted /dev/{device_name} mkpart {next_partition_number} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
         logger.info(f"(create_partition) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {product_description} bytes, equivalente a {partition_size_sectors} sectores.")
         
@@ -100,7 +100,8 @@ def create_partition(workorder_flag, device_name, t_workorder, name, mountpoint,
 
         # Ejecutar el comando de partición
         #auto_confirm_create_partition(partition_command2)
-        prepare_partition(device_name, filesystem_type, aligned_start_sectors, partition_end_sectors)
+        #prepare_partition(device_name, filesystem_type, aligned_start_sectors, partition_end_sectors)
+        create_partition_with_gdisk(device_name, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors)
         logger.info(f"(create_partition) Ejecutando el comando: '{partition_command2}'")
 
         #subprocess.run(partition_command2,  shell=True, check=True)
@@ -166,17 +167,19 @@ def prepare_partition(device_name, filesystem_type, aligned_start_sectors, parti
         # Crear un objeto pexpect.spawn para manejar la interacción
         child = pexpect.spawn(partition_command, timeout=10)
 
-        # Esperar hasta que aparezca la primera pregunta
-        child.expect("Is this still acceptable to you?")
+        # Esperar hasta que aparezca la primera pregunta o el prompt de parted
+        index = child.expect(["Is this still acceptable to you?", "parted"])
 
-        # Responder automáticamente con "Yes"
-        child.sendline("Yes")
+        if index == 0:
+            # Responder automáticamente con "Yes" si es una pregunta
+            child.sendline("Yes")
 
-        # Esperar hasta que aparezca la segunda pregunta
-        child.expect("Yes/No?")
+            # Esperar hasta que aparezca la segunda pregunta o el prompt de parted
+            index = child.expect(["Yes/No?", "parted"])
 
-        # Responder automáticamente con "Yes"
-        child.sendline("Yes")
+            if index == 0:
+                # Responder automáticamente con "Yes" si es otra pregunta
+                child.sendline("Yes")
 
         # Esperar a que aparezca el prompt de parted
         child.expect("parted")
@@ -206,6 +209,7 @@ def prepare_partition(device_name, filesystem_type, aligned_start_sectors, parti
     except Exception as e:
         logger.error(f"prepare_partition: ERROR: Error inesperado: {str(e)}")
         return ""  # Devolver una cadena vacía en caso de error
+
 
 
 # Función para calcular el punto de inicio de una nueva particion
@@ -266,4 +270,23 @@ def calculate_next_partition_number(device_name):
     except Exception as e:
         logger.error(f"Error al calcular el siguiente número de partición: {str(e)}")
         return None
-    
+
+def create_partition_with_gdisk(device_name, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors):
+    try:
+        # Comando gdisk para crear una partición
+        gdisk_command = f"sudo gdisk /dev/{device_name}"
+
+        # Script que se pasa a gdisk para crear la partición
+        script = f"n\n{next_partition_number}\n{aligned_start_sectors}\n{partition_end_sectors}\n{filesystem_type}\n"
+
+        # Crear un script temporal para ajustar la alineación
+        adjust_script = f"echo 'x\nl\nm\nn\n{next_partition_number}\n{aligned_start_sectors}\n{partition_end_sectors}\n{filesystem_type}\nw\ny\n' > /tmp/gdisk_script"
+
+        # Ejecutar el comando gdisk con el script ajustado
+        subprocess.run(adjust_script, shell=True, check=True)
+        subprocess.run(f"sh /tmp/gdisk_script | {gdisk_command}", shell=True, check=True)
+
+        print(f"Partición {next_partition_number} creada con éxito en /dev/{device_name}")
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error al crear la partición: {e}")
