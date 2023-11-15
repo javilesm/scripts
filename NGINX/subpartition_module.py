@@ -7,6 +7,8 @@ from colorama import Fore, Style
 import logging
 from colorlog import getLogger
 import pexpect
+import shlex
+import parted
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 log_directory = os.path.join(script_directory, "subpartition_module_logs")
@@ -52,7 +54,7 @@ def setup_logging(log_directory, log_file_name):
 logger = setup_logging(log_directory, log_file_name)
 
 
-def create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type, filesystem_type):
+def subpartition_module_configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type):
     created_partition_info = None  # Inicializar la variable fuera del bloque try
     try:
         logger.info(f"Ejecutando sub-script: 'create_partition'...")
@@ -99,10 +101,7 @@ def create_partition(workorder_flag, device_name, t_workorder, name, mountpoint,
         partition_name = f"/dev/{device_name}{next_partition_number}"
 
         # Ejecutar el comando de partición
-        #auto_confirm_create_partition(partition_command2)
-        #prepare_partition(device_name, filesystem_type, aligned_start_sectors, partition_end_sectors)
-        create_partition_with_gdisk(device_name, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors)
-        logger.info(f"(create_partition) Ejecutando el comando: '{partition_command2}'")
+        create_partition(device_path, filesystem_type, aligned_start_sectors, partition_end_sectors)
 
         #subprocess.run(partition_command2,  shell=True, check=True)
 
@@ -115,101 +114,6 @@ def create_partition(workorder_flag, device_name, t_workorder, name, mountpoint,
         logger.error(f"create_subsequencing_partition: ERROR: Error al crear la partición '/dev/{device_name}/{next_partition_number}': {e}")
     except Exception as e:
         logger.error(f"create_subsequencing_partition: ERROR: Error muy inesperado al crear la partición '{next_partition_number}' en la unidad '/dev/{device_name}': {str(e)}")
-
-def auto_confirm_create_partition(partition_command2):
-    try:
-        response = "y"  # Configura la respuesta como "y" (automática)
-        if response not in ('y', 'n', 'i'):
-            raise ValueError("Response must be 'y', 'n', or 'i")
-
-        logger.info(f"(auto_confirm_create_partition) Ejecutando el comando 'partition_command': '{partition_command2}'")
-
-        # Utiliza subprocess.Popen para ejecutar el comando y obtener la salida
-        process = subprocess.Popen(partition_command2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        
-        # Inicializa una variable para rastrear si la pregunta se ha detectado
-        question_detected = False
-        
-        # Monitorea la salida para detectar la pregunta y responder automáticamente
-        while True:
-            output = process.stdout.readline().decode('utf-8')
-            if output:
-                logger.info(output.strip())  # Registra la salida en el archivo de registro
-                if "Is this still acceptable to you?" in output:
-                    question_detected = True
-                    process.stdin.write(f"{response}\n".encode('utf-8'))
-                    process.stdin.flush()
-            else:
-                break  # Sal del bucle cuando la salida está vacía
-            
-        process.wait()  # Espera a que el proceso termine
-        
-        if question_detected:
-            logger.info("Pregunta detectada y respondida automáticamente.")
-        else:
-            logger.info("No se detectó la pregunta.")
-
-        logger.info(f"Esperando a que se ejecute el comando '{partition_command2}'...")
-
-        time.sleep(10)
-
-    except subprocess.CalledProcessError as e:
-        logger.error(f"(auto_confirm_create_partition) ERROR: Error al ejecutar el comando '{partition_command2}': {e}")
-    except Exception as e:
-        logger.error(f"(auto_confirm_create_partition) ERROR: Error inesperado al ejecutar el comando '{partition_command2}': {str(e)}")
-
-
-def prepare_partition(device_name, filesystem_type, aligned_start_sectors, partition_end_sectors):
-    try:
-        # Comando para crear la partición con parted
-        partition_command = f"sudo parted -a optimal /dev/{device_name}"
-
-        # Crear un objeto pexpect.spawn para manejar la interacción
-        child = pexpect.spawn(partition_command, timeout=10)
-
-        # Esperar hasta que aparezca la primera pregunta o el prompt de parted
-        index = child.expect(["Is this still acceptable to you?", "parted"])
-
-        if index == 0:
-            # Responder automáticamente con "Yes" si es una pregunta
-            child.sendline("Yes")
-
-            # Esperar hasta que aparezca la segunda pregunta o el prompt de parted
-            index = child.expect(["Yes/No?", "parted"])
-
-            if index == 0:
-                # Responder automáticamente con "Yes" si es otra pregunta
-                child.sendline("Yes")
-
-        # Esperar a que aparezca el prompt de parted
-        child.expect("parted")
-
-        # Enviar el comando para crear la partición
-        child.sendline(f"mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s")
-
-        # Esperar hasta que aparezca el prompt de parted después de crear la partición
-        child.expect("parted")
-
-        # Mostrar la salida
-        logger.info(child.before.decode("utf-8").strip())
-
-        # Cerrar la conexión pexpect
-        child.close()
-
-        # Esperar un poco antes de continuar
-        time.sleep(2)
-
-        # Mostrar información de las particiones después de la creación
-        subprocess.run(f"sudo parted /dev/{device_name} print", shell=True, check=True)
-
-        return "Success"
-    except pexpect.exceptions.ExceptionPexpect as e:
-        logger.error(f"prepare_partition: ERROR: Error al interactuar con parted: {e}")
-        return ""  # Devolver una cadena vacía en caso de error
-    except Exception as e:
-        logger.error(f"prepare_partition: ERROR: Error inesperado: {str(e)}")
-        return ""  # Devolver una cadena vacía en caso de error
-
 
 
 # Función para calcular el punto de inicio de una nueva particion
@@ -271,22 +175,15 @@ def calculate_next_partition_number(device_name):
         logger.error(f"Error al calcular el siguiente número de partición: {str(e)}")
         return None
 
-def create_partition_with_gdisk(device_name, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors):
-    try:
-        # Comando gdisk para crear una partición
-        gdisk_command = f"sudo gdisk /dev/{device_name}"
-
-        # Script que se pasa a gdisk para crear la partición
-        script = f"n\n{next_partition_number}\n{aligned_start_sectors}\n{partition_end_sectors}\n{filesystem_type}\n"
-
-        # Crear un script temporal para ajustar la alineación
-        adjust_script = f"echo 'x\nl\nm\nn\n{next_partition_number}\n{aligned_start_sectors}\n{partition_end_sectors}\n{filesystem_type}\nw\ny\n' > /tmp/gdisk_script"
-
-        # Ejecutar el comando gdisk con el script ajustado
-        subprocess.run(adjust_script, shell=True, check=True)
-        subprocess.run(f"sh /tmp/gdisk_script | {gdisk_command}", shell=True, check=True)
-
-        print(f"Partición {next_partition_number} creada con éxito en /dev/{device_name}")
-
-    except subprocess.CalledProcessError as e:
-        print(f"Error al crear la partición: {e}")
+def create_partition(device_path, filesystem_type, aligned_start_sectors, partition_end_sectors):
+    disk = parted.getDevice(device_path)
+    disk_type = parted.disk_new(disk)
+    
+    # Crear una partición
+    fs = parted.fileSystemNew(filesystem_type, "")
+    partition = parted.partition_new(disk_type, parted.PARTITION_NORMAL, parted.fileSystemConstraint(fs))
+    partition.setFlag(parted.PARTITION_BOOT)
+    disk_type.addPartition(partition, aligned_start_sectors, partition_end_sectors)
+    
+    # Escribir la tabla de particiones
+    disk.commit()
