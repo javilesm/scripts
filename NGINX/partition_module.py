@@ -6,6 +6,9 @@ import datetime
 from colorama import Fore, Style
 import logging
 from colorlog import getLogger
+import pexpect
+import shlex
+import parted
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 log_directory = os.path.join(script_directory, "partition_module_logs")
@@ -51,11 +54,11 @@ def setup_logging(log_directory, log_file_name):
 logger = setup_logging(log_directory, log_file_name)
 
 
-def create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type, filesystem_type):
+def configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type):
     created_partition_info = None  # Inicializar la variable fuera del bloque try
     try:
-        logger.info(f"Ejecutando sub-script: 'create_partition'...")
-        logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
+        logger.info(f"(partition_module) Ejecutando sub-script: 'create_partition'...")
+        logger.info(f"(partition_module) Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
 
         # Obtener el siguiente número de partición disponible
         next_partition_number = calculate_next_partition_number(device_name)
@@ -68,11 +71,11 @@ def create_partition(workorder_flag, device_name, t_workorder, name, mountpoint,
         if device_partitions:
             last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = calculate_new_partition_start(device_name)
 
-            logger.info(f"Tamaño de la última partición: {last_partition_size_bytes} bytes.")
-            logger.info(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
-            logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
+            logger.info(f"(partition_module) Tamaño de la última partición: {last_partition_size_bytes} bytes.")
+            logger.info(f"(partition_module) Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
+            logger.info(f"(partition_module) Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
         else:
-            logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
+            logger.info(f"(partition_module) El dispositivo '{device_path}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
             new_partition_start_bytes = 1048576  # Punto de inicio predeterminado
 
         # Calcular un punto de inicio alineado en sectores
@@ -85,76 +88,30 @@ def create_partition(workorder_flag, device_name, t_workorder, name, mountpoint,
 
         partition_end_sectors = aligned_start_sectors + partition_size_sectors
 
-        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command = f"sudo parted /dev/{device_name} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
-
-        logger.info(f"(create_partition) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {product_description} bytes, equivalente a {partition_size_sectors} sectores.")
+        logger.info(f"(partition_module) Procediendo a particionar la unidad: '{device_path}' con un tamaño de: {product_description} bytes, equivalente a {partition_size_sectors} sectores.")
         
         # Verificar si se creó la partición exitosamente
-        partition_name = f"/dev/{device_name}{next_partition_number}"
+        partition_name = f"{device_path}{next_partition_number}"
+
+        check_gpt(device_path)
+
+        # Esperar a que se complete el proceso de partición
+        subprocess.run(["sleep", "2"])
 
         # Ejecutar el comando de partición
-        auto_confirm_create_partition(partition_command)
-        logger.info(f"(create_partition) Ejecutando el comando: '{partition_command}'")
+        create_partition(device_path, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors)
 
-        #subprocess.run(partition_command,  shell=True, check=True)
-
-        logger.info(f"Esperando a que se complete la partición...")
+        logger.info(f"(partition_module) Esperando a que se complete la partición...")
 
         # Esperar a que se complete el proceso de partición
         subprocess.run(["sleep", "10"])
 
-    except subprocess.CalledProcessError as e:
-        logger.error(f"ERROR: Error al crear la partición en la unidad '/dev/{device_name}': {e}")
-    except Exception as e:
-        logger.error(f"ERROR: Error muy inesperado al crear la partición en la unidad '/dev/{device_name}': {str(e)}")
-    finally:
-        logger.info("Proceso de partición completado.")
-
-
-    # Función para autoconfirmar la ejecución del comando "partition_command"
-def auto_confirm_create_partition(partition_command):
-    try:
-        response = "y"  # Configura la respuesta como "y" (automática)
-        if response not in ('y', 'n', 'i'):
-            raise ValueError("Response must be 'y', 'n', or 'i")
-
-        logger.info(f"(auto_confirm_create_partition) Ejecutando el comando 'partition_command': '{partition_command}'")
-
-        # Utiliza subprocess.Popen para ejecutar el comando y obtener la salida
-        process = subprocess.Popen(partition_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        
-        # Inicializa una variable para rastrear si la pregunta se ha detectado
-        question_detected = False
-        
-        # Monitorea la salida para detectar la pregunta y responder automáticamente
-        while True:
-            output = process.stdout.readline().decode('utf-8')
-            if output:
-                logger.info(output.strip())  # Registra la salida en el archivo de registro
-                if "Is this still acceptable to you?" in output:
-                    question_detected = True
-                    process.stdin.write(f"{response}\n".encode('utf-8'))
-                    process.stdin.flush()
-            else:
-                break  # Sal del bucle cuando la salida está vacía
-            
-        process.wait()  # Espera a que el proceso termine
-        
-        if question_detected:
-            logger.info("Pregunta detectada y respondida automáticamente.")
-        else:
-            logger.info("No se detectó la pregunta.")
-
-        logger.info(f"Esperando a que se ejecute el comando '{partition_command}'...")
-
-        time.sleep(10)
+        check_gpt(device_path)
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"(auto_confirm_create_partition) ERROR: Error al ejecutar el comando '{partition_command}': {e}")
+        logger.error(f"partition_module: ERROR: Error al crear la partición '/dev/{device_name}/{next_partition_number}': {e}")
     except Exception as e:
-        logger.error(f"(auto_confirm_create_partition) ERROR: Error inesperado al ejecutar el comando '{partition_command}': {str(e)}")
-
+        logger.error(f"partition_module: ERROR: Error muy inesperado al crear la partición '{next_partition_number}' en la unidad '/dev/{device_name}': {str(e)}")
 
 
 # Función para calcular el punto de inicio de una nueva particion
@@ -215,4 +172,62 @@ def calculate_next_partition_number(device_name):
     except Exception as e:
         logger.error(f"Error al calcular el siguiente número de partición: {str(e)}")
         return None
-    
+
+def create_partition(device_path, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors):
+    try:
+        partition_command1 = f"sudo parted {device_path} print"
+        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
+        partition_command2 = f"sudo parted {device_path} mkpart {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
+
+        subprocess.run(partition_command1,  shell=True, check=True)
+        subprocess.run(["sleep", "1"])
+
+        response = "y"  # Configura la respuesta como "y" (automática)
+        if response not in ('y', 'n', 'i'):
+            raise ValueError("Response must be 'y', 'n', or 'i")
+
+        # Utiliza subprocess.Popen para ejecutar el comando y obtener la salida
+        process = subprocess.Popen(partition_command2, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        
+        # Inicializa una variable para rastrear si la pregunta se ha detectado
+        question_detected = False
+        
+        # Monitorea la salida para detectar la pregunta y responder automáticamente
+        while True:
+            output = process.stdout.readline().decode('utf-8')
+            if output:
+                logger.info(output.strip())  # Registra la salida en el archivo de registro
+                if "Is this still acceptable to you?" in output:
+                    question_detected = True
+                    process.stdin.write(f"{response}\n".encode('utf-8'))
+                    process.stdin.flush()
+            else:
+                break  # Sal del bucle cuando la salida está vacía
+            
+        process.wait()  # Espera a que el proceso termine
+        
+        if question_detected:
+            logger.info("Pregunta detectada y respondida automáticamente.")
+        else:
+            logger.info("No se detectó la pregunta.")
+
+        time.sleep(10)
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"(auto_confirm_create_partition) ERROR: Error al particionar la unidad {device_path}': {e}")
+    except Exception as e:
+        logger.error(f"(auto_confirm_create_partition) ERROR: Error inesperado al particionar la unidad {device_path}': {str(e)}")
+
+def check_gpt(device_path):
+    try:
+        # Comando para comprobar si la unidad tiene una tabla de particiones GPT
+        check_command = f"sudo gdisk -l {device_path} | grep 'GPT'"
+
+        # Ejecutar el comando y capturar la salida
+        result = subprocess.run(check_command, shell=True, capture_output=True, text=True)
+
+        # Imprimir el resultado
+        print(result.stdout)
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error al ejecutar el comando: {e}")
