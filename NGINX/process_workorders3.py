@@ -12,6 +12,8 @@ import time
 import math
 import partition_module
 import subpartition_module
+import parted
+import pyudev
 
 # Configuración de la conexión a MySQL
 MYSQL_USER = "2309000000"
@@ -325,20 +327,34 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
             if is_unpartitioned:
                 logger.warning(f"La unidad '{device_path}' no se encuentra particionada.")
                 if available_space >= product_description:
-                    try:
-                        # Inicializar la unidad con una etiqueta de disco
-                        logger.info(f"Inicializando la unidad '{device_path}' con una etiqueta de disco...")
-                        initialize_disk(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain)
+                    if is_device_partitioned(device_path):
+                        print(f"La unidad '{device_path}' tiene una tabla de particiones GPT.")
+                        partition_module.configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type="ext2")        
+                        
+                    else:
+                        print(f"La unidad '{device_path}' no tiene una tabla de particiones GPT.")
+                        initialize_disk(device_path)
 
-                    except Exception as e:
-                        logger.error(f"ERROR: Error inesperado al Inicializar la unidad  '{device_path}': {str(e)}")
+                        print(f"Comprobando si la tabla de particiones GPT se creó exitosamente...")
+                        # Comprobar si la tabla de particiones GPT se creó exitosamente
+                        check_command = f"sudo gdisk -l {device_path} | grep 'GPT'"
+                        check_result = subprocess.run(check_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+                        if check_result.returncode == 0:
+                            logger.info(f"Tabla de particiones GPT creada con éxito en '{device_path}'.")
+
+                            # Llamar a la función update_storage_flag
+                            update_storage_flag(device_path, workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain)
+                        else:
+                            logger.error(f"ERROR: Error al crear la tabla de particiones GPT en '{device_path}': {check_result.stderr}")
+                            initialize_disk(device_path)
                 else:
                     logger.error(f"ERROR: No hay suficiente espacio disponible para crear una partición de {product_description} bytes.")
             else:
                 logger.warning(f"La unidad '{device_path}' se encuentra particionada previamente.")
                 if available_space >= product_description:
                     # Llamar a la función create_subsequencing_partition
-                    subpartition_module.subpartition_module_configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type="ext2")
+                    subpartition_module.configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type="ext2")
                 else:
                     logger.error(f"ERROR: No hay suficiente espacio disponible para crear una partición de {product_description} bytes.")
         else:
@@ -350,93 +366,44 @@ def get_disk_info(workorder_flag, device_name, product_description, t_workorder,
     except Exception as e:
         logger.error(f"ERROR inesperado: {str(e)}")
 
-# Función para inicializar el disco con una tabla de particiones GPT
-def initialize_disk(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
+
+def is_device_partitioned(device_path):
     try:
-        # Conexión a la base de datos MySQL
-        conn = mysql.connector.connect(
-            user=MYSQL_USER,
-            password=MYSQL_PASSWORD,
-            host=MYSQL_HOST,
-            database=MYSQL_DATABASE
-        )
-        
-        cursor = conn.cursor(buffered=True)
+        # Verificar si el dispositivo tiene alguna partición
+        check_partition_command = f"sudo parted {device_path} print | grep 'Number'"
+        partition_result = subprocess.run(check_partition_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-        # Consultar el valor actual de 'storage_flag' para el dispositivo especificado
-        cursor.execute(f"SELECT storage_flag FROM t_storage WHERE DEVICE_NAME = %s", (device_name,))
-        storage_flag = cursor.fetchone()
+        # Verificar si el dispositivo está montado
+        check_mount_command = f"sudo mount | grep {device_path}"
+        mount_result = subprocess.run(check_mount_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-        if storage_flag and storage_flag[0] == 0:
-            # La unidad no tiene una tabla de particiones GPT, por lo que podemos proceder con la inicialización
-            logger.info(f"Inicializando el disco '/dev/{device_name}' con una tabla de particiones GPT...")
-
-            # Comando para inicializar el disco con una tabla de particiones GPT
-            initialize_command = f"sudo parted /dev/{device_name} mklabel gpt"
-
-            logger.info(f"Ejecutando el comando de inicialización: '{initialize_command}'")
-
-            # Ejecutar el comando "initialize_command"
-            auto_confirm_initialize_disk(initialize_command)
-            subprocess.run(["sleep", "30"])
-
-            partition_label_check_command = f"sudo parted /dev/{device_name} print"
-
-            subprocess.run(partition_label_check_command, shell=True, check=True)
-            subprocess.run(["sleep", "10"])
-
-            # Comprobar si la tabla de particiones GPT se creó exitosamente
-            check_command = f"sudo gdisk -l /dev/{device_name} | grep 'GPT'"
-            check_result = subprocess.run(check_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-            if check_result.returncode == 0:
-                logger.info(f"Tabla de particiones GPT creada con éxito en '/dev/{device_name}'.")
-
-                # Llamar a la función update_storage_flag
-                update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain)
-            else:
-                logger.error(f"ERROR: Fallo al crear la tabla de particiones GPT en '/dev/{device_name}': {check_result.stderr}")
-        else:
-            # La unidad ya tiene una inicialización previa o storage_flag no es 0
-            logger.info(f"La unidad '/dev/{device_name}' ya cuenta con una inicialización previa o no es necesario inicializar.")
-
-            # Llamar a la función create_partition
-            partition_module.create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type="primary", filesystem_type="ext4")
-
-        # Cerrar el cursor y la conexión a la base de datos
-        cursor.close()
-        conn.close()
+        return partition_result.returncode == 0 or mount_result.returncode == 0
 
     except Exception as e:
-        logger.error(f"ERROR inesperado: {str(e)}")
+        print(f"Error al verificar la partición o el montaje: {e}")
+        return False
 
 # Función para autoconfirmar la ejecución del comando "initialize_command"
-def auto_confirm_initialize_disk(initialize_command):
+def initialize_disk(device_path):
     try:
-        response = "Yes"  # Configura la respuesta como "Yes" (automática)
-        logger.info(f"(auto_confirm_initialize_disk) Ejecutando el comando 'initialize_command': '{initialize_command}'")
+        logger.info(f"Inicializando el disco '{device_path}' con una tabla de particiones GPT...")
 
-        # Utiliza subprocess.Popen para ejecutar el comando y obtener la salida
-        process = subprocess.Popen(initialize_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        
-        # Monitorea la salida para detectar la pregunta y responder automáticamente
-        output, _ = process.communicate(input=response.encode('utf-8'), timeout=30)
+        # Comando para inicializar el disco con parted
+        init_command = f"sudo parted {device_path} mklabel gpt"
 
-        # Registra la salida en el archivo de registro
-        logger.info(output.decode('utf-8').strip())
+        # Ejecutar el comando
+        subprocess.run(init_command, shell=True, check=True)
 
-        process.wait()  # Espera a que el proceso termine
-        
-        logger.info(f"Esperando a que se ejecute el comando '{initialize_command}'...")
+        print(f"Unidad '{device_path}' inicializada con éxito.")
 
-        time.sleep(10)
+        time.sleep(2)
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"(auto_confirm_initialize_disk) ERROR: Error al ejecutar el comando '{initialize_command}': {e}")
+        logger.error(f"(initialize_disk) ERROR: Error al inicializar la unidad '{device_path}': {e}")
     except Exception as e:
-        logger.error(f"(auto_confirm_initialize_disk) ERROR: Error inesperado al ejecutar el comando '{initialize_command}': {str(e)}")
+        logger.error(f"(initialize_disk) ERROR: Error inesperado al inicializar la unidad '{device_path}': {str(e)}")
 
-def update_storage_flag(workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
+def update_storage_flag(device_path, workorder_flag, device_name, product_description, t_workorder, name, mountpoint, registered_domain):
     try:
         logger.info(f"Leyendo la tabla: '{MYSQL_STORAGE_TABLE}'...")
         # Configuración de la conexión a MySQL
@@ -464,7 +431,7 @@ def update_storage_flag(workorder_flag, device_name, product_description, t_work
 
         # Llamar a la función create_partition
         logger.info("Llamando a la función create_partition...")
-        partition_module.create_partition(workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, partition_type="primary", filesystem_type="ext4")
+        partition_module.configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type="ext2")
 
     except Exception as e:
         logger.error(f"Error al actualizar 'storage_flag': {str(e)}")
@@ -887,43 +854,6 @@ def add_to_fstab(workorder_flag, device_name, mounting_path, created_partition_i
     except Exception as e:
         logger.error(f"ERROR: Error al agregar entrada a '{fstab_path}': {str(e)}")
 
-def get_parted_pid():
-    try:
-        # Obtener el PID del proceso 'parted'
-        cmd = "pgrep -o parted"
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        pid, _ = process.communicate()
-
-        if pid:
-            return int(pid.strip())
-        else:
-            print("No se encontró ningún proceso 'parted'.")
-            return None
-
-    except Exception as e:
-        print(f"Error al obtener el PID de 'parted': {str(e)}")
-        return None
-
-def kill_parted_process():
-    try:
-        parted_pid = get_parted_pid()
-
-        if parted_pid:
-            print(f"Deteniendo el proceso 'parted' con PID {parted_pid}...")
-            os.kill(parted_pid, signal.SIGTERM)
-            time.sleep(2)  # Esperar un momento para que el proceso se cierre
-
-            # Verificar si el proceso sigue en ejecución después de esperar
-            parted_pid_after = get_parted_pid()
-            if parted_pid_after is None:
-                print("El proceso 'parted' se detuvo correctamente.")
-            else:
-                print(f"El proceso 'parted' con PID {parted_pid} no se pudo detener.")
-        else:
-            print("No se encontró ningún proceso 'parted' para detener.")
-
-    except Exception as e:
-        print(f"Error al detener el proceso 'parted': {str(e)}")
 
 def process_workorders():
     read_workorder_table()
