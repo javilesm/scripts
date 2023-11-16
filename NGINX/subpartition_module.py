@@ -54,11 +54,11 @@ def setup_logging(log_directory, log_file_name):
 logger = setup_logging(log_directory, log_file_name)
 
 
-def subpartition_module_configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type):
+def configure_partition(device_path, workorder_flag, device_name, t_workorder, name, mountpoint, product_description, registered_domain, filesystem_type):
     created_partition_info = None  # Inicializar la variable fuera del bloque try
     try:
-        logger.info(f"Ejecutando sub-script: 'create_partition'...")
-        logger.info(f"Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
+        logger.info(f"(subpartition_module) Ejecutando sub-script: 'create_partition'...")
+        logger.info(f"(subpartition_module) Particionando el dispositivo '{device_name}' de acuerdo con la orden de trabajo: '{t_workorder}' para el dominio '{registered_domain}'")
 
         # Obtener el siguiente número de partición disponible
         next_partition_number = calculate_next_partition_number(device_name)
@@ -71,11 +71,11 @@ def subpartition_module_configure_partition(device_path, workorder_flag, device_
         if device_partitions:
             last_partition_size_bytes, last_partition_start_bytes, new_partition_start_bytes = calculate_new_partition_start(device_name)
 
-            logger.info(f"Tamaño de la última partición: {last_partition_size_bytes} bytes.")
-            logger.info(f"Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
-            logger.info(f"Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
+            logger.info(f"(subpartition_module) Tamaño de la última partición: {last_partition_size_bytes} bytes.")
+            logger.info(f"(subpartition_module) Punto de inicio de la última partición: {last_partition_start_bytes} bytes.")
+            logger.info(f"(subpartition_module) Punto de inicio de la nueva partición (create_partition): {new_partition_start_bytes} bytes")
         else:
-            logger.info(f"El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
+            logger.info(f"(subpartition_module) El dispositivo '{device_name}' no tiene particiones previas. Utilizando punto de inicio predeterminado.")
             new_partition_start_bytes = 1048576  # Punto de inicio predeterminado
 
         # Calcular un punto de inicio alineado en sectores
@@ -95,40 +95,46 @@ def subpartition_module_configure_partition(device_path, workorder_flag, device_
         # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
         partition_command2 = f"sudo parted /dev/{device_name} mkpart {next_partition_number} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
 
-        logger.info(f"(create_partition) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {product_description} bytes, equivalente a {partition_size_sectors} sectores.")
+        logger.info(f"(subpartition_module) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {product_description} bytes, equivalente a {partition_size_sectors} sectores.")
         
         # Verificar si se creó la partición exitosamente
         partition_name = f"/dev/{device_name}{next_partition_number}"
 
+        check_gpt(device_path)
+
+        # Esperar a que se complete el proceso de partición
+        subprocess.run(["sleep", "2"])
+
         # Ejecutar el comando de partición
-        create_partition(device_path, filesystem_type, aligned_start_sectors, partition_end_sectors)
+        create_partition(device_path, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors)
 
-        #subprocess.run(partition_command2,  shell=True, check=True)
-
-        logger.info(f"Esperando a que se complete la partición...")
+        logger.info(f"(partition_module) Esperando a que se complete la partición...")
 
         # Esperar a que se complete el proceso de partición
         subprocess.run(["sleep", "10"])
 
+        check_gpt(device_path)
+
+
     except subprocess.CalledProcessError as e:
-        logger.error(f"create_subsequencing_partition: ERROR: Error al crear la partición '/dev/{device_name}/{next_partition_number}': {e}")
+        logger.error(f"subpartition_module: ERROR: Error al crear la partición '/dev/{device_name}/{next_partition_number}': {e}")
     except Exception as e:
-        logger.error(f"create_subsequencing_partition: ERROR: Error muy inesperado al crear la partición '{next_partition_number}' en la unidad '/dev/{device_name}': {str(e)}")
+        logger.error(f"subpartition_module: ERROR: Error muy inesperado al crear la partición '{next_partition_number}' en la unidad '/dev/{device_name}': {str(e)}")
 
 
 # Función para calcular el punto de inicio de una nueva particion
 def calculate_new_partition_start(device_name):
     try:
         factor = 17920
-        logger.info(f"Información sobre el dispositivo '{device_name}':")
-        logger.info(f"Obteniendo información sobre las particiones existentes en el dispositivo '{device_name}'...")
+        logger.info(f"(subpartition_module) Información sobre el dispositivo '{device_name}':")
+        logger.info(f"(subpartition_module) Obteniendo información sobre las particiones existentes en el dispositivo '{device_name}'...")
 
         lsblk_info = subprocess.check_output(["lsblk", "-Jbno", "NAME,SIZE,MOUNTPOINT", f"/dev/{device_name}"], text=True)
         lsblk_info = json.loads(lsblk_info)
         device_partitions = lsblk_info.get("blockdevices", [])[0].get("children", [])
 
         if device_partitions:
-            logger.info(f"Calculando el punto de inicio de la nueva partición en el dispositivo '{device_name}'...")
+            logger.info(f"(subpartition_module) Calculando el punto de inicio de la nueva partición en el dispositivo '{device_name}'...")
             total_partition_size_bytes = 0
 
             for partition_info in device_partitions:
@@ -138,7 +144,7 @@ def calculate_new_partition_start(device_name):
            
             new_partition_start_bytes = total_partition_size_bytes + factor
 
-            logger.info(f"Punto de inicio de la nueva partición (calculate_new_partition_start): {new_partition_start_bytes} bytes")
+            logger.info(f"(subpartition_module) Punto de inicio de la nueva partición (calculate_new_partition_start): {new_partition_start_bytes} bytes")
 
             return total_partition_size_bytes, None, new_partition_start_bytes
         else:
@@ -154,7 +160,7 @@ def calculate_new_partition_start(device_name):
 def calculate_next_partition_number(device_name):
     try:
         # Obtener información sobre las particiones existentes en el dispositivo
-        logger.info(f"Obteniendo información sobre las particiones existentes en el dispositivo '{device_name}'...")
+        logger.info(f"(subpartition_module) Obteniendo información sobre las particiones existentes en el dispositivo '{device_name}'...")
 
         lsblk_info = subprocess.check_output(["lsblk", "-Jbno", "NAME", f"/dev/{device_name}"], text=True)
         lsblk_info = json.loads(lsblk_info)
@@ -168,22 +174,47 @@ def calculate_next_partition_number(device_name):
         while next_partition_number in existing_partition_numbers:
             next_partition_number += 1
 
-        logger.info(f"Siguiente número de partición disponible para '{device_name}': {next_partition_number}")
+        logger.info(f"(subpartition_module) Siguiente número de partición disponible para '{device_name}': {next_partition_number}")
         return next_partition_number
 
     except Exception as e:
         logger.error(f"Error al calcular el siguiente número de partición: {str(e)}")
         return None
 
-def create_partition(device_path, filesystem_type, aligned_start_sectors, partition_end_sectors):
-    disk = parted.getDevice(device_path)
-    disk_type = parted.disk_new(disk)
-    
-    # Crear una partición
-    fs = parted.fileSystemNew(filesystem_type, "")
-    partition = parted.partition_new(disk_type, parted.PARTITION_NORMAL, parted.fileSystemConstraint(fs))
-    partition.setFlag(parted.PARTITION_BOOT)
-    disk_type.addPartition(partition, aligned_start_sectors, partition_end_sectors)
-    
-    # Escribir la tabla de particiones
-    disk.commit()
+def create_partition(device_path, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors):
+    try:
+        # Obtener el dispositivo
+        device = parted.getDevice(device_path)
+        device.clobber()  # Destruir la tabla de particiones existente
+        disk = parted.newDisk(device)
+
+        # Crear partición
+        geometry = parted.Geometry(start=aligned_start_sectors,
+                                   length=partition_end_sectors - aligned_start_sectors,
+                                   device=device)
+        filesystem = parted.FileSystem(type=filesystem_type, geometry=geometry)
+        partition = parted.Partition(disk=disk,
+                                     type=next_partition_number,  # Usar next_partition_number como tipo
+                                     fs=filesystem,
+                                     geometry=geometry)
+        disk.addPartition(partition, constraint=device.optimalAlignedConstraint)
+        disk.commit()
+
+        print(f"Partición {next_partition_number} creada con éxito en {device_pathe}")
+
+    except Exception as e:
+        print(f"Error al crear la partición: {e}")
+
+def check_gpt(device_path):
+    try:
+        # Comando para comprobar si la unidad tiene una tabla de particiones GPT
+        check_command = f"sudo gdisk -l {device_path} | grep 'GPT'"
+
+        # Ejecutar el comando y capturar la salida
+        result = subprocess.run(check_command, shell=True, capture_output=True, text=True)
+
+        # Imprimir el resultado
+        print(result.stdout)
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error al ejecutar el comando: {e}")
