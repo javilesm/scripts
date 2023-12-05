@@ -88,38 +88,23 @@ def configure_partition(device_path, workorder_flag, device_name, t_workorder, n
 
         partition_end_sectors = aligned_start_sectors + partition_size_sectors
 
-        partition_command1 = f"sudo parted /dev/{device_name} print"
+        partition_command1 = f"sudo parted {device_path} print"
         subprocess.run(partition_command1,  shell=True, check=True)
         subprocess.run(["sleep", "1"])
 
-        # Comando parted para crear una partición primaria ext4 con el tamaño requerido y el punto de inicio en sectores
-        partition_command2 = f"sudo parted /dev/{device_name} mkpart {next_partition_number} {filesystem_type} {aligned_start_sectors}s {partition_end_sectors}s"
-
-        logger.info(f"(subpartition_module) Procediendo a particionar la unidad: '/dev/{device_name}' con un tamaño de: {product_description} bytes, equivalente a {partition_size_sectors} sectores.")
-        
+     
         # Verificar si se creó la partición exitosamente
-        partition_name = f"/dev/{device_name}{next_partition_number}"
-
-        check_gpt(device_path)
-
-        # Esperar a que se complete el proceso de partición
-        subprocess.run(["sleep", "2"])
+        partition_name = f"{device_path}{next_partition_number}"
 
         # Ejecutar el comando de partición
-        create_partition(device_path, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors)
-
-        logger.info(f"(partition_module) Esperando a que se complete la partición...")
+        create_partition(device_path, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors, product_description)
 
         # Esperar a que se complete el proceso de partición
         subprocess.run(["sleep", "10"])
-
-        check_gpt(device_path)
-
-
     except subprocess.CalledProcessError as e:
-        logger.error(f"subpartition_module: ERROR: Error al crear la partición '/dev/{device_name}/{next_partition_number}': {e}")
+        logger.error(f"subpartition_module: ERROR: Error al crear la partición '{device_path}/{next_partition_number}': {e}")
     except Exception as e:
-        logger.error(f"subpartition_module: ERROR: Error muy inesperado al crear la partición '{next_partition_number}' en la unidad '/dev/{device_name}': {str(e)}")
+        logger.error(f"subpartition_module: ERROR: Error muy inesperado al crear la partición '{next_partition_number}' en la unidad '{device_path}': {str(e)}")
 
 
 # Función para calcular el punto de inicio de una nueva particion
@@ -181,40 +166,66 @@ def calculate_next_partition_number(device_name):
         logger.error(f"Error al calcular el siguiente número de partición: {str(e)}")
         return None
 
-def create_partition(device_path, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors):
+
+class PedDevice:
+    def __init__(self, device_path):
+        self.device_path = device_path
+        self.partitions = []
+
+    def wipe(self):
+        # Implement the wiping logic here
+        print(f"Wiping device: {self.device_path}")
+        self.partitions = []
+
+    def addPartition(self, partition):
+        self.partitions.append(partition)
+
+    def commit(self):
+        # Implement the logic to commit changes here
+        print(f"Committing changes to device: {self.device_path}")
+
+    def getPedDevice(self):
+        return self
+
+def convert_to_parted_disk(device_path):
+    # Replace this with your logic for converting device_path to parted.Disk
+    # For simplicity, we'll just return a PedDevice in this example
+    return PedDevice(device_path)
+
+def create_partition(device_path, next_partition_number, filesystem_type, aligned_start_sectors, partition_end_sectors, product_description):
     try:
-        # Obtener el dispositivo
-        device = parted.getDevice(device_path)
-        device.clobber()  # Destruir la tabla de particiones existente
-        disk = parted.newDisk(device)
+        megabytes = product_description / (1024 * 1024)
 
-        # Crear partición
-        geometry = parted.Geometry(start=aligned_start_sectors,
-                                   length=partition_end_sectors - aligned_start_sectors,
-                                   device=device)
-        filesystem = parted.FileSystem(type=filesystem_type, geometry=geometry)
-        partition = parted.Partition(disk=disk,
-                                     type=next_partition_number,  # Usar next_partition_number como tipo
-                                     fs=filesystem,
-                                     geometry=geometry)
-        disk.addPartition(partition, constraint=device.optimalAlignedConstraint)
-        disk.commit()
+        print(f"filesystem: '{filesystem_type}'")
+        print(f"size: '{megabytes}'")
+        print(f"start: '{aligned_start_sectors}'")
 
-        print(f"Partición {next_partition_number} creada con éxito en {device_pathe}")
+        # Convert device_path to parted.Disk
+        disk = convert_to_parted_disk(device_path)
+
+        # Clear existing partitions (optional, be cautious!)
+        disk.getPedDevice().wipe()
+
+        # Define partition parameters
+        # (size in MiB)
+        partition1 = parted.Partition(disk.getPedDevice())
+        disk.getPedDevice().addPartition(partition1)
+
+        # Align partitions for optimal performance (optional)
+        for partition in disk.getPedDevice().partitions:
+            partition.align(optimal=True)
+
+        # Set the filesystem type after aligning the partition
+        # Note: Replace 'ext4' with the desired filesystem type
+        disk.getPedDevice().partitions[0].setFilesystem(parted.FileSystem(type=filesystem_type, geometry=partition.geometry))
+
+        # Set the starting sector for the partition
+        disk.getPedDevice().partitions[0].setStart(aligned_start_sectors)
+
+        # Commit changes to the disk
+        disk.getPedDevice().commit()
+
+        print("Partitions created successfully!")
 
     except Exception as e:
         print(f"Error al crear la partición: {e}")
-
-def check_gpt(device_path):
-    try:
-        # Comando para comprobar si la unidad tiene una tabla de particiones GPT
-        check_command = f"sudo gdisk -l {device_path} | grep 'GPT'"
-
-        # Ejecutar el comando y capturar la salida
-        result = subprocess.run(check_command, shell=True, capture_output=True, text=True)
-
-        # Imprimir el resultado
-        print(result.stdout)
-
-    except subprocess.CalledProcessError as e:
-        print(f"Error al ejecutar el comando: {e}")
