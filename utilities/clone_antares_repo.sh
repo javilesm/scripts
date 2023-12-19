@@ -5,30 +5,31 @@
 API_URL="https://api.github.com" # API para autenticación en GitHub
 CURRENT_DIR="$( cd "$( dirname "${0}" )" && pwd )" # Obtener el directorio actual
 PARENT_DIR="$( dirname "$CURRENT_DIR" )" # Get the parent directory of the current directory
-GitHubRepoURL="https://github.com/TCS2211194M1/Antares_project.git"
 RepositoryDir="/var/www"
 CREDENTIALS_FILE="git_credentials.txt"
 CREDENTIALS_PATH="/home/ubuntu/$CREDENTIALS_FILE" # Directorio del archivo git_credentials.txt
 REPOSITORY="Antares_project" # Respositorio Github a clonar
+GitHubRepoURL="https://github.com/TCS2211194M1/$REPOSITORY.git" 
 SCRIPT_DIR="$RepositoryDir/$REPOSITORY" # Directorio final
+GitDir="$SCRIPT_DIR/.git"
 spacer="-------------------------------------------------------------------------------"
 
 # Función para leer credenciales desde archivo de texto
 function read_credentials() {
   echo "Leyendo credenciales..."
-if [ -f "$CREDENTIALS_PATH" ]; then
-    source "$CREDENTIALS_PATH"
-    username=${username%%[[:space:]]}  # Eliminar espacios en blanco finales
-    token=${token##+[[:space:]]}       # Eliminar espacios en blanco iniciales
-    export git="$GitHubRepoURL"
-    echo "***Credenciales de acceso***"
-    echo "--> username: $username"
-    echo "--> token: ${token:0:3}*********"
-    echo "--> URL: $git"
-else
-    echo "El archivo '$CREDENTIALS_FILE' no existe en la ubicación '$CREDENTIALS_PATH'. Por favor, cree el archivo con las variables username y token, y vuelva a intentarlo."
-    exit 1
-fi 
+    if [ -f "$CREDENTIALS_PATH" ]; then
+        source "$CREDENTIALS_PATH"
+        username=${username%%[[:space:]]}  # Eliminar espacios en blanco finales
+        token=${token##+[[:space:]]}       # Eliminar espacios en blanco iniciales
+        export git="$GitHubRepoURL"
+        echo "***Credenciales de acceso***"
+        echo "--> username: $username"
+        echo "--> token: ${token:0:3}*********"
+        echo "--> URL: $git"
+    else
+        echo "El archivo '$CREDENTIALS_FILE' no existe en la ubicación '$CREDENTIALS_PATH'. Por favor, cree el archivo con las variables username y token, y vuelva a intentarlo."
+        exit 1
+    fi 
 }
 
 # Función para verificar si el directorio de destino ya existe y clonar/actualizar Git
