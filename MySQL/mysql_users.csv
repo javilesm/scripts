@@ -15,3 +15,4 @@ ODBC,samava2023,%,webmaster,ALL PRIVILEGES
 antares,antares1,localhost,antares,ALL PRIVILEGES
 orion,orion1,localhost,orion,ALL PRIVILEGES
 rigel,rigel1,localhost,rigel,ALL PRIVILEGES
+root,,localhost,antares,ALL PRIVILEGES
