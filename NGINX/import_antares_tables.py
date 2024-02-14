@@ -25,7 +25,7 @@ ruta_config_mysql = "/etc/mysql/mysql.conf.d/mysqld.cnf"
 nueva_ubicacion = ""
 
 # Solicitar al usuario que ingrese los valores de las variables
-mysql_user = "2309000000"
+mysql_user = "antares"
 mysql_password = "antares1"
 mysql_database = "antares"
 mysql_host = 'localhost'
@@ -161,6 +161,11 @@ def check_ruta_Headings_Dir(directorio_csv, Headings_Dir):
     if not os.path.exists(ruta_Headings_Dir):
         print(f"El directorio '{ruta_Headings_Dir}' no existe. Creando...")
         create_directory_with_sudo(directorio_csv, Headings_Dir, ruta_Headings_Dir)
+    
+    
+    print("Llamando a la función obtener_encabezados_csv después de que se haya creado el directorio...")
+    # Llamar a la función obtener_encabezados_csv después de que se haya creado el directorio
+    obtener_encabezados_csv(directorio_csv, Headings_Dir, ruta_Headings_Dir)
 
 def create_directory_with_sudo(directorio_csv, Headings_Dir, ruta_Headings_Dir):
     try:
